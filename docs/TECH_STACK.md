@@ -1,7 +1,7 @@
 # 기술 스택 및 검증 기준
 
-> 상태: 초안  
-> 기준일: 2026-07-31  
+> 상태: Lab 웹 기준선 확정<br>
+> 기준일: 2026-08-03<br>
 > 기준 저장소: [aigemro/dream-bike-garage](https://github.com/aigemro/dream-bike-garage)
 
 이 문서는 메인 게임에 현재 적용된 기술과 앞으로 Lab에서 검증할 기술을 구분합니다. 아직 결정되지 않은 항목은 확정된 것처럼 구현하지 않습니다.
@@ -14,7 +14,7 @@
 | 게임 엔진 | Phaser 3.90 | 적용 | Canvas 렌더링, Scene, 드래그 입력 |
 | 빌드 도구 | Vite 7 | 적용 | 개발 서버와 정적 빌드 |
 | 패키지 관리 | npm | 적용 | `package-lock.json`, `npm ci` |
-| 테스트 | Vitest 3.2 | 적용 | Phaser와 분리된 도메인 규칙 테스트 |
+| 테스트 | 자동화 테스트 미도입 | 예정 | 도메인 규칙 분리 시 Vitest 도입 검토 |
 | 웹 UI | HTML/CSS + Phaser Canvas | 적용 | React 등 UI 프레임워크는 현재 사용하지 않음 |
 | 화면 기준 | 390 × 810, Phaser Scale FIT | 적용 | 모바일 세로 화면 우선 |
 | 배포 | GitHub Actions + GitHub Pages | 적용 | `main` 반영 시 테스트·빌드·배포 |
@@ -107,3 +107,7 @@ platform adapter
 8. **출시 외 플랫폼**: 추후 Google Play/iOS 독립 출시까지 준비할지
 
 이 기준이 정해지면 ADR(`docs/decisions/`)로 확정하고 Lab 실험 순서를 세분화합니다.
+
+## 7. 실행 및 배포 기준
+
+Phaser + Vite의 실제 프로젝트 구조, 로컬 실행, 프로덕션 빌드, GitHub Pages 배포와 확인 절차는 [PHASER_VITE_GUIDE.md](PHASER_VITE_GUIDE.md)를 기준으로 합니다.
