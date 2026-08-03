@@ -9,6 +9,7 @@
 - 기술 구성: [docs/TECH_STACK.md](docs/TECH_STACK.md)
 - Phaser + Vite 실행·배포 기준: [docs/PHASER_VITE_GUIDE.md](docs/PHASER_VITE_GUIDE.md)
 - 실험 운영 기준: [docs/EXPERIMENT_GUIDE.md](docs/EXPERIMENT_GUIDE.md)
+- GitHub Issue 의견 연동: [docs/GITHUB_ISSUE_INTEGRATION.md](docs/GITHUB_ISSUE_INTEGRATION.md)
 - 메인 프로젝트와의 역할 경계: [docs/PROJECT_BOUNDARY.md](docs/PROJECT_BOUNDARY.md)
 
 ## Lab의 역할
@@ -58,9 +59,10 @@ Lab은 기능 하나를 완성하는 저장소가 아니라, 같은 게임 코�
 1. 메인 화면에서 **Game Core**와 **Platform & Technology** 영역을 구분합니다.
 2. Game Core에서 머지·수집 등 원하는 트랙을 선택합니다.
 3. 트랙 화면에서 Prototype A/B/C를 같은 기준으로 비교합니다.
-4. 각 프로토타입은 독립 URL과 독립 실행 화면을 가집니다.
-5. 비교표와 검토 메모를 남기고 채택 여부를 결정합니다.
-6. 선택된 결과만 메인 저장소의 Issue로 연결합니다.
+4. 방안 카드를 선택하면 구현 설명과 연결 Issue 댓글을 확인합니다.
+5. `체험 화면으로 이동` 버튼을 눌러 독립 실행 화면으로 이동합니다.
+6. 의견은 `GitHub에서 댓글 등록` 버튼으로 연결된 Issue에서 등록합니다.
+7. 비교 결과를 남기고 선택된 결과만 메인 저장소의 Issue로 연결합니다.
 
 ## 프로토타입 공통 정보
 
