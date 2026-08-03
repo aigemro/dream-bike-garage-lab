@@ -8,6 +8,7 @@
 - Lab 실행 화면: [GitHub Pages](https://aigemro.github.io/dream-bike-garage-lab/)
 - 기술 구성: [docs/TECH_STACK.md](docs/TECH_STACK.md)
 - 실험 운영 기준: [docs/EXPERIMENT_GUIDE.md](docs/EXPERIMENT_GUIDE.md)
+- 메인 프로젝트와의 역할 경계: [docs/PROJECT_BOUNDARY.md](docs/PROJECT_BOUNDARY.md)
 
 ## Lab의 역할
 
