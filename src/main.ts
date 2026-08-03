@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import './styles.css';
 import variantDocs from './variant-docs';
+import { startMergePrototype, type MergePrototypeMode } from './merge-prototype';
 
 type Status = '체험 가능' | '준비 중';
 type Variant = {
@@ -11,7 +12,7 @@ type Variant = {
   status: Status;
   question: string;
   controls: string;
-  demo?: 'tap-merge';
+  demo?: MergePrototypeMode;
   issueNumber: number;
   documentId: string;
 };
@@ -38,25 +39,27 @@ const tracks: Track[] = [
         status: '체험 가능',
         question: '모바일에서도 가장 단순한 입력만으로 머지 규칙을 쉽게 이해할 수 있는가?',
         controls: '빈 칸을 눌러 생성하고, 같은 단계의 부품 두 개를 차례로 누릅니다.',
-        demo: 'tap-merge', issueNumber: 10, documentId: 'merge-free-board',
+        demo: 'free', issueNumber: 10, documentId: 'merge-free-board',
       },
       {
         id: 'order-merge',
         label: 'B안',
         title: '주문 목표 중심 머지',
         description: '고객 주문에 필요한 부품을 먼저 보여주고 목표를 향해 머지하는 방식입니다.',
-        status: '준비 중',
+        status: '체험 가능',
         question: '자유 보드보다 목표성과 플레이 템포가 좋아지는가?',
-        controls: '주문 목표를 확인하고 필요한 단계까지 부품을 머지합니다.', issueNumber: 13, documentId: 'merge-order',
+        controls: '주문 목표를 확인하고 필요한 종류를 생성해 요구 단계까지 머지한 뒤 납품합니다.',
+        demo: 'order', issueNumber: 13, documentId: 'merge-order',
       },
       {
-        id: 'auto-merge',
+        id: 'guided-merge',
         label: 'C안',
-        title: '자동 머지',
-        description: '같은 부품이 조건을 만족하면 자동으로 합쳐져 빠른 템포를 만드는 방식입니다.',
-        status: '준비 중',
-        question: '조작 부담을 줄이면서도 플레이어의 선택과 성취감을 유지할 수 있는가?',
-        controls: '부품을 생성·배치하면 조건에 따라 자동 머지가 실행됩니다.', issueNumber: 9, documentId: 'merge-auto',
+        title: '자유 보드 + 주문 가이드',
+        description: '자유로운 선행 제작은 유지하면서 현재 주문에 필요한 부품만 최소한으로 안내합니다.',
+        status: '체험 가능',
+        question: '자유 보드의 공간 관리 재미와 주문 목표의 명확성을 함께 확보할 수 있는가?',
+        controls: '원하는 부품을 자유롭게 만들되, 빛나는 목표 표시와 다음 행동 힌트를 참고합니다.',
+        demo: 'guided', issueNumber: 25, documentId: 'merge-guided',
       },
     ],
   },
@@ -222,61 +225,13 @@ async function loadIssueComments(issueNumber: number) {
 function renderDemo(track: Track, variant: Variant) {
   destroyGame();
   shell(`<main class="experiment-page"><section class="experiment-title"><p class="eyebrow">${track.title} · ${variant.label} · LIVE DEMO</p><h1>${variant.title}</h1><p>${variant.controls}</p></section>
-    ${variant.demo === 'tap-merge' ? `<section class="demo-panel"><div class="demo-head"><div><span>LIVE DEMO</span><strong>${variant.title}</strong></div><button id="reset-demo">초기화</button></div><div id="game-root"></div><p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
+    ${variant.demo ? `<section class="demo-panel"><div class="demo-head"><div><span>LIVE DEMO · 6×7 · 4 PARTS</span><strong>${variant.title}</strong></div><button id="reset-demo">초기화</button></div><div id="game-root"></div><p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
   </main>`, { href: `#/track/${track.id}/${variant.id}`, label: `${variant.title} 상세` });
-  if (variant.demo === 'tap-merge') { startMergeDemo(); document.querySelector('#reset-demo')?.addEventListener('click', startMergeDemo); }
-}
-
-class MergeScene extends Phaser.Scene {
-  private cells: Array<{ level: number; item?: Phaser.GameObjects.Container }> = [];
-  private selected = -1;
-  private info!: Phaser.GameObjects.Text;
-  create() {
-    this.cameras.main.setBackgroundColor('#0b1727');
-    this.add.text(24, 20, 'TAP SELECT MERGE', { fontFamily: 'Arial', fontSize: '14px', color: '#55d6be', fontStyle: 'bold' });
-    this.info = this.add.text(616, 22, '부품 0개', { fontFamily: 'Arial', fontSize: '14px', color: '#aebfd0' }).setOrigin(1, 0);
-    for (let i = 0; i < 12; i += 1) {
-      const x = 56 + (i % 4) * 142;
-      const y = 78 + Math.floor(i / 4) * 122;
-      const zone = this.add.rectangle(x, y, 112, 94, 0x13263b).setStrokeStyle(2, 0x28455f).setInteractive({ useHandCursor: true });
-      this.add.text(x, y, '+', { fontFamily: 'Arial', fontSize: '24px', color: '#36546d' }).setOrigin(0.5);
-      this.cells.push({ level: 0 });
-      zone.on('pointerdown', () => this.handleCell(i, x, y));
-    }
+  if (variant.demo) {
+    const start = () => { destroyGame(); game = startMergePrototype('game-root', variant.demo!); };
+    start();
+    document.querySelector('#reset-demo')?.addEventListener('click', start);
   }
-  private handleCell(index: number, x: number, y: number) {
-    const cell = this.cells[index];
-    if (!cell.item) {
-      cell.level = 1; cell.item = this.makeItem(x, y, 1); this.updateInfo('새 부품을 생성했습니다.'); return;
-    }
-    if (this.selected < 0) {
-      this.selected = index; cell.item.setScale(1.1); this.updateInfo('같은 단계의 부품을 선택하세요.'); return;
-    }
-    const previous = this.cells[this.selected];
-    previous.item?.setScale(1);
-    if (this.selected !== index && previous.level === cell.level) {
-      previous.item?.destroy(); previous.item = undefined; previous.level = 0;
-      cell.level += 1; cell.item?.destroy(); cell.item = this.makeItem(x, y, cell.level);
-      this.updateInfo(`Level ${cell.level} 부품으로 머지했습니다!`);
-    } else this.updateInfo('같은 단계의 다른 부품이 필요합니다.');
-    this.selected = -1;
-  }
-  private makeItem(x: number, y: number, level: number) {
-    const colors = [0x55d6be, 0xffb35c, 0xff6b6b, 0x8c7bff];
-    return this.add.container(x, y, [
-      this.add.circle(0, 0, 32, colors[(level - 1) % colors.length]),
-      this.add.text(0, -5, '⚙', { fontSize: '25px' }).setOrigin(0.5),
-      this.add.text(0, 24, `L${level}`, { fontFamily: 'Arial', fontSize: '12px', color: '#07111f', fontStyle: 'bold' }).setOrigin(0.5),
-    ]);
-  }
-  private updateInfo(message: string) {
-    this.info.setText(`${message}  ·  부품 ${this.cells.filter((cell) => cell.item).length}개`);
-  }
-}
-
-function startMergeDemo() {
-  destroyGame();
-  game = new Phaser.Game({ type: Phaser.AUTO, parent: 'game-root', width: 640, height: 440, backgroundColor: '#0b1727', scene: MergeScene, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH } });
 }
 
 function route() {

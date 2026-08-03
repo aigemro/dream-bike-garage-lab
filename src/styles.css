@@ -40,7 +40,7 @@ h1, h2, h3 { font-family: 'Manrope', sans-serif; margin: 0; }
 .demo-panel, .empty-panel { margin-top: 20px; border: 1px solid #294158; background: #0b1828; padding: 20px; }
 .demo-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }.demo-head span, .empty-panel > span { display: block; color: #55d6be; font-size: 9px; letter-spacing: .18em; }.demo-head strong { display: block; margin-top: 5px; font-size: 14px; }
 button { color: #d8e5ee; background: transparent; border: 1px solid #395168; padding: 9px 15px; cursor: pointer; }button:hover { border-color: #55d6be; color: #55d6be; }
-#game-root { width: 100%; aspect-ratio: 16 / 11; max-height: 580px; background: #07111f; }.hint { color: #70869a; font-size: 12px; margin: 14px 2px 0; }
+#game-root { width: 100%; aspect-ratio: 3 / 4; max-height: min(760px, 78vh); background: #07111f; }.hint { color: #70869a; font-size: 12px; margin: 14px 2px 0; }
 .empty-panel { padding: 72px 42px; text-align: center; }.empty-panel h2 { font-size: 28px; margin: 16px 0 10px; }.empty-panel p { color: #8196aa; max-width: 590px; margin: auto; line-height: 1.7; }
 .detail-layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(340px, .9fr); gap: 18px; margin-top: 32px; align-items: start; }
 .implementation-doc, .discussion-panel, .launch-panel { border: 1px solid #294158; background: rgba(11, 24, 40, .9); padding: 26px; }

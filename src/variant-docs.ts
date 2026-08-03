@@ -1,6 +1,6 @@
 import doc0 from '../docs/variants/merge-free-board.md?raw';
 import doc1 from '../docs/variants/merge-order.md?raw';
-import doc2 from '../docs/variants/merge-auto.md?raw';
+import doc2 from '../docs/variants/merge-guided.md?raw';
 import doc3 from '../docs/variants/collection-catalog.md?raw';
 import doc4 from '../docs/variants/collection-garage.md?raw';
 import doc5 from '../docs/variants/collection-dream-bike.md?raw';
@@ -16,7 +16,7 @@ import doc13 from '../docs/variants/toss-sdk.md?raw';
 const variantDocs: Record<string, string> = {
   'merge-free-board': doc0,
   'merge-order': doc1,
-  'merge-auto': doc2,
+  'merge-guided': doc2,
   'collection-catalog': doc3,
   'collection-garage': doc4,
   'collection-dream-bike': doc5,
@@ -31,4 +31,3 @@ const variantDocs: Record<string, string> = {
 };
 
 export default variantDocs;
-
