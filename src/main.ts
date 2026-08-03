@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import './styles.css';
+import variantDocs from './variant-docs';
 
 type Status = '체험 가능' | '준비 중';
 type Variant = {
@@ -11,6 +12,8 @@ type Variant = {
   question: string;
   controls: string;
   demo?: 'tap-merge';
+  issueNumber: number;
+  documentId: string;
 };
 type Track = {
   id: string;
@@ -30,21 +33,21 @@ const tracks: Track[] = [
       {
         id: 'tap-select',
         label: 'A안',
-        title: '탭 선택 머지',
-        description: '부품 두 개를 차례로 선택하여 합치는 현재 기준안입니다.',
+        title: '자유 보드 2-to-1 머지',
+        description: '자유 보드에서 부품 두 개를 차례로 선택하여 합치는 현재 기준안입니다.',
         status: '체험 가능',
         question: '모바일에서도 가장 단순한 입력만으로 머지 규칙을 쉽게 이해할 수 있는가?',
         controls: '빈 칸을 눌러 생성하고, 같은 단계의 부품 두 개를 차례로 누릅니다.',
-        demo: 'tap-merge',
+        demo: 'tap-merge', issueNumber: 10, documentId: 'merge-free-board',
       },
       {
-        id: 'drag-merge',
+        id: 'order-merge',
         label: 'B안',
-        title: '드래그 머지',
-        description: '부품을 직접 끌어 같은 부품 위에 놓는 전통적인 머지 방식입니다.',
+        title: '주문 목표 중심 머지',
+        description: '고객 주문에 필요한 부품을 먼저 보여주고 목표를 향해 머지하는 방식입니다.',
         status: '준비 중',
-        question: '직접 움직이는 손맛이 탭 방식보다 명확하고 재미있는가?',
-        controls: '부품을 드래그해 같은 단계의 부품 위에 놓습니다.',
+        question: '자유 보드보다 목표성과 플레이 템포가 좋아지는가?',
+        controls: '주문 목표를 확인하고 필요한 단계까지 부품을 머지합니다.', issueNumber: 13, documentId: 'merge-order',
       },
       {
         id: 'auto-merge',
@@ -53,7 +56,7 @@ const tracks: Track[] = [
         description: '같은 부품이 조건을 만족하면 자동으로 합쳐져 빠른 템포를 만드는 방식입니다.',
         status: '준비 중',
         question: '조작 부담을 줄이면서도 플레이어의 선택과 성취감을 유지할 수 있는가?',
-        controls: '부품을 생성·배치하면 조건에 따라 자동 머지가 실행됩니다.',
+        controls: '부품을 생성·배치하면 조건에 따라 자동 머지가 실행됩니다.', issueNumber: 9, documentId: 'merge-auto',
       },
     ],
   },
@@ -63,9 +66,9 @@ const tracks: Track[] = [
     title: '자전거 수집',
     description: '완성한 자전거를 어떻게 보여주고 성장 동기로 연결할지 비교합니다.',
     variants: [
-      { id: 'catalog', label: 'A안', title: '도감형 수집', description: '종류와 등급별 빈칸을 채우는 방식입니다.', status: '준비 중', question: '미완성 항목이 다음 수집 동기를 만드는가?', controls: '자전거를 획득하고 도감의 빈칸을 확인합니다.' },
-      { id: 'garage', label: 'B안', title: 'Garage 전시', description: '보유 자전거를 공간에 배치하고 감상하는 방식입니다.', status: '준비 중', question: '전시가 자전거 소유감과 애착을 높이는가?', controls: '자전거를 선택해 Garage에 배치합니다.' },
-      { id: 'dream-bike', label: 'C안', title: '드림 바이크 성장', description: '한 대의 자전거를 지속적으로 업그레이드하는 방식입니다.', status: '준비 중', question: '집중 성장 방식이 장기 목표를 더 선명하게 만드는가?', controls: '획득한 재화와 부품으로 내 자전거를 성장시킵니다.' },
+      { id: 'catalog', label: 'A안', title: '도감형 수집', description: '종류와 등급별 빈칸을 채우는 방식입니다.', status: '준비 중', question: '미완성 항목이 다음 수집 동기를 만드는가?', controls: '자전거를 획득하고 도감의 빈칸을 확인합니다.', issueNumber: 14, documentId: 'collection-catalog' },
+      { id: 'garage', label: 'B안', title: 'Garage 전시', description: '보유 자전거를 공간에 배치하고 감상하는 방식입니다.', status: '준비 중', question: '전시가 자전거 소유감과 애착을 높이는가?', controls: '자전거를 선택해 Garage에 배치합니다.', issueNumber: 12, documentId: 'collection-garage' },
+      { id: 'dream-bike', label: 'C안', title: '드림 바이크 성장', description: '한 대의 자전거를 지속적으로 업그레이드하는 방식입니다.', status: '준비 중', question: '집중 성장 방식이 장기 목표를 더 선명하게 만드는가?', controls: '획득한 재화와 부품으로 내 자전거를 성장시킵니다.', issueNumber: 11, documentId: 'collection-dream-bike' },
     ],
   },
   {
@@ -74,8 +77,8 @@ const tracks: Track[] = [
     title: '주문과 조립',
     description: '머지한 부품이 고객 주문과 자전거 조립으로 이어지는 방식을 검증합니다.',
     variants: [
-      { id: 'parts-delivery', label: 'A안', title: '부품 납품형', description: '요구 부품을 완성하면 즉시 주문에 납품합니다.', status: '준비 중', question: '주문 목표를 가장 빠르게 이해할 수 있는가?', controls: '완성 부품을 주문 슬롯으로 전달합니다.' },
-      { id: 'assembly-slots', label: 'B안', title: '슬롯 조립형', description: '프레임·휠·구동계 슬롯을 모두 채워 자전거를 완성합니다.', status: '준비 중', question: '자전거를 조립한다는 느낌이 충분히 전달되는가?', controls: '부품을 해당 조립 슬롯에 장착합니다.' },
+      { id: 'parts-delivery', label: 'A안', title: '조건 충족 자동 조립', description: '요구 부품을 완성하면 즉시 자전거를 조립합니다.', status: '준비 중', question: '주문 목표를 가장 빠르게 이해할 수 있는가?', controls: '필요한 부품을 완성해 자동 조립 결과를 확인합니다.', issueNumber: 17, documentId: 'assembly-auto' },
+      { id: 'assembly-slots', label: 'B안', title: '슬롯 조립형', description: '프레임·휠·구동계 슬롯을 모두 채워 자전거를 완성합니다.', status: '준비 중', question: '자전거를 조립한다는 느낌이 충분히 전달되는가?', controls: '부품을 해당 조립 슬롯에 장착합니다.', issueNumber: 18, documentId: 'assembly-slots' },
     ],
   },
   {
@@ -84,8 +87,8 @@ const tracks: Track[] = [
     title: '입력과 반응형 화면',
     description: '마우스·터치 입력과 다양한 화면 비율의 동작을 비교합니다.',
     variants: [
-      { id: 'pointer-input', label: 'A안', title: '통합 Pointer 입력', description: '마우스와 터치를 하나의 입력 흐름으로 처리합니다.', status: '준비 중', question: '기기별 입력 차이를 안정적으로 흡수하는가?', controls: '마우스와 터치로 동일 동작을 반복합니다.' },
-      { id: 'fit-layout', label: 'B안', title: '화면 맞춤형 레이아웃', description: '게임 전체를 화면 안에 맞추고 여백을 조절합니다.', status: '준비 중', question: '주요 해상도에서 잘림 없이 조작 가능한가?', controls: '화면 크기와 방향을 바꿔 레이아웃을 확인합니다.' },
+      { id: 'pointer-input', label: 'A안', title: '통합 Pointer 입력', description: '마우스와 터치를 하나의 입력 흐름으로 처리합니다.', status: '준비 중', question: '기기별 입력 차이를 안정적으로 흡수하는가?', controls: '마우스와 터치로 동일 동작을 반복합니다.', issueNumber: 4, documentId: 'input-pointer' },
+      { id: 'fit-layout', label: 'B안', title: '화면 맞춤형 레이아웃', description: '게임 전체를 화면 안에 맞추고 여백을 조절합니다.', status: '준비 중', question: '주요 해상도에서 잘림 없이 조작 가능한가?', controls: '화면 크기와 방향을 바꿔 레이아웃을 확인합니다.', issueNumber: 4, documentId: 'input-layout' },
     ],
   },
   {
@@ -94,8 +97,8 @@ const tracks: Track[] = [
     title: '진행 상태 저장',
     description: '보드와 재화를 유지하는 저장 방식을 단계적으로 비교합니다.',
     variants: [
-      { id: 'local-storage', label: 'A안', title: 'localStorage', description: '가장 단순한 브라우저 저장 방식입니다.', status: '준비 중', question: 'MVP 진행 상태를 충분히 안정적으로 보존하는가?', controls: '플레이 후 새로고침하고 상태를 비교합니다.' },
-      { id: 'indexed-db', label: 'B안', title: 'IndexedDB', description: '더 큰 구조화 데이터를 브라우저에 저장합니다.', status: '준비 중', question: '복잡한 상태와 버전 변경을 관리하기 쉬운가?', controls: '여러 저장 슬롯과 데이터 변경을 검증합니다.' },
+      { id: 'local-storage', label: 'A안', title: 'localStorage', description: '가장 단순한 브라우저 저장 방식입니다.', status: '준비 중', question: 'MVP 진행 상태를 충분히 안정적으로 보존하는가?', controls: '플레이 후 새로고침하고 상태를 비교합니다.', issueNumber: 3, documentId: 'storage-local' },
+      { id: 'indexed-db', label: 'B안', title: 'IndexedDB', description: '더 큰 구조화 데이터를 브라우저에 저장합니다.', status: '준비 중', question: '복잡한 상태와 버전 변경을 관리하기 쉬운가?', controls: '여러 저장 슬롯과 데이터 변경을 검증합니다.', issueNumber: 3, documentId: 'storage-indexed-db' },
     ],
   },
   {
@@ -104,8 +107,8 @@ const tracks: Track[] = [
     title: '앱인토스 WebView',
     description: '토스 앱 내부 환경에서 필요한 기능을 작은 실험으로 분리해 확인합니다.',
     variants: [
-      { id: 'lifecycle', label: 'A안', title: '라이프사이클', description: '진입·백그라운드·복귀 시 게임 상태를 확인합니다.', status: '준비 중', question: '앱 전환 뒤에도 게임이 정상 복귀하는가?', controls: '앱 상태를 전환하고 게임 상태를 비교합니다.' },
-      { id: 'sdk-bridge', label: 'B안', title: 'SDK 연결', description: '앱인토스 기능을 어댑터를 통해 호출합니다.', status: '준비 중', question: '웹 게임 코드와 플랫폼 기능을 분리할 수 있는가?', controls: '지원 기능 호출과 실패 처리를 확인합니다.' },
+      { id: 'lifecycle', label: 'A안', title: '라이프사이클', description: '진입·백그라운드·복귀 시 게임 상태를 확인합니다.', status: '준비 중', question: '앱 전환 뒤에도 게임이 정상 복귀하는가?', controls: '앱 상태를 전환하고 게임 상태를 비교합니다.', issueNumber: 5, documentId: 'toss-lifecycle' },
+      { id: 'sdk-bridge', label: 'B안', title: 'SDK 연결', description: '앱인토스 기능을 어댑터를 통해 호출합니다.', status: '준비 중', question: '웹 게임 코드와 플랫폼 기능을 분리할 수 있는가?', controls: '지원 기능 호출과 실패 처리를 확인합니다.', issueNumber: 6, documentId: 'toss-sdk' },
     ],
   },
 ];
@@ -164,19 +167,64 @@ function renderTrack(track: Track) {
   </main>`, { href: '#', label: '전체 트랙' });
 }
 
+function escapeHtml(value: string) {
+  return value.replace(/[&<>\"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'": '&#039;' })[character]!);
+}
+
+function renderMarkdown(markdown: string) {
+  return markdown.split('\n').map((line) => {
+    if (line.startsWith('## ')) return `<h3>${escapeHtml(line.slice(3))}</h3>`;
+    if (line.startsWith('# ')) return `<h2>${escapeHtml(line.slice(2))}</h2>`;
+    if (line.startsWith('- ')) return `<li>${escapeHtml(line.slice(2))}</li>`;
+    return line.trim() ? `<p>${escapeHtml(line)}</p>` : '';
+  }).join('');
+}
+
 function renderVariant(track: Track, variant: Variant) {
   destroyGame();
-  const ready = variant.status === '체험 가능';
+  const issueUrl = `https://github.com/aigemro/dream-bike-garage-lab/issues/${variant.issueNumber}`;
   shell(`<main class="experiment-page">
     <section class="experiment-title"><p class="eyebrow">${track.title} · ${variant.label} · ${variant.status}</p><h1>${variant.title}</h1><p>${variant.description}</p></section>
     <section class="variant-meta"><div><span>검증 질문</span><strong>${variant.question}</strong></div><div><span>조작 방법</span><strong>${variant.controls}</strong></div></section>
-    ${ready ? `<section class="demo-panel"><div class="demo-head"><div><span>LIVE DEMO</span><strong>${variant.title}</strong></div><button id="reset-demo">초기화</button></div><div id="game-root"></div><p class="hint">${variant.controls}</p></section>`
-      : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2><p>별도 Issue에서 구현한 뒤 이 URL에 데모와 비교 결과를 연결할 수 있습니다.</p></section>`}
+    <div class="detail-layout">
+      <article class="implementation-doc"><p class="panel-label">IMPLEMENTATION NOTE · MARKDOWN</p>${renderMarkdown(variantDocs[variant.documentId])}</article>
+      <aside class="discussion-panel">
+        <div class="discussion-head"><div><p class="panel-label">GITHUB DISCUSSION</p><h2>Issue #${variant.issueNumber} 의견</h2></div><a href="${issueUrl}" target="_blank" rel="noreferrer">Issue 열기 ↗</a></div>
+        <div id="issue-comments" class="comments"><p class="comment-state">댓글을 불러오는 중입니다.</p></div>
+        <label class="comment-compose"><span>의견 작성</span><textarea id="comment-draft" rows="4" placeholder="이 방안에 대한 의견을 작성하세요."></textarea></label>
+        <button id="open-comment" class="secondary-action">내용 복사 후 GitHub에서 등록</button>
+        <p class="auth-note">보안을 위해 GitHub에서 로그인한 뒤 Issue 댓글로 등록합니다.</p>
+      </aside>
+    </div>
+    <section class="launch-panel"><div><p class="panel-label">PROTOTYPE</p><h2>${variant.status === '체험 가능' ? '상세 내용을 확인했다면 방안을 직접 체험해보세요.' : '이 방안은 아직 구현 준비 중입니다.'}</h2></div>${variant.status === '체험 가능' ? `<a class="primary-action" href="#/track/${track.id}/${variant.id}/demo">체험 화면으로 이동 →</a>` : '<span class="disabled-action">준비 중</span>'}</section>
   </main>`, { href: `#/track/${track.id}`, label: `${track.title} 방안 목록` });
-  if (variant.demo === 'tap-merge') {
-    startMergeDemo();
-    document.querySelector('#reset-demo')?.addEventListener('click', startMergeDemo);
+  loadIssueComments(variant.issueNumber);
+  document.querySelector('#open-comment')?.addEventListener('click', async () => {
+    const draft = (document.querySelector<HTMLTextAreaElement>('#comment-draft')?.value ?? '').trim();
+    if (draft) await navigator.clipboard?.writeText(draft).catch(() => undefined);
+    window.open(`${issueUrl}#new_comment_field`, '_blank', 'noopener,noreferrer');
+  });
+}
+
+async function loadIssueComments(issueNumber: number) {
+  const target = document.querySelector<HTMLDivElement>('#issue-comments');
+  if (!target) return;
+  try {
+    const response = await fetch(`https://api.github.com/repos/aigemro/dream-bike-garage-lab/issues/${issueNumber}/comments`, { headers: { Accept: 'application/vnd.github+json' } });
+    if (!response.ok) throw new Error(String(response.status));
+    const comments = await response.json() as Array<{ id: number; body: string; created_at: string; user: { login: string; avatar_url: string; html_url: string } }>;
+    target.innerHTML = comments.length ? comments.map((comment) => `<article class="comment"><header><img src="${comment.user.avatar_url}" alt="" /><a href="${comment.user.html_url}" target="_blank" rel="noreferrer">${escapeHtml(comment.user.login)}</a><time>${new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium' }).format(new Date(comment.created_at))}</time></header><div>${renderMarkdown(comment.body)}</div></article>`).join('') : '<p class="comment-state">아직 등록된 의견이 없습니다. 첫 의견을 남겨보세요.</p>';
+  } catch {
+    target.innerHTML = '<p class="comment-state">댓글을 불러오지 못했습니다. GitHub Issue에서 직접 확인할 수 있습니다.</p>';
   }
+}
+
+function renderDemo(track: Track, variant: Variant) {
+  destroyGame();
+  shell(`<main class="experiment-page"><section class="experiment-title"><p class="eyebrow">${track.title} · ${variant.label} · LIVE DEMO</p><h1>${variant.title}</h1><p>${variant.controls}</p></section>
+    ${variant.demo === 'tap-merge' ? `<section class="demo-panel"><div class="demo-head"><div><span>LIVE DEMO</span><strong>${variant.title}</strong></div><button id="reset-demo">초기화</button></div><div id="game-root"></div><p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
+  </main>`, { href: `#/track/${track.id}/${variant.id}`, label: `${variant.title} 상세` });
+  if (variant.demo === 'tap-merge') { startMergeDemo(); document.querySelector('#reset-demo')?.addEventListener('click', startMergeDemo); }
 }
 
 class MergeScene extends Phaser.Scene {
@@ -237,7 +285,8 @@ function route() {
   const track = tracks.find((item) => item.id === parts[1]);
   if (!track) return renderHome();
   const variant = track.variants.find((item) => item.id === parts[2]);
-  variant ? renderVariant(track, variant) : renderTrack(track);
+  if (!variant) return renderTrack(track);
+  parts[3] === 'demo' ? renderDemo(track, variant) : renderVariant(track, variant);
 }
 
 window.addEventListener('hashchange', route);
