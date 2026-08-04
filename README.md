@@ -9,6 +9,7 @@
 - 기술 구성: [docs/TECH_STACK.md](docs/TECH_STACK.md)
 - Phaser + Vite 실행·배포 기준: [docs/PHASER_VITE_GUIDE.md](docs/PHASER_VITE_GUIDE.md)
 - 실험 운영 기준: [docs/EXPERIMENT_GUIDE.md](docs/EXPERIMENT_GUIDE.md)
+- 전체 트랙·프로토타입 지도: [docs/LAB_PROTOTYPE_MAP.md](docs/LAB_PROTOTYPE_MAP.md)
 - GitHub Issue 의견 연동: [docs/GITHUB_ISSUE_INTEGRATION.md](docs/GITHUB_ISSUE_INTEGRATION.md)
 - 메인 프로젝트와의 역할 경계: [docs/PROJECT_BOUNDARY.md](docs/PROJECT_BOUNDARY.md)
 
