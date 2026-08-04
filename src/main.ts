@@ -85,13 +85,25 @@ const tracks: Track[] = [
     ],
   },
   {
-    id: 'input-responsive',
+    id: 'input-methods',
     group: 'PLATFORM & TECHNOLOGY',
-    title: '입력과 반응형 화면',
-    description: '마우스·터치 입력과 다양한 화면 비율의 동작을 비교합니다.',
+    title: '입력 방식',
+    description: '화면 구성과 분리해 탭·드래그 조작을 어떤 규칙으로 처리할지 비교합니다.',
     variants: [
-      { id: 'pointer-input', label: 'A안', title: '통합 Pointer 입력', description: '마우스와 터치를 하나의 입력 흐름으로 처리합니다.', status: '준비 중', question: '기기별 입력 차이를 안정적으로 흡수하는가?', controls: '마우스와 터치로 동일 동작을 반복합니다.', issueNumber: 4, documentId: 'input-pointer' },
-      { id: 'fit-layout', label: 'B안', title: '화면 맞춤형 레이아웃', description: '게임 전체를 화면 안에 맞추고 여백을 조절합니다.', status: '준비 중', question: '주요 해상도에서 잘림 없이 조작 가능한가?', controls: '화면 크기와 방향을 바꿔 레이아웃을 확인합니다.', issueNumber: 4, documentId: 'input-layout' },
+      { id: 'tap-move', label: 'A안', title: '탭 선택·탭 이동', description: '부품과 목적지를 순서대로 탭해 이동하거나 머지합니다.', status: '준비 중', question: '작은 모바일 화면에서 가장 정확하고 이해하기 쉬운가?', controls: '부품을 탭한 뒤 목적지 칸을 다시 탭합니다.', issueNumber: 32, documentId: 'input-tap' },
+      { id: 'drag-drop', label: 'B안', title: '직접 드래그 앤 드롭', description: '부품을 직접 끌어 목적지에 놓아 이동하거나 머지합니다.', status: '준비 중', question: '직접 조작하는 손맛과 의도가 가장 잘 전달되는가?', controls: '부품을 누른 채 끌어서 목적지에 놓습니다.', issueNumber: 34, documentId: 'input-drag' },
+      { id: 'hybrid-input', label: 'C안', title: '탭·드래그 하이브리드', description: '탭과 드래그를 모두 허용하고 같은 명령으로 연결합니다.', status: '준비 중', question: '선택권을 늘리면서도 입력 규칙의 혼란을 피할 수 있는가?', controls: '짧게 탭하거나 일정 거리 이상 끌어 같은 부품 조작을 수행합니다.', issueNumber: 37, documentId: 'input-hybrid' },
+    ],
+  },
+  {
+    id: 'responsive-layout',
+    group: 'PLATFORM & TECHNOLOGY',
+    title: '반응형 화면',
+    description: '모바일·태블릿·데스크톱에서 보드와 정보 영역을 구성하는 방식을 비교합니다.',
+    variants: [
+      { id: 'fit-layout', label: 'A안', title: '전체 화면 FIT', description: '고정된 게임 화면 전체를 기기 안에 축소·확대해 맞춥니다.', status: '준비 중', question: '가장 단순한 구조로 화면 잘림을 안정적으로 방지하는가?', controls: '화면 크기와 방향을 바꿔 전체 스케일과 여백을 확인합니다.', issueNumber: 36, documentId: 'responsive-fit' },
+      { id: 'reflow-layout', label: 'B안', title: '영역 재배치 반응형', description: '보드·주문·조작 영역을 화면 폭에 맞춰 재배치합니다.', status: '준비 중', question: '각 기기에서 정보성과 조작 크기를 함께 유지하는가?', controls: '모바일 단일 열과 데스크톱 병렬 배치를 비교합니다.', issueNumber: 38, documentId: 'responsive-reflow' },
+      { id: 'safe-area-layout', label: 'C안', title: 'Safe Area 중심 적응형', description: '실제 가용 높이와 Safe Area를 기준으로 보드를 우선 보존합니다.', status: '준비 중', question: 'WebView 환경에서도 핵심 보드 크기와 조작 영역을 유지하는가?', controls: '노치·홈 영역과 화면 높이 변화에서 보드와 부가 UI를 확인합니다.', issueNumber: 35, documentId: 'responsive-safe-area' },
     ],
   },
   {
