@@ -69,6 +69,8 @@ class MergePrototypeScene extends Phaser.Scene {
   private info!: Phaser.GameObjects.Text;
   private metrics!: Phaser.GameObjects.Text;
   private orderText?: Phaser.GameObjects.Text;
+  private orderBike?: Phaser.GameObjects.Graphics;
+  private goalSlots = new Map<PartType, { label: Phaser.GameObjects.Text; panel: Phaser.GameObjects.Rectangle }>();
 
   create() {
     this.cameras.main.setBackgroundColor('#0b1727');
@@ -83,11 +85,26 @@ class MergePrototypeScene extends Phaser.Scene {
   update() { this.refreshMetrics(); }
 
   private drawHeader() {
-    const names = { free: 'A · 자유 보드 · 2차 구현', order: 'B · 주문 중심', guided: 'C · 자유 + 가이드' };
+    const names = { free: 'A · 자유 보드 · 2차 구현', order: 'B · 주문 중심 · 2차 구현', guided: 'C · 자유 + 가이드' };
     this.add.text(24, 18, names[this.mode], { fontFamily: 'Arial', fontSize: '19px', color: '#55d6be', fontStyle: 'bold' });
     this.info = this.add.text(24, 47, '', { fontFamily: 'Arial', fontSize: '12px', color: '#bfd0dc', wordWrap: { width: 592 } });
     this.metrics = this.add.text(616, 20, '', { fontFamily: 'Arial', fontSize: '11px', color: '#758da1' }).setOrigin(1, 0);
-    if (this.mode !== 'free') this.orderText = this.add.text(24, 67, '', { fontFamily: 'Arial', fontSize: '10px', color: '#ffd37a', wordWrap: { width: 592 } });
+    if (this.mode === 'order') this.drawVisualOrder();
+    else if (this.mode !== 'free') this.orderText = this.add.text(24, 67, '', { fontFamily: 'Arial', fontSize: '10px', color: '#ffd37a', wordWrap: { width: 592 } });
+  }
+
+  private drawVisualOrder() {
+    this.add.rectangle(320, 190, 584, 140, 0x10243a).setStrokeStyle(1, 0x294b64);
+    this.orderText = this.add.text(42, 130, '', { fontFamily: 'Arial', fontSize: '12px', color: '#91a9bc' });
+    this.orderBike = this.add.graphics();
+
+    PARTS.forEach((part, index) => {
+      const x = 91 + index * 152;
+      const panel = this.add.rectangle(x, 230, 138, 42, 0x0b1929).setStrokeStyle(1, part.color, 0.65);
+      const label = this.add.text(x, 230, '', { fontFamily: 'Arial', fontSize: '11px', color: '#dce9f2', align: 'center' }).setOrigin(0.5);
+      this.goalSlots.set(part.type, { label, panel });
+    });
+    this.drawOrderBike();
   }
 
   private drawSizeControls() {
@@ -147,7 +164,7 @@ class MergePrototypeScene extends Phaser.Scene {
     this.gap = Math.max(2, Math.min(5, Math.floor(this.cellSize * 0.08)));
     const width = this.columns * this.cellSize;
     this.boardLeft = (640 - width) / 2;
-    this.boardTop = 128;
+    this.boardTop = this.mode === 'order' ? 276 : 128;
     this.drawBoard();
     this.drawPartControls();
     this.refreshSizeFields();
@@ -169,7 +186,7 @@ class MergePrototypeScene extends Phaser.Scene {
 
   private drawPartControls() {
     const boardBottom = this.boardTop + this.rows * this.cellSize;
-    const controlsTop = Math.min(642, boardBottom + 10);
+    const controlsTop = Math.min(this.mode === 'order' ? 790 : 642, boardBottom + 10);
     const label = this.add.text(24, controlsTop, '추가할 부품', { fontFamily: 'Arial', fontSize: '11px', color: '#8fa8ba' });
     this.controls.push(label);
     PARTS.forEach((part, index) => {
@@ -344,7 +361,31 @@ class MergePrototypeScene extends Phaser.Scene {
   }
 
   private refreshOrder() {
-    this.orderText?.setText(`주문 ${this.orderIndex + 1}/3   ${this.goals.map((goal) => `${goal.delivered ? '✓' : '○'} ${this.partName(goal.type)} L${goal.level}`).join('   ')}`);
+    if (!this.orderText) return;
+    if (this.mode === 'order') {
+      const completed = this.goals.filter((goal) => goal.delivered).length;
+      this.orderText.setText(`CUSTOMER ORDER ${this.orderIndex + 1}/3  ·  어반 로드 자전거  ·  준비 ${completed}/4`);
+      this.goals.forEach((goal) => {
+        const slot = this.goalSlots.get(goal.type);
+        if (!slot) return;
+        const part = PARTS.find((item) => item.type === goal.type)!;
+        slot.panel.setFillStyle(goal.delivered ? part.color : 0x0b1929, goal.delivered ? 0.28 : 1);
+        slot.panel.setStrokeStyle(goal.delivered ? 2 : 1, part.color, goal.delivered ? 1 : 0.65);
+        slot.label.setText(`${goal.delivered ? '✓ 완료' : part.name}\nLv.${goal.level}`).setColor(goal.delivered ? '#ffffff' : '#dce9f2');
+      });
+      return;
+    }
+    this.orderText.setText(`주문 ${this.orderIndex + 1}/3   ${this.goals.map((goal) => `${goal.delivered ? '✓' : '○'} ${this.partName(goal.type)} L${goal.level}`).join('   ')}`);
+  }
+
+  private drawOrderBike() {
+    if (!this.orderBike) return;
+    const g = this.orderBike.clear();
+    g.lineStyle(5, 0xffb35c, 1).strokeCircle(260, 178, 28).strokeCircle(382, 178, 28);
+    g.lineStyle(6, 0x55d6be, 1).strokeTriangle(274, 176, 327, 138, 352, 176).lineBetween(274, 176, 352, 176).lineBetween(327, 138, 382, 178);
+    g.lineStyle(5, 0xff7185, 1).strokeCircle(327, 172, 10).lineBetween(327, 172, 352, 176);
+    g.lineStyle(5, 0x8c7bff, 1).lineBetween(365, 134, 382, 178).lineBetween(358, 134, 377, 134);
+    g.fillStyle(0x55d6be).fillRect(312, 128, 29, 6);
   }
 
   private refreshMetrics() {
@@ -363,7 +404,7 @@ export function startMergePrototype(parent: string, mode: MergePrototypeMode) {
     type: Phaser.AUTO,
     parent,
     width: 640,
-    height: 720,
+    height: mode === 'order' ? 880 : 720,
     backgroundColor: '#0b1727',
     scene: new MergePrototypeScene(mode),
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
