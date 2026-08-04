@@ -35,10 +35,10 @@ const tracks: Track[] = [
         id: 'tap-select',
         label: 'A안',
         title: '자유 보드 2-to-1 머지',
-        description: '자유 보드에서 부품 두 개를 차례로 선택하여 합치는 현재 기준안입니다.',
+        description: '부품별 점유 크기와 회전·이동을 이용해 공간을 설계한 뒤 같은 부품을 합치는 2차 구현안입니다.',
         status: '체험 가능',
         question: '모바일에서도 가장 단순한 입력만으로 머지 규칙을 쉽게 이해할 수 있는가?',
-        controls: '빈 칸을 눌러 생성하고, 같은 단계의 부품 두 개를 차례로 누릅니다.',
+        controls: '보드 크기를 입력하고, 아래에서 부품을 골라 배치합니다. 부품을 선택하면 회전·이동·머지할 수 있습니다.',
         demo: 'free', issueNumber: 10, documentId: 'merge-free-board',
       },
       {
@@ -225,7 +225,7 @@ async function loadIssueComments(issueNumber: number) {
 function renderDemo(track: Track, variant: Variant) {
   destroyGame();
   shell(`<main class="experiment-page"><section class="experiment-title"><p class="eyebrow">${track.title} · ${variant.label} · LIVE DEMO</p><h1>${variant.title}</h1><p>${variant.controls}</p></section>
-    ${variant.demo ? `<section class="demo-panel"><div class="demo-head"><div><span>LIVE DEMO · 6×7 · 4 PARTS</span><strong>${variant.title}</strong></div><button id="reset-demo">초기화</button></div><div id="game-root"></div><p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
+    ${variant.demo ? `<section class="demo-panel"><div class="demo-head"><div><span>LIVE DEMO · ${variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div><button id="reset-demo">초기화</button></div><div id="game-root"></div><p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
   </main>`, { href: `#/track/${track.id}/${variant.id}`, label: `${variant.title} 상세` });
   if (variant.demo) {
     const start = () => { destroyGame(); game = startMergePrototype('game-root', variant.demo!); };
