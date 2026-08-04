@@ -87,8 +87,8 @@ class MergePrototypeScene extends Phaser.Scene {
   private drawHeader() {
     const names = { free: 'A · 자유 보드 · 2차 구현', order: 'B · 주문 중심 · 2차 구현', guided: 'C · 자유 + 가이드' };
     this.add.text(24, 18, names[this.mode], { fontFamily: 'Arial', fontSize: '19px', color: '#55d6be', fontStyle: 'bold' });
-    this.info = this.add.text(24, 47, '', { fontFamily: 'Arial', fontSize: '12px', color: '#bfd0dc', wordWrap: { width: 592 } });
-    this.metrics = this.add.text(616, 20, '', { fontFamily: 'Arial', fontSize: '11px', color: '#758da1' }).setOrigin(1, 0);
+    this.info = this.add.text(24, 47, '', { fontFamily: 'Arial', fontSize: '12px', color: '#bfd0dc', wordWrap: { width: this.mode === 'free' ? 720 : 592 } });
+    this.metrics = this.add.text(this.mode === 'free' ? 1096 : 616, 20, '', { fontFamily: 'Arial', fontSize: '11px', color: '#758da1' }).setOrigin(1, 0);
     if (this.mode === 'order') this.drawVisualOrder();
     else if (this.mode !== 'free') this.orderText = this.add.text(24, 67, '', { fontFamily: 'Arial', fontSize: '10px', color: '#ffd37a', wordWrap: { width: 592 } });
   }
@@ -160,11 +160,13 @@ class MergePrototypeScene extends Phaser.Scene {
     this.boardObjects = [];
     this.controls = [];
     this.zones = [];
-    this.cellSize = Math.floor(Math.min(440 / this.columns, 390 / this.rows));
+    this.cellSize = this.mode === 'free'
+      ? Math.floor(Math.min(680 / this.columns, 520 / this.rows, 76))
+      : Math.floor(Math.min(440 / this.columns, 390 / this.rows));
     this.gap = Math.max(2, Math.min(5, Math.floor(this.cellSize * 0.08)));
     const width = this.columns * this.cellSize;
-    this.boardLeft = (640 - width) / 2;
-    this.boardTop = this.mode === 'order' ? 276 : 128;
+    this.boardLeft = this.mode === 'free' ? 32 + (704 - width) / 2 : (640 - width) / 2;
+    this.boardTop = this.mode === 'free' ? 142 + (536 - this.rows * this.cellSize) / 2 : this.mode === 'order' ? 276 : 128;
     this.drawBoard();
     this.drawPartControls();
     this.refreshSizeFields();
@@ -185,6 +187,10 @@ class MergePrototypeScene extends Phaser.Scene {
   }
 
   private drawPartControls() {
+    if (this.mode === 'free') {
+      this.drawDesktopPartControls();
+      return;
+    }
     const boardBottom = this.boardTop + this.rows * this.cellSize;
     const controlsTop = Math.min(this.mode === 'order' ? 790 : 642, boardBottom + 10);
     const label = this.add.text(24, controlsTop, '추가할 부품', { fontFamily: 'Arial', fontSize: '11px', color: '#8fa8ba' });
@@ -206,6 +212,40 @@ class MergePrototypeScene extends Phaser.Scene {
     rotate.on('pointerdown', () => this.rotateSelected());
     remove.on('pointerdown', () => this.removeSelected());
     this.controls.push(rotate, rotateText, remove, removeText);
+    this.refreshControls();
+  }
+
+  private drawDesktopPartControls() {
+    const controlsLeft = 770;
+    const controlsTop = 156;
+    const panel = this.add.rectangle(940, 404, 340, 520, 0x0e1d2e).setStrokeStyle(1, 0x29465e);
+    const label = this.add.text(controlsLeft, controlsTop, '추가할 부품', { fontFamily: 'Arial', fontSize: '12px', color: '#8fa8ba' });
+    this.controls.push(panel, label);
+
+    PARTS.forEach((part, index) => {
+      const x = controlsLeft + 76 + (index % 2) * 164;
+      const y = controlsTop + 43 + Math.floor(index / 2) * 62;
+      const button = this.add.rectangle(x, y, 148, 48, 0x13263b).setStrokeStyle(2, part.color).setInteractive({ useHandCursor: true });
+      button.setData('part', part.type);
+      button.on('pointerdown', () => {
+        this.selectedGenerator = part.type;
+        this.selectedPiece = undefined;
+        this.refreshControls();
+        this.refreshUi(`${part.name}을 선택했습니다. 빈 공간을 눌러 배치하세요.`);
+      });
+      const text = this.add.text(x, y, `${part.short}  ${part.name} · ${part.shape.length}칸`, { fontFamily: 'Arial', fontSize: '12px', color: '#e8f1f7', fontStyle: 'bold' }).setOrigin(0.5);
+      this.controls.push(button, text);
+    });
+
+    const guide = this.add.text(controlsLeft, controlsTop + 164, '보드의 빈 칸을 눌러 배치합니다.\n배치된 부품을 선택하면 이동·회전·머지가 가능합니다.', { fontFamily: 'Arial', fontSize: '11px', color: '#71899c', lineSpacing: 7, wordWrap: { width: 310 } });
+    const rotateY = controlsTop + 246;
+    const rotate = this.add.rectangle(controlsLeft + 100, rotateY, 200, 40, 0x101f31).setStrokeStyle(1, 0x557086).setInteractive({ useHandCursor: true });
+    const rotateText = this.add.text(controlsLeft + 100, rotateY, '선택한 부품 90° 회전', { fontFamily: 'Arial', fontSize: '11px', color: '#d5e2eb' }).setOrigin(0.5);
+    const remove = this.add.rectangle(controlsLeft + 260, rotateY, 112, 40, 0x251c29).setStrokeStyle(1, 0x8b5365).setInteractive({ useHandCursor: true });
+    const removeText = this.add.text(controlsLeft + 260, rotateY, '선택 제거', { fontFamily: 'Arial', fontSize: '11px', color: '#e3bec9' }).setOrigin(0.5);
+    rotate.on('pointerdown', () => this.rotateSelected());
+    remove.on('pointerdown', () => this.removeSelected());
+    this.controls.push(guide, rotate, rotateText, remove, removeText);
     this.refreshControls();
   }
 
@@ -403,7 +443,7 @@ export function startMergePrototype(parent: string, mode: MergePrototypeMode) {
   return new Phaser.Game({
     type: Phaser.AUTO,
     parent,
-    width: 640,
+    width: mode === 'free' ? 1120 : 640,
     height: mode === 'order' ? 880 : 720,
     backgroundColor: '#0b1727',
     scene: new MergePrototypeScene(mode),
