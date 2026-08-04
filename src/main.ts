@@ -225,7 +225,7 @@ async function loadIssueComments(issueNumber: number) {
 function renderDemo(track: Track, variant: Variant) {
   destroyGame();
   shell(`<main class="experiment-page"><section class="experiment-title"><p class="eyebrow">${track.title} · ${variant.label} · LIVE DEMO</p><h1>${variant.title}</h1><p>${variant.controls}</p></section>
-    ${variant.demo ? `<section class="demo-panel"><div class="demo-head"><div><span>LIVE DEMO · ${variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div><button id="reset-demo">초기화</button></div><div id="game-root"></div><p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
+    ${variant.demo ? `<section class="demo-panel"><div class="demo-head"><div><span>LIVE DEMO · ${variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div><button id="reset-demo">초기화</button></div><div id="game-root" class="demo-${variant.demo}"></div><p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
   </main>`, { href: `#/track/${track.id}/${variant.id}`, label: `${variant.title} 상세` });
   if (variant.demo) {
     const start = () => { destroyGame(); game = startMergePrototype('game-root', variant.demo!); };
