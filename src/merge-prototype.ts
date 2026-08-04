@@ -51,6 +51,8 @@ class MergePrototypeScene extends Phaser.Scene {
   private metrics!: Phaser.GameObjects.Text;
   private orderText!: Phaser.GameObjects.Text;
   private guideText!: Phaser.GameObjects.Text;
+  private orderBike?: Phaser.GameObjects.Graphics;
+  private goalSlots = new Map<PartType, { label: Phaser.GameObjects.Text; panel: Phaser.GameObjects.Rectangle }>();
 
   create() {
     this.cameras.main.setBackgroundColor('#0b1727');
@@ -70,7 +72,9 @@ class MergePrototypeScene extends Phaser.Scene {
     this.info = this.add.text(28, 52, '', { fontFamily: 'Arial', fontSize: '13px', color: '#bfd0dc', wordWrap: { width: 584 } });
     this.metrics = this.add.text(612, 24, '', { fontFamily: 'Arial', fontSize: '12px', color: '#758da1' }).setOrigin(1, 0);
 
-    if (this.mode !== 'free') {
+    if (this.mode === 'order') {
+      this.drawVisualOrder();
+    } else if (this.mode !== 'free') {
       this.add.rectangle(320, 108, 584, 54, 0x10243a).setStrokeStyle(1, 0x294b64);
       this.orderText = this.add.text(42, 91, '', { fontFamily: 'Arial', fontSize: '13px', color: '#dce9f2', wordWrap: { width: 550 } });
     }
@@ -79,8 +83,22 @@ class MergePrototypeScene extends Phaser.Scene {
     }
   }
 
+  private drawVisualOrder() {
+    this.add.rectangle(320, 144, 584, 144, 0x10243a).setStrokeStyle(1, 0x294b64);
+    this.orderText = this.add.text(42, 82, '', { fontFamily: 'Arial', fontSize: '12px', color: '#91a9bc' });
+    this.orderBike = this.add.graphics();
+
+    PARTS.forEach((part, index) => {
+      const x = 91 + index * 152;
+      const panel = this.add.rectangle(x, 184, 138, 42, 0x0b1929).setStrokeStyle(1, part.color, 0.65);
+      const label = this.add.text(x, 184, '', { fontFamily: 'Arial', fontSize: '11px', color: '#dce9f2', align: 'center' }).setOrigin(0.5);
+      this.goalSlots.set(part.type, { label, panel });
+    });
+    this.drawOrderBike();
+  }
+
   private drawGenerators() {
-    const y = this.mode === 'free' ? 112 : this.mode === 'guided' ? 190 : 164;
+    const y = this.mode === 'free' ? 112 : this.mode === 'guided' ? 190 : 240;
     PARTS.forEach((part, index) => {
       const x = 92 + index * 152;
       const button = this.add.rectangle(x, y, 132, 46, 0x13263b).setStrokeStyle(2, part.color).setInteractive({ useHandCursor: true });
@@ -97,7 +115,7 @@ class MergePrototypeScene extends Phaser.Scene {
   }
 
   private drawBoard() {
-    const top = this.mode === 'free' ? 176 : this.mode === 'guided' ? 256 : 228;
+    const top = this.mode === 'free' ? 176 : this.mode === 'guided' ? 256 : 304;
     const cellSize = 64;
     const gap = 6;
     for (let row = 0; row < 7; row += 1) {
@@ -194,8 +212,31 @@ class MergePrototypeScene extends Phaser.Scene {
 
   private refreshOrder() {
     if (!this.orderText) return;
+    if (this.mode === 'order') {
+      const completed = this.goals.filter((goal) => goal.delivered).length;
+      this.orderText.setText(`CUSTOMER ORDER ${this.orderIndex + 1}/3  ·  어반 로드 자전거  ·  준비 ${completed}/4`);
+      this.goals.forEach((goal) => {
+        const slot = this.goalSlots.get(goal.type);
+        if (!slot) return;
+        const part = PARTS.find((item) => item.type === goal.type)!;
+        slot.panel.setFillStyle(goal.delivered ? part.color : 0x0b1929, goal.delivered ? 0.28 : 1);
+        slot.panel.setStrokeStyle(goal.delivered ? 2 : 1, part.color, goal.delivered ? 1 : 0.65);
+        slot.label.setText(`${goal.delivered ? '✓ 완료' : part.name}\nLv.${goal.level}`).setColor(goal.delivered ? '#ffffff' : '#dce9f2');
+      });
+      return;
+    }
     const progress = this.goals.map((goal) => `${goal.delivered ? '✓' : '○'} ${this.partName(goal.type)} L${goal.level}`).join('   ');
     this.orderText.setText(`주문 ${this.orderIndex + 1}/3   ${progress}`);
+  }
+
+  private drawOrderBike() {
+    if (!this.orderBike) return;
+    const g = this.orderBike.clear();
+    g.lineStyle(5, 0xffb35c, 1).strokeCircle(260, 132, 28).strokeCircle(382, 132, 28);
+    g.lineStyle(6, 0x55d6be, 1).strokeTriangle(274, 130, 327, 92, 352, 130).lineBetween(274, 130, 352, 130).lineBetween(327, 92, 382, 132);
+    g.lineStyle(5, 0xff7185, 1).strokeCircle(327, 126, 10).lineBetween(327, 126, 352, 130);
+    g.lineStyle(5, 0x8c7bff, 1).lineBetween(365, 88, 382, 132).lineBetween(358, 88, 377, 88);
+    g.fillStyle(0x55d6be).fillRect(312, 82, 29, 6);
   }
 
   private refreshGuide() {
@@ -227,7 +268,7 @@ export function startMergePrototype(parent: string, mode: MergePrototypeMode) {
     type: Phaser.AUTO,
     parent,
     width: 640,
-    height: 720,
+    height: mode === 'order' ? 770 : 720,
     backgroundColor: '#0b1727',
     scene: new MergePrototypeScene(mode),
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
