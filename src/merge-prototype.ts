@@ -97,7 +97,7 @@ class MergePrototypeScene extends Phaser.Scene {
   }
 
   private drawBoard() {
-    const top = this.mode === 'free' ? 164 : this.mode === 'guided' ? 246 : 218;
+    const top = this.mode === 'free' ? 176 : this.mode === 'guided' ? 256 : 228;
     const cellSize = 64;
     const gap = 6;
     for (let row = 0; row < 7; row += 1) {
