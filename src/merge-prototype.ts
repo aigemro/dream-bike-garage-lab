@@ -97,13 +97,13 @@ class MergePrototypeScene extends Phaser.Scene {
   }
 
   private drawBoard() {
-    const top = this.mode === 'free' ? 164 : this.mode === 'guided' ? 234 : 208;
-    const cellSize = 76;
-    const gap = 8;
+    const top = this.mode === 'free' ? 164 : this.mode === 'guided' ? 246 : 218;
+    const cellSize = 64;
+    const gap = 6;
     for (let row = 0; row < 7; row += 1) {
       for (let column = 0; column < 6; column += 1) {
         const index = row * 6 + column;
-        const x = 68 + column * (cellSize + gap);
+        const x = 145 + column * (cellSize + gap);
         const y = top + row * (cellSize + gap);
         const zone = this.add.rectangle(x, y, cellSize, cellSize, 0x13263b).setStrokeStyle(2, 0x28455f).setInteractive({ useHandCursor: true });
         this.add.text(x, y, '+', { fontFamily: 'Arial', fontSize: '20px', color: '#36546d' }).setOrigin(0.5);
@@ -158,9 +158,9 @@ class MergePrototypeScene extends Phaser.Scene {
   private makeItem(x: number, y: number, type: PartType, level: number) {
     const part = PARTS.find((item) => item.type === type)!;
     const container = this.add.container(x, y, [
-      this.add.circle(0, 0, 29, part.color),
-      this.add.text(0, -4, part.short, { fontFamily: 'Arial', fontSize: '20px', color: '#07111f', fontStyle: 'bold' }).setOrigin(0.5),
-      this.add.text(0, 21, `L${level}`, { fontFamily: 'Arial', fontSize: '11px', color: '#07111f', fontStyle: 'bold' }).setOrigin(0.5),
+      this.add.circle(0, 0, 24, part.color),
+      this.add.text(0, -3, part.short, { fontFamily: 'Arial', fontSize: '18px', color: '#07111f', fontStyle: 'bold' }).setOrigin(0.5),
+      this.add.text(0, 17, `L${level}`, { fontFamily: 'Arial', fontSize: '10px', color: '#07111f', fontStyle: 'bold' }).setOrigin(0.5),
     ]);
     container.setDepth(2);
     return container;
@@ -227,7 +227,7 @@ export function startMergePrototype(parent: string, mode: MergePrototypeMode) {
     type: Phaser.AUTO,
     parent,
     width: 640,
-    height: 820,
+    height: 720,
     backgroundColor: '#0b1727',
     scene: new MergePrototypeScene(mode),
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
