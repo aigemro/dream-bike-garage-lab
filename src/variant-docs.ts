@@ -6,8 +6,12 @@ import doc4 from '../docs/variants/collection-garage.md?raw';
 import doc5 from '../docs/variants/collection-dream-bike.md?raw';
 import doc6 from '../docs/variants/assembly-auto.md?raw';
 import doc7 from '../docs/variants/assembly-slots.md?raw';
-import doc8 from '../docs/variants/input-pointer.md?raw';
-import doc9 from '../docs/variants/input-layout.md?raw';
+import doc8 from '../docs/variants/input-tap.md?raw';
+import doc9 from '../docs/variants/input-drag.md?raw';
+import doc14 from '../docs/variants/input-hybrid.md?raw';
+import doc15 from '../docs/variants/responsive-fit.md?raw';
+import doc16 from '../docs/variants/responsive-reflow.md?raw';
+import doc17 from '../docs/variants/responsive-safe-area.md?raw';
 import doc10 from '../docs/variants/storage-local.md?raw';
 import doc11 from '../docs/variants/storage-indexed-db.md?raw';
 import doc12 from '../docs/variants/toss-lifecycle.md?raw';
@@ -22,8 +26,12 @@ const variantDocs: Record<string, string> = {
   'collection-dream-bike': doc5,
   'assembly-auto': doc6,
   'assembly-slots': doc7,
-  'input-pointer': doc8,
-  'input-layout': doc9,
+  'input-tap': doc8,
+  'input-drag': doc9,
+  'input-hybrid': doc14,
+  'responsive-fit': doc15,
+  'responsive-reflow': doc16,
+  'responsive-safe-area': doc17,
   'storage-local': doc10,
   'storage-indexed-db': doc11,
   'toss-lifecycle': doc12,
