@@ -54,6 +54,9 @@ class MergePrototypeScene extends Phaser.Scene {
   private controls: Phaser.GameObjects.GameObject[] = [];
   private selectedPiece?: Piece;
   private selectedGenerator: PartType = 'frame';
+  private generatorRotation = 0;
+  private generatorPlacementActive = false;
+  private placementGhost?: Phaser.GameObjects.Container;
   private nextId = 1;
   private orderIndex = 0;
   private boardLeft = 0;
@@ -152,6 +155,7 @@ class MergePrototypeScene extends Phaser.Scene {
     this.columns = Phaser.Math.Clamp(this.columns || 4, 4, 10);
     this.rows = Phaser.Math.Clamp(this.rows || 4, 4, 10);
     this.selectedPiece = undefined;
+    this.clearPlacementGhost();
     this.pieces.forEach((piece) => piece.item.destroy());
     this.pieces = [];
     this.boardObjects.forEach((object) => object.destroy());
@@ -178,6 +182,8 @@ class MergePrototypeScene extends Phaser.Scene {
         const { x, y } = this.cellCenter(row, column);
         const zone = this.add.rectangle(x, y, this.cellSize - this.gap, this.cellSize - this.gap, 0x13263b)
           .setStrokeStyle(1, 0x28455f).setInteractive({ useHandCursor: true });
+        zone.on('pointerover', () => this.showPlacementGhost(row, column));
+        zone.on('pointerout', () => this.clearPlacementGhost());
         zone.on('pointerdown', () => this.handleCell(row, column));
         this.zones.push(zone);
         this.boardObjects.push(zone);
@@ -199,7 +205,7 @@ class MergePrototypeScene extends Phaser.Scene {
       const y = controlsTop + 28;
       const button = this.add.rectangle(x, y, 124, 40, 0x13263b).setStrokeStyle(2, part.color).setInteractive({ useHandCursor: true });
       button.setData('part', part.type);
-      button.on('pointerdown', () => { this.selectedGenerator = part.type; this.selectedPiece = undefined; this.refreshControls(); this.refreshUi(`${part.name}을 선택했습니다. 빈 공간을 눌러 배치하세요.`); });
+      button.on('pointerdown', () => this.selectGenerator(part.type));
       const text = this.add.text(x, y, `${part.short}  ${part.name} · ${part.shape.length}칸`, { fontFamily: 'Arial', fontSize: '11px', color: '#e8f1f7', fontStyle: 'bold' }).setOrigin(0.5);
       this.controls.push(button, text);
     });
@@ -225,12 +231,7 @@ class MergePrototypeScene extends Phaser.Scene {
       const y = controlsTop + 52 + Math.floor(index / 2) * 72;
       const button = this.add.rectangle(x, y, buttonWidth, 58, 0x13263b).setStrokeStyle(2, part.color).setInteractive({ useHandCursor: true });
       button.setData('part', part.type);
-      button.on('pointerdown', () => {
-        this.selectedGenerator = part.type;
-        this.selectedPiece = undefined;
-        this.refreshControls();
-        this.refreshUi(`${part.name}을 선택했습니다. 빈 공간을 눌러 배치하세요.`);
-      });
+      button.on('pointerdown', () => this.selectGenerator(part.type));
       const text = this.add.text(x, y, `${part.name}\n${part.short} · ${part.shape.length}칸`, { align: 'center', fontFamily: 'Arial', fontSize: '12px', color: '#e8f1f7', fontStyle: 'bold', lineSpacing: 4 }).setOrigin(0.5);
       this.controls.push(button, text);
     });
@@ -245,37 +246,45 @@ class MergePrototypeScene extends Phaser.Scene {
 
     PARTS.forEach((part) => {
       const previewCell = 25;
-      const previewShape = this.shape(part.type, 0);
-      const maxX = Math.max(...previewShape.map((point) => point.x));
-      const maxY = Math.max(...previewShape.map((point) => point.y));
-      const shapeWidth = (maxX + 1) * previewCell;
-      const shapeHeight = (maxY + 1) * previewCell;
-      const preview = this.add.container(
-        panelLeft + panelWidth / 2,
-        previewTop + 66,
-      ).setData('previewPart', part.type);
-      const blocks = previewShape.map((point) => this.add.rectangle(
-        point.x * previewCell - shapeWidth / 2 + previewCell / 2,
-        point.y * previewCell - shapeHeight / 2 + previewCell / 2,
-        previewCell - 3,
-        previewCell - 3,
-        part.color,
-      ).setStrokeStyle(1, 0x07111f));
-      const caption = this.add.text(0, 42, `${part.name} · ${part.shape.length}칸 · 빈 공간에 맞춰 자동 회전`, {
-        fontFamily: 'Arial', fontSize: '10px', color: '#bfd0dc', align: 'center',
-      }).setOrigin(0.5);
-      preview.add([...blocks, caption]);
-      this.controls.push(preview);
+      [0, 1, 2, 3].forEach((rotation) => {
+        const previewShape = this.shape(part.type, rotation);
+        const maxX = Math.max(...previewShape.map((point) => point.x));
+        const maxY = Math.max(...previewShape.map((point) => point.y));
+        const shapeWidth = (maxX + 1) * previewCell;
+        const shapeHeight = (maxY + 1) * previewCell;
+        const preview = this.add.container(
+          panelLeft + panelWidth / 2,
+          previewTop + 66,
+        ).setData('previewPart', part.type).setData('previewRotation', rotation);
+        const blocks = previewShape.map((point) => this.add.rectangle(
+          point.x * previewCell - shapeWidth / 2 + previewCell / 2,
+          point.y * previewCell - shapeHeight / 2 + previewCell / 2,
+          previewCell - 3,
+          previewCell - 3,
+          part.color,
+        ).setStrokeStyle(1, 0x07111f));
+        const caption = this.add.text(0, 42, `${part.name} · ${part.shape.length}칸 · ${rotation * 90}°`, {
+          fontFamily: 'Arial', fontSize: '10px', color: '#bfd0dc', align: 'center',
+        }).setOrigin(0.5);
+        preview.add([...blocks, caption]);
+        this.controls.push(preview);
+      });
     });
     this.refreshControls();
   }
 
   private handleCell(row: number, column: number) {
     this.actions += 1;
+    this.clearPlacementGhost();
     const clicked = this.pieceAt(row, column);
+    if (clicked && this.generatorPlacementActive && !this.selectedPiece && clicked.type === this.selectedGenerator && clicked.level === 1) {
+      this.mergeGeneratedPiece(clicked);
+      return;
+    }
     if (clicked) {
       if (!this.selectedPiece) {
         this.selectedPiece = clicked;
+        this.generatorPlacementActive = false;
         this.refreshControls();
         this.refreshUi(`${this.partName(clicked.type)} Lv.${clicked.level} 선택 · 빈 칸으로 이동하거나 같은 부품에 머지하세요.`);
         return;
@@ -302,17 +311,74 @@ class MergePrototypeScene extends Phaser.Scene {
       return;
     }
 
+    if (this.mode === 'free' && !this.generatorPlacementActive) {
+      this.refreshUi('먼저 오른쪽에서 추가할 부품을 선택하세요.');
+      return;
+    }
     const type = this.mode === 'order' ? this.recommendedPart() : this.selectedGenerator;
-    const placementRotation = this.findPlacementRotation(type, row, column);
-    if (placementRotation === undefined) {
+    const placementRotation = this.mode === 'free' ? this.generatorRotation : (this.findPlacementRotation(type, row, column) ?? 0);
+    if (!this.canPlace(type, row, column, placementRotation)) {
       this.mistakes += 1;
-      this.refreshUi('선택한 부품이 어느 방향으로도 들어갈 빈 공간이 부족합니다. 다른 위치를 선택하세요.');
+      this.refreshUi('미리보기 방향으로 배치할 공간이 부족합니다. 부품 버튼을 다시 눌러 회전하거나 다른 위치를 선택하세요.');
       return;
     }
     const piece = this.makePiece(type, row, column, placementRotation, 1);
     this.pieces.push(piece);
-    const rotationMessage = placementRotation === 0 ? '' : ` · ${placementRotation * 90}° 자동 회전`;
+    this.generatorPlacementActive = false;
+    const rotationMessage = placementRotation === 0 ? '' : ` · ${placementRotation * 90}° 회전`;
     this.refreshUi(`${this.partName(type)} Lv.1을 ${this.shape(type, placementRotation).length}칸 크기로 배치했습니다${rotationMessage}.`);
+  }
+
+  private selectGenerator(type: PartType) {
+    const repeated = this.selectedGenerator === type && !this.selectedPiece;
+    this.selectedGenerator = type;
+    this.selectedPiece = undefined;
+    this.generatorPlacementActive = true;
+    this.generatorRotation = repeated ? (this.generatorRotation + 1) % 4 : 0;
+    this.clearPlacementGhost();
+    this.refreshControls();
+    const part = PARTS.find((item) => item.type === type)!;
+    this.refreshUi(`${part.name} ${this.generatorRotation * 90}° 선택 · 보드 위에서 배치 모양을 확인하세요. 같은 부품 위에 놓으면 바로 머지됩니다.`);
+  }
+
+  private showPlacementGhost(row: number, column: number) {
+    this.clearPlacementGhost();
+    if (this.selectedPiece || !this.generatorPlacementActive) return;
+    const clicked = this.pieceAt(row, column);
+    const mergeTarget = clicked?.type === this.selectedGenerator && clicked.level === 1 ? clicked : undefined;
+    const rotation = mergeTarget?.rotation ?? this.generatorRotation;
+    const anchorRow = mergeTarget?.row ?? row;
+    const anchorColumn = mergeTarget?.column ?? column;
+    const canMerge = Boolean(mergeTarget);
+    const valid = canMerge || (!clicked && this.canPlace(this.selectedGenerator, anchorRow, anchorColumn, rotation));
+    const part = PARTS.find((item) => item.type === this.selectedGenerator)!;
+    const color = valid ? part.color : 0xff5d73;
+    const blocks = this.shape(this.selectedGenerator, rotation).map((point) => this.add.rectangle(
+      point.x * this.cellSize,
+      point.y * this.cellSize,
+      this.cellSize - this.gap * 2,
+      this.cellSize - this.gap * 2,
+      color,
+      canMerge ? 0.48 : 0.3,
+    ).setStrokeStyle(2, valid ? 0xffffff : 0xffa0ad, 0.85));
+    const origin = this.cellCenter(anchorRow, anchorColumn);
+    this.placementGhost = this.add.container(origin.x, origin.y, blocks).setDepth(4);
+  }
+
+  private clearPlacementGhost() {
+    this.placementGhost?.destroy();
+    this.placementGhost = undefined;
+  }
+
+  private mergeGeneratedPiece(target: Piece) {
+    target.item.destroy();
+    this.pieces = this.pieces.filter((piece) => piece.id !== target.id);
+    const merged = this.makePiece(target.type, target.row, target.column, target.rotation, 2);
+    this.pieces.push(merged);
+    this.generatorPlacementActive = false;
+    this.merges += 1;
+    this.refreshControls();
+    this.refreshUi(`${this.partName(target.type)} Lv.1을 같은 위치에 놓아 Lv.2로 머지했습니다.`);
   }
 
   private makePiece(type: PartType, row: number, column: number, rotation: number, level: number) {
@@ -406,9 +472,9 @@ class MergePrototypeScene extends Phaser.Scene {
 
   private refreshControls() {
     this.controls.filter((object): object is Phaser.GameObjects.Rectangle => object instanceof Phaser.GameObjects.Rectangle && Boolean(object.getData('part')))
-      .forEach((button) => button.setFillStyle(button.getData('part') === this.selectedGenerator && !this.selectedPiece ? 0x21445a : 0x13263b));
+      .forEach((button) => button.setFillStyle(button.getData('part') === this.selectedGenerator && !this.selectedPiece && this.generatorPlacementActive ? 0x21445a : 0x13263b));
     this.controls.filter((object): object is Phaser.GameObjects.Container => object instanceof Phaser.GameObjects.Container && Boolean(object.getData('previewPart')))
-      .forEach((preview) => preview.setVisible(preview.getData('previewPart') === this.selectedGenerator));
+      .forEach((preview) => preview.setVisible(preview.getData('previewPart') === this.selectedGenerator && preview.getData('previewRotation') === this.generatorRotation));
     this.pieces.forEach((piece) => piece.item.setScale(piece.id === this.selectedPiece?.id ? 1.06 : 1));
   }
 
