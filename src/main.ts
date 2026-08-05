@@ -45,10 +45,10 @@ const tracks: Track[] = [
         id: 'order-merge',
         label: 'B안',
         title: '주문 목표 중심 머지',
-        description: '고객 주문에 필요한 부품을 먼저 보여주고 목표를 향해 머지하는 방식입니다.',
+        description: '커스텀 주문에 부품을 직접 추가하고 주문 안에서 자동 머지하는 방식입니다.',
         status: '체험 가능',
         question: '자유 보드보다 목표성과 플레이 템포가 좋아지는가?',
-        controls: '주문 목표를 확인하고 필요한 종류를 생성해 요구 단계까지 머지한 뒤 납품합니다.',
+        controls: '오른쪽 부품을 클릭하면 주문에 Lv.1이 추가되며, 같은 레벨 2개는 자동으로 머지됩니다.',
         demo: 'order', issueNumber: 13, documentId: 'merge-order',
       },
       {
