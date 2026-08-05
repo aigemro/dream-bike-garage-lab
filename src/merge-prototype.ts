@@ -283,10 +283,20 @@ class MergePrototypeScene extends Phaser.Scene {
     const part = PARTS.find((item) => item.type === type)!;
     const cells = this.shape(type, rotation);
     const blocks = cells.map((point) => this.add.rectangle(point.x * this.cellSize, point.y * this.cellSize, this.cellSize - this.gap * 2, this.cellSize - this.gap * 2, part.color).setStrokeStyle(2, 0x07111f));
-    const badgeWidth = Math.max(34, Math.min(52, this.cellSize - this.gap * 4));
-    const badgeHeight = Math.max(20, Math.min(28, this.cellSize * 0.48));
-    const badge = this.add.rectangle(0, 0, badgeWidth, badgeHeight, 0x07111f, 0.9).setStrokeStyle(1, 0xffffff, 0.7);
-    const tag = this.add.text(0, 0, `Lv.${level}`, { align: 'center', fontFamily: 'Arial', fontSize: `${Math.max(11, Math.min(15, this.cellSize * 0.25))}px`, color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+    const center = cells.reduce((sum, point) => ({ x: sum.x + point.x, y: sum.y + point.y }), { x: 0, y: 0 });
+    center.x /= cells.length;
+    center.y /= cells.length;
+    const badgeCell = cells.reduce((closest, point) => {
+      const distance = (point.x - center.x) ** 2 + (point.y - center.y) ** 2;
+      const closestDistance = (closest.x - center.x) ** 2 + (closest.y - center.y) ** 2;
+      return distance < closestDistance ? point : closest;
+    });
+    const badgeX = badgeCell.x * this.cellSize;
+    const badgeY = badgeCell.y * this.cellSize;
+    const badgeWidth = Math.max(24, Math.min(52, this.cellSize - this.gap * 4));
+    const badgeHeight = Math.max(18, Math.min(28, this.cellSize - this.gap * 4, this.cellSize * 0.48));
+    const badge = this.add.rectangle(badgeX, badgeY, badgeWidth, badgeHeight, 0x07111f, 0.9).setStrokeStyle(1, 0xffffff, 0.7);
+    const tag = this.add.text(badgeX, badgeY, `Lv.${level}`, { align: 'center', fontFamily: 'Arial', fontSize: `${Math.max(10, Math.min(15, badgeHeight * 0.58))}px`, color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
     const item = this.add.container(0, 0, [...blocks, badge, tag]).setDepth(2);
     const piece: Piece = { id: this.nextId++, type, level, row, column, rotation, item };
     this.positionPiece(piece);
