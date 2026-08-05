@@ -118,7 +118,7 @@ class MergePrototypeScene extends Phaser.Scene {
     this.orderText = this.add.text(270, 145, '', { fontFamily: 'Arial', fontSize: '17px', color: '#f0f7fb', fontStyle: 'bold' });
     this.guidedOrderProgress = this.add.text(270, 174, '', { fontFamily: 'Arial', fontSize: '11px', color: '#8fa8ba' });
     this.add.text(270, 196, '필요 부품을 완성해 주문을 납품하세요.', { fontFamily: 'Arial', fontSize: '10px', color: '#607b8f' });
-    this.orderBike = this.add.graphics().setDepth(2).setScale(0.38).setPosition(520, 18);
+    this.orderBike = this.add.graphics().setDepth(2).setScale(0.32).setPosition(515, 40);
 
     this.goals.forEach((goal, index) => {
       const part = PARTS.find((item) => item.type === goal.type)!;
