@@ -407,7 +407,7 @@ class MergePrototypeScene extends Phaser.Scene {
   private refreshControls() {
     this.controls.filter((object): object is Phaser.GameObjects.Rectangle => object instanceof Phaser.GameObjects.Rectangle && Boolean(object.getData('part')))
       .forEach((button) => button.setFillStyle(button.getData('part') === this.selectedGenerator && !this.selectedPiece ? 0x21445a : 0x13263b));
-    this.controls.filter((object) => Boolean(object.getData('previewPart')))
+    this.controls.filter((object): object is Phaser.GameObjects.Container => object instanceof Phaser.GameObjects.Container && Boolean(object.getData('previewPart')))
       .forEach((preview) => preview.setVisible(preview.getData('previewPart') === this.selectedGenerator));
     this.pieces.forEach((piece) => piece.item.setScale(piece.id === this.selectedPiece?.id ? 1.06 : 1));
   }
