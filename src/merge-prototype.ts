@@ -109,10 +109,16 @@ class MergePrototypeScene extends Phaser.Scene {
 
   private drawGuidedOrder() {
     this.add.rectangle(122, 404, 220, 520, 0x0e1d2e).setStrokeStyle(1, 0x29465e);
-    this.add.text(30, 158, 'CUSTOMER ORDER', { fontFamily: 'Arial', fontSize: '10px', color: '#55d6be', fontStyle: 'bold' });
-    this.orderText = this.add.text(30, 180, '', { fontFamily: 'Arial', fontSize: '15px', color: '#dce9f2', fontStyle: 'bold' });
-    this.guidedOrderProgress = this.add.text(30, 208, '', { fontFamily: 'Arial', fontSize: '11px', color: '#8fa8ba' });
-    this.orderBike = this.add.graphics().setDepth(2).setScale(0.55).setPosition(270, -20);
+    this.add.text(30, 158, 'ORDER PARTS', { fontFamily: 'Arial', fontSize: '10px', color: '#55d6be', fontStyle: 'bold' });
+
+    this.add.rectangle(500, 150, 480, 140, 0x0e1d2e).setStrokeStyle(1, 0x55d6be, 0.72);
+    this.add.rectangle(286, 100, 74, 22, 0x173b43).setStrokeStyle(1, 0x55d6be, 0.85);
+    this.add.text(286, 100, 'NEW ORDER', { fontFamily: 'Arial', fontSize: '9px', color: '#9ff3e3', fontStyle: 'bold' }).setOrigin(0.5);
+    this.add.text(270, 122, '고객 주문이 도착했습니다', { fontFamily: 'Arial', fontSize: '11px', color: '#8fa8ba' });
+    this.orderText = this.add.text(270, 145, '', { fontFamily: 'Arial', fontSize: '17px', color: '#f0f7fb', fontStyle: 'bold' });
+    this.guidedOrderProgress = this.add.text(270, 174, '', { fontFamily: 'Arial', fontSize: '11px', color: '#8fa8ba' });
+    this.add.text(270, 196, '필요 부품을 완성해 주문을 납품하세요.', { fontFamily: 'Arial', fontSize: '10px', color: '#607b8f' });
+    this.orderBike = this.add.graphics().setDepth(2).setScale(0.38).setPosition(520, 18);
 
     this.goals.forEach((goal, index) => {
       const part = PARTS.find((item) => item.type === goal.type)!;
@@ -266,13 +272,14 @@ class MergePrototypeScene extends Phaser.Scene {
     this.boardObjects = [];
     this.controls = [];
     this.zones = [];
-    const boardWidth = this.mode === 'guided' ? 480 : 680;
-    this.cellSize = Math.floor(Math.min(boardWidth / this.columns, 520 / this.rows, 76));
+    const boardWidth = this.mode === 'guided' ? 460 : 680;
+    const boardHeight = this.mode === 'guided' ? 402 : 520;
+    this.cellSize = Math.floor(Math.min(boardWidth / this.columns, boardHeight / this.rows, 76));
     this.gap = Math.max(2, Math.min(5, Math.floor(this.cellSize * 0.08)));
     const width = this.columns * this.cellSize;
     this.boardLeft = this.mode === 'guided' ? 250 + (500 - width) / 2 : 32 + (704 - width) / 2;
     this.boardTop = this.mode === 'guided'
-      ? 232 + (446 - this.rows * this.cellSize) / 2
+      ? 256 + (410 - this.rows * this.cellSize) / 2
       : 142 + (536 - this.rows * this.cellSize) / 2;
     this.drawBoard();
     this.drawPartControls();
