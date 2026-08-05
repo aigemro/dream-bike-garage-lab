@@ -224,8 +224,8 @@ class MergePrototypeScene extends Phaser.Scene {
 
     PARTS.forEach((part, index) => {
       const x = controlsLeft + 76 + (index % 2) * 164;
-      const y = controlsTop + 43 + Math.floor(index / 2) * 62;
-      const button = this.add.rectangle(x, y, 148, 48, 0x13263b).setStrokeStyle(2, part.color).setInteractive({ useHandCursor: true });
+      const y = controlsTop + 48 + Math.floor(index / 2) * 72;
+      const button = this.add.rectangle(x, y, 148, 58, 0x13263b).setStrokeStyle(2, part.color).setInteractive({ useHandCursor: true });
       button.setData('part', part.type);
       button.on('pointerdown', () => {
         this.selectedGenerator = part.type;
@@ -233,16 +233,17 @@ class MergePrototypeScene extends Phaser.Scene {
         this.refreshControls();
         this.refreshUi(`${part.name}을 선택했습니다. 빈 공간을 눌러 배치하세요.`);
       });
-      const text = this.add.text(x, y, `${part.short}  ${part.name} · ${part.shape.length}칸`, { fontFamily: 'Arial', fontSize: '12px', color: '#e8f1f7', fontStyle: 'bold' }).setOrigin(0.5);
+      const text = this.add.text(x, y, `${part.name}\n${part.short} · ${part.shape.length}칸`, { align: 'center', fontFamily: 'Arial', fontSize: '12px', color: '#e8f1f7', fontStyle: 'bold', lineSpacing: 4 }).setOrigin(0.5);
       this.controls.push(button, text);
     });
 
-    const guide = this.add.text(controlsLeft, controlsTop + 164, '보드의 빈 칸을 눌러 배치합니다.\n배치된 부품을 선택하면 이동·회전·머지가 가능합니다.', { fontFamily: 'Arial', fontSize: '11px', color: '#71899c', lineSpacing: 7, wordWrap: { width: 310 } });
-    const rotateY = controlsTop + 246;
-    const rotate = this.add.rectangle(controlsLeft + 100, rotateY, 200, 40, 0x101f31).setStrokeStyle(1, 0x557086).setInteractive({ useHandCursor: true });
-    const rotateText = this.add.text(controlsLeft + 100, rotateY, '선택한 부품 90° 회전', { fontFamily: 'Arial', fontSize: '11px', color: '#d5e2eb' }).setOrigin(0.5);
-    const remove = this.add.rectangle(controlsLeft + 260, rotateY, 112, 40, 0x251c29).setStrokeStyle(1, 0x8b5365).setInteractive({ useHandCursor: true });
-    const removeText = this.add.text(controlsLeft + 260, rotateY, '선택 제거', { fontFamily: 'Arial', fontSize: '11px', color: '#e3bec9' }).setOrigin(0.5);
+    const guide = this.add.text(controlsLeft, controlsTop + 196, '보드의 빈 칸을 눌러 배치합니다.\n배치된 부품을 선택하면 이동·회전·머지가 가능합니다.', { fontFamily: 'Arial', fontSize: '11px', color: '#71899c', lineSpacing: 7, wordWrap: { width: 310 } });
+    const rotateY = controlsTop + 292;
+    const rotate = this.add.rectangle(controlsLeft + 170, rotateY, 300, 44, 0x101f31).setStrokeStyle(1, 0x557086).setInteractive({ useHandCursor: true });
+    const rotateText = this.add.text(controlsLeft + 170, rotateY, '선택한 부품 90° 회전', { fontFamily: 'Arial', fontSize: '12px', color: '#d5e2eb' }).setOrigin(0.5);
+    const removeY = rotateY + 58;
+    const remove = this.add.rectangle(controlsLeft + 170, removeY, 300, 44, 0x251c29).setStrokeStyle(1, 0x8b5365).setInteractive({ useHandCursor: true });
+    const removeText = this.add.text(controlsLeft + 170, removeY, '선택한 부품 제거', { fontFamily: 'Arial', fontSize: '12px', color: '#e3bec9' }).setOrigin(0.5);
     rotate.on('pointerdown', () => this.rotateSelected());
     remove.on('pointerdown', () => this.removeSelected());
     this.controls.push(guide, rotate, rotateText, remove, removeText);
@@ -292,10 +293,11 @@ class MergePrototypeScene extends Phaser.Scene {
     const part = PARTS.find((item) => item.type === type)!;
     const cells = this.shape(type, rotation);
     const blocks = cells.map((point) => this.add.rectangle(point.x * this.cellSize, point.y * this.cellSize, this.cellSize - this.gap * 2, this.cellSize - this.gap * 2, part.color).setStrokeStyle(2, 0x07111f));
-    const centerX = (Math.max(...cells.map((point) => point.x)) * this.cellSize) / 2;
-    const centerY = (Math.max(...cells.map((point) => point.y)) * this.cellSize) / 2;
-    const tag = this.add.text(centerX, centerY, `${part.short}\nL${level}`, { align: 'center', fontFamily: 'Arial', fontSize: `${Math.max(10, Math.min(16, this.cellSize * 0.28))}px`, color: '#07111f', fontStyle: 'bold' }).setOrigin(0.5);
-    const item = this.add.container(0, 0, [...blocks, tag]).setDepth(2);
+    const badgeWidth = Math.max(34, Math.min(52, this.cellSize - this.gap * 4));
+    const badgeHeight = Math.max(20, Math.min(28, this.cellSize * 0.48));
+    const badge = this.add.rectangle(0, 0, badgeWidth, badgeHeight, 0x07111f, 0.9).setStrokeStyle(1, 0xffffff, 0.7);
+    const tag = this.add.text(0, 0, `Lv.${level}`, { align: 'center', fontFamily: 'Arial', fontSize: `${Math.max(11, Math.min(15, this.cellSize * 0.25))}px`, color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+    const item = this.add.container(0, 0, [...blocks, badge, tag]).setDepth(2);
     const piece: Piece = { id: this.nextId++, type, level, row, column, rotation, item };
     this.positionPiece(piece);
     return piece;
