@@ -607,61 +607,119 @@ class MergePrototypeScene extends Phaser.Scene {
     const rearX = 218;
     const frontX = 546;
     const groundY = 350;
-    const radius = isMtb ? 54 : 48;
-    const crankX = 378;
-    const crankY = isMtb ? 316 : 310;
-    const seatX = isMtb ? 350 : 358;
-    const seatY = isMtb ? 228 : 220;
-    const headX = isMtb ? 486 : 493;
-    const headY = isMtb ? 244 : 226;
+    const radius = isMtb ? 55 : 49;
+    const crankX = isMtb ? 376 : 381;
+    const crankY = isMtb ? 316 : 314;
+    const seatX = isMtb ? 346 : 354;
+    const seatY = isMtb ? 226 : 216;
+    const headTopX = isMtb ? 482 : 490;
+    const headTopY = isMtb ? 242 : 226;
+    const headBottomX = isMtb ? 469 : 476;
+    const headBottomY = isMtb ? 276 : 267;
+    const frameWidth = isMtb ? 10 : 8;
 
     const drawWheel = (x: number) => {
-      g.lineStyle(isMtb ? 9 : 6, 0xffb35c, alpha('wheel')).strokeCircle(x, groundY, radius);
-      g.lineStyle(2, 0xffd29a, alpha('wheel') * 0.7);
-      for (let angle = 0; angle < 360; angle += 30) {
-        const rad = Phaser.Math.DegToRad(angle);
-        g.lineBetween(x, groundY, x + Math.cos(rad) * (radius - 7), groundY + Math.sin(rad) * (radius - 7));
+      const wheelAlpha = alpha('wheel');
+      // MTB는 굵고 각진 타이어, 로드는 얇은 이중 림으로 구분한다.
+      g.lineStyle(isMtb ? 11 : 4, 0xffb35c, wheelAlpha).strokeCircle(x, groundY, radius);
+      g.lineStyle(isMtb ? 2 : 2, isMtb ? 0xffd29a : 0xffdcb0, wheelAlpha * 0.9).strokeCircle(x, groundY, radius - (isMtb ? 8 : 5));
+      if (isMtb) {
+        for (let angle = 0; angle < 360; angle += 18) {
+          const rad = Phaser.Math.DegToRad(angle);
+          const inner = radius - 5;
+          const outer = radius + 3;
+          g.lineStyle(3, 0xffc274, wheelAlpha)
+            .lineBetween(x + Math.cos(rad) * inner, groundY + Math.sin(rad) * inner, x + Math.cos(rad) * outer, groundY + Math.sin(rad) * outer);
+        }
       }
-      g.lineStyle(2, 0xffb35c, alpha('wheel')).strokeCircle(x, groundY, 6);
+      g.lineStyle(1.5, 0xffd29a, wheelAlpha * 0.72);
+      for (let angle = 0; angle < 360; angle += (isMtb ? 30 : 20)) {
+        const rad = Phaser.Math.DegToRad(angle);
+        g.lineBetween(x, groundY, x + Math.cos(rad) * (radius - (isMtb ? 10 : 7)), groundY + Math.sin(rad) * (radius - (isMtb ? 10 : 7)));
+      }
+      g.fillStyle(0xffb35c, wheelAlpha).fillCircle(x, groundY, isMtb ? 7 : 5);
+      g.lineStyle(2, 0x07111f, wheelAlpha).strokeCircle(x, groundY, isMtb ? 7 : 5);
     };
     drawWheel(rearX);
     drawWheel(frontX);
 
-    g.lineStyle(isMtb ? 10 : 8, 0x55d6be, alpha('frame'));
+    // 프레임: 실제 다이아몬드 구조와 체인스테이/시트스테이를 분리해 그린다.
+    g.lineStyle(frameWidth, 0x55d6be, alpha('frame'));
     g.lineBetween(rearX, groundY, seatX, seatY);
     g.lineBetween(seatX, seatY, crankX, crankY);
     g.lineBetween(crankX, crankY, rearX, groundY);
-    g.lineBetween(seatX, seatY, headX, headY);
-    g.lineBetween(headX, headY, crankX, crankY);
-    g.lineBetween(headX, headY, frontX, groundY);
-    g.lineBetween(crankX, crankY, frontX, groundY);
-    g.lineStyle(5, 0x7cebd7, alpha('frame')).lineBetween(seatX - 25, seatY - 8, seatX + 35, seatY - 8);
+    g.lineBetween(seatX, seatY, headTopX, headTopY);
+    g.lineBetween(headTopX, headTopY, headBottomX, headBottomY);
+    g.lineBetween(headBottomX, headBottomY, crankX, crankY);
+    g.lineBetween(headBottomX, headBottomY, frontX, groundY);
 
-    g.lineStyle(5, 0xff7185, alpha('drivetrain')).strokeCircle(crankX, crankY, 17);
-    g.lineStyle(3, 0xff9bab, alpha('drivetrain')).strokeCircle(rearX, groundY, 11).lineBetween(crankX, crankY, rearX, groundY);
-    g.lineStyle(4, 0xff7185, alpha('drivetrain')).lineBetween(crankX, crankY, crankX + 35, crankY + 15);
-
+    // 포크, 시트포스트, 안장.
+    g.lineStyle(isMtb ? 7 : 5, 0x71e5d0, alpha('frame'))
+      .lineBetween(headTopX, headTopY, frontX, groundY)
+      .lineBetween(seatX, seatY, seatX - 8, seatY - 30);
+    g.lineStyle(isMtb ? 7 : 5, 0x8bf1df, alpha('frame'))
+      .lineBetween(seatX - 34, seatY - 32, seatX + 22, seatY - 32);
     if (isMtb) {
-      g.lineStyle(7, 0x8c7bff, alpha('handlebar')).lineBetween(headX, headY, headX + 10, headY - 36).lineBetween(headX - 34, headY - 37, headX + 48, headY - 37);
-      g.lineStyle(4, 0xb4a9ff, alpha('handlebar')).lineBetween(headX - 34, headY - 44, headX - 34, headY - 30).lineBetween(headX + 48, headY - 44, headX + 48, headY - 30);
+      // MTB 전용 리어 쇼크와 프런트 서스펜션.
+      g.lineStyle(5, 0xc8fff5, alpha('frame')).lineBetween(seatX + 12, seatY + 18, crankX + 22, crankY - 22);
+      g.lineStyle(9, 0x2d6f6b, alpha('frame')).lineBetween(headBottomX + 18, headBottomY + 10, frontX - 13, groundY - 24);
+      g.lineStyle(4, 0xc8fff5, alpha('frame')).lineBetween(headBottomX + 15, headBottomY + 5, frontX - 17, groundY - 30);
     } else {
-      g.lineStyle(6, 0x8c7bff, alpha('handlebar')).lineBetween(headX, headY, headX + 14, headY - 40).lineBetween(headX - 2, headY - 40, headX + 48, headY - 40);
-      g.lineStyle(5, 0xb4a9ff, alpha('handlebar')).arc(headX + 48, headY - 28, 13, -Math.PI / 2, Math.PI / 2, false);
+      // 로드 전용 물통과 에어로 다운튜브 포인트.
+      g.fillStyle(0x163a45, alpha('frame') * 0.9).fillRoundedRect(crankX + 12, crankY - 48, 15, 34, 5);
+      g.lineStyle(2, 0x8bf1df, alpha('frame')).strokeRoundedRect(crankX + 12, crankY - 48, 15, 34, 5);
     }
 
+    // 구동계: 체인링, 크랭크, 체인, 리어 카세트.
+    const driveAlpha = alpha('drivetrain');
+    g.lineStyle(5, 0xff7185, driveAlpha).strokeCircle(crankX, crankY, isMtb ? 17 : 19);
+    g.lineStyle(2, 0xffb0bd, driveAlpha).strokeCircle(crankX, crankY, isMtb ? 11 : 13);
+    g.lineStyle(3, 0xff9bab, driveAlpha)
+      .strokeCircle(rearX, groundY, isMtb ? 13 : 10)
+      .lineBetween(crankX, crankY - 13, rearX, groundY - 9)
+      .lineBetween(crankX, crankY + 13, rearX, groundY + 9);
+    g.lineStyle(4, 0xff7185, driveAlpha)
+      .lineBetween(crankX, crankY, crankX + 34, crankY + 15)
+      .lineBetween(crankX, crankY, crankX - 22, crankY - 15);
+    g.fillStyle(0xff9bab, driveAlpha).fillCircle(crankX + 36, crankY + 16, 4).fillCircle(crankX - 24, crankY - 16, 4);
+
+    // MTB는 넓은 플랫바, 로드는 스템과 드롭바를 강조한다.
+    const barAlpha = alpha('handlebar');
+    if (isMtb) {
+      const stemX = headTopX + 12;
+      const barY = headTopY - 38;
+      g.lineStyle(7, 0x8c7bff, barAlpha)
+        .lineBetween(headTopX, headTopY, stemX, barY)
+        .lineBetween(stemX - 42, barY, stemX + 50, barY);
+      g.lineStyle(5, 0xb4a9ff, barAlpha)
+        .lineBetween(stemX - 42, barY - 8, stemX - 42, barY + 8)
+        .lineBetween(stemX + 50, barY - 8, stemX + 50, barY + 8);
+      g.fillStyle(0x8c7bff, barAlpha).fillCircle(stemX - 25, barY + 4, 3).fillCircle(stemX + 32, barY + 4, 3);
+    } else {
+      const stemY = headTopY - 34;
+      const barX = headTopX + 43;
+      g.lineStyle(6, 0x8c7bff, barAlpha)
+        .lineBetween(headTopX, headTopY, headTopX + 10, stemY)
+        .lineBetween(headTopX + 10, stemY, barX, stemY);
+      g.lineStyle(5, 0xb4a9ff, barAlpha)
+        .arc(barX, stemY + 13, 14, -Math.PI / 2, Math.PI * 0.72, false)
+        .lineBetween(barX - 1, stemY + 27, barX - 17, stemY + 27);
+      g.lineStyle(3, 0xd5cfff, barAlpha).lineBetween(barX - 4, stemY - 6, barX + 2, stemY + 5);
+    }
+
+    // 미완성 부품은 실제 장착 위치 바깥쪽에 고스트 외곽선으로 표시한다.
     (['frame', 'wheel', 'drivetrain', 'handlebar'] as PartType[]).forEach((type) => {
       if (!ghost(type)) return;
       const part = PARTS.find((item) => item.type === type)!;
       g.lineStyle(2, part.color, ghost(type));
-      if (type === 'wheel') g.strokeCircle(frontX, groundY, radius + 7).strokeCircle(rearX, groundY, radius + 7);
-      if (type === 'frame') g.strokeTriangle(rearX, groundY, seatX, seatY, crankX, crankY);
-      if (type === 'drivetrain') g.strokeCircle(crankX, crankY, 24);
-      if (type === 'handlebar') g.strokeRect(headX - 12, headY - 51, 75, 26);
+      if (type === 'wheel') g.strokeCircle(frontX, groundY, radius + 8).strokeCircle(rearX, groundY, radius + 8);
+      if (type === 'frame') {
+        g.strokeTriangle(rearX, groundY, seatX, seatY, crankX, crankY);
+        g.strokeTriangle(seatX, seatY, headTopX, headTopY, crankX, crankY);
+      }
+      if (type === 'drivetrain') g.strokeCircle(crankX, crankY, 26);
+      if (type === 'handlebar') g.strokeRoundedRect(headTopX - 14, headTopY - 53, 82, 30, 6);
     });
-
-    g.fillStyle(0x07111f, 0.82).fillRoundedRect(82, 234, 104, 28, 8);
-    g.lineStyle(1, 0x395a72, 1).strokeRoundedRect(82, 234, 104, 28, 8);
-    g.fillStyle(0xdce9f2, 1);
   }
 
   private destroySceneObject(object: Phaser.GameObjects.GameObject) {
