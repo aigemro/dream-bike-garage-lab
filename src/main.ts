@@ -38,7 +38,7 @@ const tracks: Track[] = [
         description: '부품별 점유 크기와 회전·이동을 이용해 공간을 설계한 뒤 같은 부품을 합치는 2차 구현안입니다.',
         status: '체험 가능',
         question: '모바일에서도 가장 단순한 입력만으로 머지 규칙을 쉽게 이해할 수 있는가?',
-        controls: '보드 크기를 입력하고, 아래에서 부품을 골라 배치합니다. 부품을 선택하면 회전·이동·머지할 수 있습니다.',
+        controls: '− / +로 보드 크기를 바꾸고 부품을 골라 배치합니다. 부품을 다시 누르면 회전하며, 선택 후 이동·머지할 수 있습니다.',
         demo: 'free', issueNumber: 10, documentId: 'merge-free-board',
       },
       {
