@@ -112,6 +112,7 @@ class MergePrototypeScene extends Phaser.Scene {
     this.add.text(30, 158, 'CUSTOMER ORDER', { fontFamily: 'Arial', fontSize: '10px', color: '#55d6be', fontStyle: 'bold' });
     this.orderText = this.add.text(30, 180, '', { fontFamily: 'Arial', fontSize: '15px', color: '#dce9f2', fontStyle: 'bold' });
     this.guidedOrderProgress = this.add.text(30, 208, '', { fontFamily: 'Arial', fontSize: '11px', color: '#8fa8ba' });
+    this.orderBike = this.add.graphics().setDepth(2).setScale(0.55).setPosition(270, -20);
 
     this.goals.forEach((goal, index) => {
       const part = PARTS.find((item) => item.type === goal.type)!;
@@ -128,6 +129,7 @@ class MergePrototypeScene extends Phaser.Scene {
     this.add.text(30, 598, '필요한 부품만 알려주며\n배치 위치와 제작 순서는\n플레이어가 자유롭게 정합니다.', {
       fontFamily: 'Arial', fontSize: '10px', color: '#71899c', lineSpacing: 6,
     });
+    this.drawOrderBike();
   }
 
   private drawCustomOrder() {
@@ -269,7 +271,9 @@ class MergePrototypeScene extends Phaser.Scene {
     this.gap = Math.max(2, Math.min(5, Math.floor(this.cellSize * 0.08)));
     const width = this.columns * this.cellSize;
     this.boardLeft = this.mode === 'guided' ? 250 + (500 - width) / 2 : 32 + (704 - width) / 2;
-    this.boardTop = 142 + (536 - this.rows * this.cellSize) / 2;
+    this.boardTop = this.mode === 'guided'
+      ? 232 + (446 - this.rows * this.cellSize) / 2
+      : 142 + (536 - this.rows * this.cellSize) / 2;
     this.drawBoard();
     this.drawPartControls();
     this.refreshSizeFields();
@@ -582,8 +586,16 @@ class MergePrototypeScene extends Phaser.Scene {
     });
     if (this.goals.every((goal) => goal.delivered)) {
       this.info.setText(`주문 ${this.orderIndex + 1} 완료 · 급여를 획득했습니다! 다음 주문을 시작합니다.`);
-      this.orderIndex = (this.orderIndex + 1) % ORDERS.length;
+      this.orderIndex = (this.orderIndex + 1) % 2;
       this.goals = ORDERS[this.orderIndex].map((goal) => ({ ...goal }));
+      this.pieces.forEach((piece) => piece.item.destroy(true));
+      this.pieces = [];
+      this.selectedPiece = undefined;
+      this.generatorPlacementActive = false;
+      this.clearPlacementGhost();
+      this.startedAt = this.time.now;
+      this.drawOrderBike();
+      this.refreshControls();
     }
   }
 
@@ -624,9 +636,10 @@ class MergePrototypeScene extends Phaser.Scene {
       return;
     }
     const completed = this.goals.filter((goal) => goal.delivered).length;
-    const bikeName = this.orderIndex === 1 ? '트레일 MTB' : this.orderIndex === 2 ? '엔듀런스 로드' : '에어로 로드';
+    const bikeName = this.orderIndex === 1 ? '트레일 MTB' : '에어로 로드';
     this.orderText.setText(`${bikeName} #${this.orderIndex + 1}`);
     this.guidedOrderProgress?.setText(`완성 ${completed}/4 · 목표 부품 가이드`);
+    this.drawOrderBike();
     this.goals.forEach((goal) => {
       const display = this.guidedGoalDisplays.get(goal.type);
       if (!display) return;
