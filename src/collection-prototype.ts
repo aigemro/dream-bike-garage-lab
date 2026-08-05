@@ -106,7 +106,7 @@ class CollectionScene extends Phaser.Scene {
       g.fillTriangle(x - 45 * scale, y + 20 * scale, x - 8 * scale, y - 12 * scale, x + 12 * scale, y + 20 * scale);
     }
     if (level >= 3) {
-      g.lineStyle(3 * scale, C.gold, 1);
+      g.lineStyle(3 * scale, 0xffdf6b, 1);
       g.strokeCircle(x, y + 5 * scale, 62 * scale);
     }
     return g;
