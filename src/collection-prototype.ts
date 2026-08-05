@@ -132,7 +132,6 @@ class CollectionScene extends Phaser.Scene {
       this.drawBike(x, y - 16, .65, bike.color, bike.level, !bike.owned);
       this.text(x - 126, y + 48, bike.owned ? bike.name : '??? 미획득', 16, bike.owned ? C.text : C.muted, '700');
       this.text(x - 126, y + 70, bike.owned ? `Lv.${bike.level} · 중복 ${bike.duplicates}` : '주문 납품 보상으로 발견', 11, C.muted);
-      card.setDepth(-1);
     });
 
     const target = this.bikes.find((bike) => bike.id === this.selected)!;
