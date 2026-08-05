@@ -201,14 +201,14 @@ function renderVariant(track: Track, variant: Variant) {
   destroyGame();
   const issueUrl = `https://github.com/aigemro/dream-bike-garage-lab/issues/${variant.issueNumber}`;
   shell(`<main class="experiment-page variant-detail-page">
-    <section class="experiment-title"><p class="eyebrow">${track.title} · ${variant.label} · ${variant.status}</p><h1>${variant.title}</h1><p>${variant.description}</p></section>
-    <div class="detail-layout">
-      <article class="implementation-doc"><p class="panel-label">IMPLEMENTATION NOTE · MARKDOWN</p>${renderMarkdown(variantDocs[variant.documentId])}</article>
+    <section class="variant-detail-head">
+      <div class="experiment-title"><p class="eyebrow">${track.title} · ${variant.label} · ${variant.status}</p><h1>${variant.title}</h1><p>${variant.description}</p></div>
       <aside class="variant-actions">
         <a class="issue-action" href="${issueUrl}" target="_blank" rel="noreferrer"><span>RELATED ISSUE</span><strong>Issue #${variant.issueNumber}</strong><em>GitHub에서 확인 ↗</em></a>
         ${variant.status === '체험 가능' ? `<a class="primary-action" href="#/track/${track.id}/${variant.id}/demo">체험 화면으로 이동 →</a>` : '<span class="disabled-action">체험 화면 준비 중</span>'}
       </aside>
-    </div>
+    </section>
+    <article class="implementation-doc"><p class="panel-label">IMPLEMENTATION NOTE · MARKDOWN</p>${renderMarkdown(variantDocs[variant.documentId])}</article>
   </main>`, { href: `#/track/${track.id}`, label: `${track.title} 방안 목록` });
 }
 
