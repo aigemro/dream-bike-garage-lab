@@ -200,40 +200,16 @@ function renderMarkdown(markdown: string) {
 function renderVariant(track: Track, variant: Variant) {
   destroyGame();
   const issueUrl = `https://github.com/aigemro/dream-bike-garage-lab/issues/${variant.issueNumber}`;
-  shell(`<main class="experiment-page">
+  shell(`<main class="experiment-page variant-detail-page">
     <section class="experiment-title"><p class="eyebrow">${track.title} · ${variant.label} · ${variant.status}</p><h1>${variant.title}</h1><p>${variant.description}</p></section>
-    <section class="variant-meta"><div><span>검증 질문</span><strong>${variant.question}</strong></div><div><span>조작 방법</span><strong>${variant.controls}</strong></div></section>
     <div class="detail-layout">
       <article class="implementation-doc"><p class="panel-label">IMPLEMENTATION NOTE · MARKDOWN</p>${renderMarkdown(variantDocs[variant.documentId])}</article>
-      <aside class="discussion-panel">
-        <div class="discussion-head"><div><p class="panel-label">GITHUB DISCUSSION</p><h2>Issue #${variant.issueNumber} 의견</h2></div><a href="${issueUrl}" target="_blank" rel="noreferrer">Issue 열기 ↗</a></div>
-        <div id="issue-comments" class="comments"><p class="comment-state">댓글을 불러오는 중입니다.</p></div>
-        <label class="comment-compose"><span>의견 작성</span><textarea id="comment-draft" rows="4" placeholder="이 방안에 대한 의견을 작성하세요."></textarea></label>
-        <button id="open-comment" class="secondary-action">내용 복사 후 GitHub에서 등록</button>
-        <p class="auth-note">보안을 위해 GitHub에서 로그인한 뒤 Issue 댓글로 등록합니다.</p>
+      <aside class="variant-actions">
+        <a class="issue-action" href="${issueUrl}" target="_blank" rel="noreferrer"><span>RELATED ISSUE</span><strong>Issue #${variant.issueNumber}</strong><em>GitHub에서 확인 ↗</em></a>
+        ${variant.status === '체험 가능' ? `<a class="primary-action" href="#/track/${track.id}/${variant.id}/demo">체험 화면으로 이동 →</a>` : '<span class="disabled-action">체험 화면 준비 중</span>'}
       </aside>
     </div>
-    <section class="launch-panel"><div><p class="panel-label">PROTOTYPE</p><h2>${variant.status === '체험 가능' ? '상세 내용을 확인했다면 방안을 직접 체험해보세요.' : '이 방안은 아직 구현 준비 중입니다.'}</h2></div>${variant.status === '체험 가능' ? `<a class="primary-action" href="#/track/${track.id}/${variant.id}/demo">체험 화면으로 이동 →</a>` : '<span class="disabled-action">준비 중</span>'}</section>
   </main>`, { href: `#/track/${track.id}`, label: `${track.title} 방안 목록` });
-  loadIssueComments(variant.issueNumber);
-  document.querySelector('#open-comment')?.addEventListener('click', async () => {
-    const draft = (document.querySelector<HTMLTextAreaElement>('#comment-draft')?.value ?? '').trim();
-    if (draft) await navigator.clipboard?.writeText(draft).catch(() => undefined);
-    window.open(`${issueUrl}#new_comment_field`, '_blank', 'noopener,noreferrer');
-  });
-}
-
-async function loadIssueComments(issueNumber: number) {
-  const target = document.querySelector<HTMLDivElement>('#issue-comments');
-  if (!target) return;
-  try {
-    const response = await fetch(`https://api.github.com/repos/aigemro/dream-bike-garage-lab/issues/${issueNumber}/comments`, { headers: { Accept: 'application/vnd.github+json' } });
-    if (!response.ok) throw new Error(String(response.status));
-    const comments = await response.json() as Array<{ id: number; body: string; created_at: string; user: { login: string; avatar_url: string; html_url: string } }>;
-    target.innerHTML = comments.length ? comments.map((comment) => `<article class="comment"><header><img src="${comment.user.avatar_url}" alt="" /><a href="${comment.user.html_url}" target="_blank" rel="noreferrer">${escapeHtml(comment.user.login)}</a><time>${new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium' }).format(new Date(comment.created_at))}</time></header><div>${renderMarkdown(comment.body)}</div></article>`).join('') : '<p class="comment-state">아직 등록된 의견이 없습니다. 첫 의견을 남겨보세요.</p>';
-  } catch {
-    target.innerHTML = '<p class="comment-state">댓글을 불러오지 못했습니다. GitHub Issue에서 직접 확인할 수 있습니다.</p>';
-  }
 }
 
 function renderDemo(track: Track, variant: Variant) {
