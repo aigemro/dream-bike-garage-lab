@@ -209,16 +209,21 @@ class MergePrototypeScene extends Phaser.Scene {
   }
 
   private drawDesktopPartControls() {
-    const controlsLeft = 788;
+    const panelLeft = 770;
+    const panelWidth = 340;
+    const panelPadding = 24;
+    const columnGap = 16;
+    const buttonWidth = (panelWidth - panelPadding * 2 - columnGap) / 2;
+    const controlsLeft = panelLeft + panelPadding;
     const controlsTop = 174;
-    const panel = this.add.rectangle(940, 404, 340, 520, 0x0e1d2e).setStrokeStyle(1, 0x29465e);
+    const panel = this.add.rectangle(panelLeft + panelWidth / 2, 404, panelWidth, 520, 0x0e1d2e).setStrokeStyle(1, 0x29465e);
     const label = this.add.text(controlsLeft, controlsTop, '추가할 부품', { fontFamily: 'Arial', fontSize: '12px', color: '#8fa8ba' });
     this.controls.push(panel, label);
 
     PARTS.forEach((part, index) => {
-      const x = controlsLeft + 67 + (index % 2) * 154;
+      const x = controlsLeft + buttonWidth / 2 + (index % 2) * (buttonWidth + columnGap);
       const y = controlsTop + 52 + Math.floor(index / 2) * 72;
-      const button = this.add.rectangle(x, y, 136, 58, 0x13263b).setStrokeStyle(2, part.color).setInteractive({ useHandCursor: true });
+      const button = this.add.rectangle(x, y, buttonWidth, 58, 0x13263b).setStrokeStyle(2, part.color).setInteractive({ useHandCursor: true });
       button.setData('part', part.type);
       button.on('pointerdown', () => {
         this.selectedGenerator = part.type;
@@ -230,7 +235,7 @@ class MergePrototypeScene extends Phaser.Scene {
       this.controls.push(button, text);
     });
 
-    const guide = this.add.text(controlsLeft, controlsTop + 210, '보드의 빈 칸을 눌러 배치합니다.\n배치된 부품을 한 번 누르면 선택하고,\n같은 부품을 다시 누르면 90° 회전합니다.\n선택 후 빈 칸을 누르면 이동합니다.', { fontFamily: 'Arial', fontSize: '11px', color: '#71899c', lineSpacing: 7, wordWrap: { width: 304 } });
+    const guide = this.add.text(controlsLeft, controlsTop + 210, '보드의 빈 칸을 눌러 배치합니다.\n배치된 부품을 한 번 누르면 선택하고,\n같은 부품을 다시 누르면 90° 회전합니다.\n선택 후 빈 칸을 누르면 이동합니다.', { fontFamily: 'Arial', fontSize: '11px', color: '#71899c', lineSpacing: 7, wordWrap: { width: panelWidth - panelPadding * 2 } });
     this.controls.push(guide);
     this.refreshControls();
   }
@@ -282,8 +287,6 @@ class MergePrototypeScene extends Phaser.Scene {
     const badgeHeight = Math.max(20, Math.min(28, this.cellSize * 0.48));
     const badge = this.add.rectangle(0, 0, badgeWidth, badgeHeight, 0x07111f, 0.9).setStrokeStyle(1, 0xffffff, 0.7);
     const tag = this.add.text(0, 0, `Lv.${level}`, { align: 'center', fontFamily: 'Arial', fontSize: `${Math.max(11, Math.min(15, this.cellSize * 0.25))}px`, color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
-    badge.setAngle(rotation * 90);
-    tag.setAngle(rotation * 90);
     const item = this.add.container(0, 0, [...blocks, badge, tag]).setDepth(2);
     const piece: Piece = { id: this.nextId++, type, level, row, column, rotation, item };
     this.positionPiece(piece);
