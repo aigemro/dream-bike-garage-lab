@@ -160,7 +160,7 @@ class MergePrototypeScene extends Phaser.Scene {
     this.pieces.forEach((piece) => piece.item.destroy());
     this.pieces = [];
     this.boardObjects.forEach((object) => object.destroy());
-    this.controls.forEach((object) => object.destroy());
+    this.controls.forEach((object) => this.destroySceneObject(object));
     this.boardObjects = [];
     this.controls = [];
     this.zones = [];
@@ -351,12 +351,12 @@ class MergePrototypeScene extends Phaser.Scene {
   }
 
   private clearPlacementGhost() {
-    this.placementGhost?.destroy();
+    this.placementGhost?.destroy(true);
     this.placementGhost = undefined;
   }
 
   private mergeGeneratedPiece(target: Piece) {
-    target.item.destroy();
+    target.item.destroy(true);
     this.pieces = this.pieces.filter((piece) => piece.id !== target.id);
     const merged = this.makePiece(target.type, target.row, target.column, target.rotation, 2);
     this.pieces.push(merged);
@@ -431,7 +431,7 @@ class MergePrototypeScene extends Phaser.Scene {
       return;
     }
     const old = this.selectedPiece;
-    old.item.destroy();
+    old.item.destroy(true);
     const replacement = this.makePiece(old.type, old.row, old.column, next, old.level);
     replacement.id = old.id;
     this.pieces[this.pieces.findIndex((piece) => piece.id === old.id)] = replacement;
@@ -441,8 +441,8 @@ class MergePrototypeScene extends Phaser.Scene {
   }
 
   private mergePieces(source: Piece, target: Piece) {
-    source.item.destroy();
-    target.item.destroy();
+    source.item.destroy(true);
+    target.item.destroy(true);
     this.pieces = this.pieces.filter((piece) => piece.id !== source.id && piece.id !== target.id);
     const merged = this.makePiece(target.type, target.row, target.column, target.rotation, target.level + 1);
     this.pieces.push(merged);
@@ -503,7 +503,7 @@ class MergePrototypeScene extends Phaser.Scene {
       const match = this.pieces.find((piece) => piece.type === goal.type && piece.level >= goal.level);
       if (!match) return;
       goal.delivered = true;
-      match.item.destroy();
+      match.item.destroy(true);
       this.pieces = this.pieces.filter((piece) => piece.id !== match.id);
     });
     if (this.goals.every((goal) => goal.delivered)) {
@@ -539,6 +539,11 @@ class MergePrototypeScene extends Phaser.Scene {
     g.lineStyle(3, 0xff7185, 1).strokeCircle(917, 545, 7).lineBetween(917, 545, 936, 548);
     g.lineStyle(3, 0x8c7bff, 1).lineBetween(944, 517, 956, 550).lineBetween(939, 517, 953, 517);
     g.fillStyle(0x55d6be).fillRect(906, 511, 21, 4);
+  }
+
+  private destroySceneObject(object: Phaser.GameObjects.GameObject) {
+    if (object instanceof Phaser.GameObjects.Container) object.destroy(true);
+    else object.destroy();
   }
 
   private refreshMetrics() {
