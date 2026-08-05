@@ -122,7 +122,7 @@ class CollectionScene extends Phaser.Scene {
       const col = index % 3;
       const row = Math.floor(index / 3);
       const x = 176 + col * 304;
-      const y = 260 + row * 210;
+      const y = 246 + row * 198;
       const selected = this.selected === bike.id;
       const card = this.add.rectangle(x, y, 282, 184, selected ? 0x102b3c : C.panel)
         .setStrokeStyle(selected ? 2 : 1, selected ? bike.color : C.line)
