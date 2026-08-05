@@ -235,8 +235,38 @@ class MergePrototypeScene extends Phaser.Scene {
       this.controls.push(button, text);
     });
 
-    const guide = this.add.text(controlsLeft, controlsTop + 210, '보드의 빈 칸을 눌러 배치합니다.\n배치된 부품을 한 번 누르면 선택하고,\n같은 부품을 다시 누르면 90° 회전합니다.\n선택 후 빈 칸을 누르면 이동합니다.', { fontFamily: 'Arial', fontSize: '11px', color: '#71899c', lineSpacing: 7, wordWrap: { width: panelWidth - panelPadding * 2 } });
+    const guide = this.add.text(controlsLeft, controlsTop + 210, '보드의 빈 칸을 누르면 들어갈 수 있는 방향으로\n부품이 자동 회전해 배치됩니다.\n배치된 부품을 한 번 누르면 선택하고,\n같은 부품을 다시 누르면 90° 회전합니다.\n선택 후 빈 칸을 누르면 이동합니다.', { fontFamily: 'Arial', fontSize: '11px', color: '#71899c', lineSpacing: 6, wordWrap: { width: panelWidth - panelPadding * 2 } });
     this.controls.push(guide);
+
+    const previewTop = controlsTop + 340;
+    const previewLabel = this.add.text(controlsLeft, previewTop, '선택 부품 미리보기', { fontFamily: 'Arial', fontSize: '12px', color: '#8fa8ba', fontStyle: 'bold' });
+    const previewPanel = this.add.rectangle(panelLeft + panelWidth / 2, previewTop + 76, panelWidth - panelPadding * 2, 118, 0x0b1929).setStrokeStyle(1, 0x29465e);
+    this.controls.push(previewLabel, previewPanel);
+
+    PARTS.forEach((part) => {
+      const previewCell = 25;
+      const previewShape = this.shape(part.type, 0);
+      const maxX = Math.max(...previewShape.map((point) => point.x));
+      const maxY = Math.max(...previewShape.map((point) => point.y));
+      const shapeWidth = (maxX + 1) * previewCell;
+      const shapeHeight = (maxY + 1) * previewCell;
+      const preview = this.add.container(
+        panelLeft + panelWidth / 2,
+        previewTop + 66,
+      ).setData('previewPart', part.type);
+      const blocks = previewShape.map((point) => this.add.rectangle(
+        point.x * previewCell - shapeWidth / 2 + previewCell / 2,
+        point.y * previewCell - shapeHeight / 2 + previewCell / 2,
+        previewCell - 3,
+        previewCell - 3,
+        part.color,
+      ).setStrokeStyle(1, 0x07111f));
+      const caption = this.add.text(0, 42, `${part.name} · ${part.shape.length}칸 · 빈 공간에 맞춰 자동 회전`, {
+        fontFamily: 'Arial', fontSize: '10px', color: '#bfd0dc', align: 'center',
+      }).setOrigin(0.5);
+      preview.add([...blocks, caption]);
+      this.controls.push(preview);
+    });
     this.refreshControls();
   }
 
@@ -273,10 +303,16 @@ class MergePrototypeScene extends Phaser.Scene {
     }
 
     const type = this.mode === 'order' ? this.recommendedPart() : this.selectedGenerator;
-    if (!this.canPlace(type, row, column, 0)) { this.mistakes += 1; this.refreshUi('선택한 부품 모양이 들어갈 빈 공간이 부족합니다. 회전하거나 다른 위치를 선택하세요.'); return; }
-    const piece = this.makePiece(type, row, column, 0, 1);
+    const placementRotation = this.findPlacementRotation(type, row, column);
+    if (placementRotation === undefined) {
+      this.mistakes += 1;
+      this.refreshUi('선택한 부품이 어느 방향으로도 들어갈 빈 공간이 부족합니다. 다른 위치를 선택하세요.');
+      return;
+    }
+    const piece = this.makePiece(type, row, column, placementRotation, 1);
     this.pieces.push(piece);
-    this.refreshUi(`${this.partName(type)} Lv.1을 ${this.shape(type, 0).length}칸 크기로 배치했습니다.`);
+    const rotationMessage = placementRotation === 0 ? '' : ` · ${placementRotation * 90}° 자동 회전`;
+    this.refreshUi(`${this.partName(type)} Lv.1을 ${this.shape(type, placementRotation).length}칸 크기로 배치했습니다${rotationMessage}.`);
   }
 
   private makePiece(type: PartType, row: number, column: number, rotation: number, level: number) {
@@ -348,6 +384,10 @@ class MergePrototypeScene extends Phaser.Scene {
 
   private occupied(piece: Piece) { return this.shape(piece.type, piece.rotation).map((point) => ({ row: piece.row + point.y, column: piece.column + point.x })); }
 
+  private findPlacementRotation(type: PartType, row: number, column: number) {
+    return [0, 1, 2, 3].find((rotation) => this.canPlace(type, row, column, rotation));
+  }
+
   private canPlace(type: PartType, row: number, column: number, rotation: number, ignoredId?: number) {
     const occupied = this.pieces.filter((piece) => piece.id !== ignoredId).flatMap((piece) => this.occupied(piece));
     return this.shape(type, rotation).every((point) => {
@@ -367,6 +407,8 @@ class MergePrototypeScene extends Phaser.Scene {
   private refreshControls() {
     this.controls.filter((object): object is Phaser.GameObjects.Rectangle => object instanceof Phaser.GameObjects.Rectangle && Boolean(object.getData('part')))
       .forEach((button) => button.setFillStyle(button.getData('part') === this.selectedGenerator && !this.selectedPiece ? 0x21445a : 0x13263b));
+    this.controls.filter((object) => Boolean(object.getData('previewPart')))
+      .forEach((preview) => preview.setVisible(preview.getData('previewPart') === this.selectedGenerator && !this.selectedPiece));
     this.pieces.forEach((piece) => piece.item.setScale(piece.id === this.selectedPiece?.id ? 1.06 : 1));
   }
 
