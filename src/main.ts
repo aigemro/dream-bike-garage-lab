@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import './styles.css';
 import variantDocs from './variant-docs';
 import { startMergePrototype, type MergePrototypeMode } from './merge-prototype';
+import { startCollectionPrototype, type CollectionPrototypeMode } from './collection-prototype';
 
 type Status = '체험 가능' | '준비 중';
 type Variant = {
@@ -13,6 +14,7 @@ type Variant = {
   question: string;
   controls: string;
   demo?: MergePrototypeMode;
+  collectionDemo?: CollectionPrototypeMode;
   issueNumber: number;
   documentId: string;
 };
@@ -69,9 +71,9 @@ const tracks: Track[] = [
     title: '자전거 수집',
     description: '완성한 자전거를 어떻게 보여주고 성장 동기로 연결할지 비교합니다.',
     variants: [
-      { id: 'catalog', label: 'A안', title: '도감형 수집', description: '종류와 등급별 빈칸을 채우는 방식입니다.', status: '준비 중', question: '미완성 항목이 다음 수집 동기를 만드는가?', controls: '자전거를 획득하고 도감의 빈칸을 확인합니다.', issueNumber: 14, documentId: 'collection-catalog' },
-      { id: 'garage', label: 'B안', title: 'Garage 전시', description: '보유 자전거를 공간에 배치하고 감상하는 방식입니다.', status: '준비 중', question: '전시가 자전거 소유감과 애착을 높이는가?', controls: '자전거를 선택해 Garage에 배치합니다.', issueNumber: 12, documentId: 'collection-garage' },
-      { id: 'dream-bike', label: 'C안', title: '드림 바이크 성장', description: '한 대의 자전거를 지속적으로 업그레이드하는 방식입니다.', status: '준비 중', question: '집중 성장 방식이 장기 목표를 더 선명하게 만드는가?', controls: '획득한 재화와 부품으로 내 자전거를 성장시킵니다.', issueNumber: 11, documentId: 'collection-dream-bike' },
+      { id: 'catalog', label: 'A안', title: '도감형 수집', description: '종류와 등급별 빈칸을 채우는 방식입니다.', status: '체험 가능', question: '미완성 항목이 다음 수집 동기를 만드는가?', controls: '카드를 선택하고 미획득 자전거의 신규 획득 흐름을 체험합니다.', collectionDemo: 'catalog', issueNumber: 14, documentId: 'collection-catalog' },
+      { id: 'garage', label: 'B안', title: 'Garage 전시', description: '보유 자전거를 공간에 배치하고 감상하는 방식입니다.', status: '체험 가능', question: '전시가 자전거 소유감과 애착을 높이는가?', controls: '보유 자전거를 선택해 전시대에 배치하고 성장시킵니다.', collectionDemo: 'garage', issueNumber: 12, documentId: 'collection-garage' },
+      { id: 'dream-bike', label: 'C안', title: '드림 바이크 성장', description: '한 대의 자전거를 지속적으로 업그레이드하는 방식입니다.', status: '체험 가능', question: '집중 성장 방식이 장기 목표를 더 선명하게 만드는가?', controls: '같은 조건의 코인을 성능·스타일·희귀도에 투자해 등급 변화를 확인합니다.', collectionDemo: 'dream-bike', issueNumber: 60, documentId: 'collection-dream-bike' },
     ],
   },
   {
@@ -237,10 +239,10 @@ async function loadIssueComments(issueNumber: number) {
 function renderDemo(track: Track, variant: Variant) {
   destroyGame();
   shell(`<main class="experiment-page demo-page">
-    ${variant.demo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div><button id="reset-demo">초기화</button></div><div id="game-root" class="demo-${variant.demo}"></div><p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
+    ${variant.demo || variant.collectionDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${variant.collectionDemo ? '동일 데이터 · 3,000코인' : variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div><button id="reset-demo">초기화</button></div><div id="game-root" class="demo-${variant.collectionDemo ?? variant.demo}"></div><p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
   </main>`, { href: `#/track/${track.id}/${variant.id}`, label: `${variant.title} 상세` });
-  if (variant.demo) {
-    const start = () => { destroyGame(); game = startMergePrototype('game-root', variant.demo!); };
+  if (variant.demo || variant.collectionDemo) {
+    const start = () => { destroyGame(); game = variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
     start();
     document.querySelector('#reset-demo')?.addEventListener('click', start);
   }
