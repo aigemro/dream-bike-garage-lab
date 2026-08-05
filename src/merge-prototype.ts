@@ -55,6 +55,7 @@ class MergePrototypeScene extends Phaser.Scene {
   private selectedPiece?: Piece;
   private selectedGenerator: PartType = 'frame';
   private generatorRotation = 0;
+  private generatorPlacementActive = false;
   private placementGhost?: Phaser.GameObjects.Container;
   private nextId = 1;
   private orderIndex = 0;
@@ -276,13 +277,14 @@ class MergePrototypeScene extends Phaser.Scene {
     this.actions += 1;
     this.clearPlacementGhost();
     const clicked = this.pieceAt(row, column);
-    if (clicked && !this.selectedPiece && clicked.type === this.selectedGenerator && clicked.level === 1) {
+    if (clicked && this.generatorPlacementActive && !this.selectedPiece && clicked.type === this.selectedGenerator && clicked.level === 1) {
       this.mergeGeneratedPiece(clicked);
       return;
     }
     if (clicked) {
       if (!this.selectedPiece) {
         this.selectedPiece = clicked;
+        this.generatorPlacementActive = false;
         this.refreshControls();
         this.refreshUi(`${this.partName(clicked.type)} Lv.${clicked.level} 선택 · 빈 칸으로 이동하거나 같은 부품에 머지하세요.`);
         return;
@@ -309,6 +311,10 @@ class MergePrototypeScene extends Phaser.Scene {
       return;
     }
 
+    if (this.mode === 'free' && !this.generatorPlacementActive) {
+      this.refreshUi('먼저 오른쪽에서 추가할 부품을 선택하세요.');
+      return;
+    }
     const type = this.mode === 'order' ? this.recommendedPart() : this.selectedGenerator;
     const placementRotation = this.mode === 'free' ? this.generatorRotation : (this.findPlacementRotation(type, row, column) ?? 0);
     if (!this.canPlace(type, row, column, placementRotation)) {
@@ -318,6 +324,7 @@ class MergePrototypeScene extends Phaser.Scene {
     }
     const piece = this.makePiece(type, row, column, placementRotation, 1);
     this.pieces.push(piece);
+    this.generatorPlacementActive = false;
     const rotationMessage = placementRotation === 0 ? '' : ` · ${placementRotation * 90}° 회전`;
     this.refreshUi(`${this.partName(type)} Lv.1을 ${this.shape(type, placementRotation).length}칸 크기로 배치했습니다${rotationMessage}.`);
   }
@@ -326,6 +333,7 @@ class MergePrototypeScene extends Phaser.Scene {
     const repeated = this.selectedGenerator === type && !this.selectedPiece;
     this.selectedGenerator = type;
     this.selectedPiece = undefined;
+    this.generatorPlacementActive = true;
     this.generatorRotation = repeated ? (this.generatorRotation + 1) % 4 : 0;
     this.clearPlacementGhost();
     this.refreshControls();
@@ -335,7 +343,7 @@ class MergePrototypeScene extends Phaser.Scene {
 
   private showPlacementGhost(row: number, column: number) {
     this.clearPlacementGhost();
-    if (this.selectedPiece) return;
+    if (this.selectedPiece || !this.generatorPlacementActive) return;
     const clicked = this.pieceAt(row, column);
     const mergeTarget = clicked?.type === this.selectedGenerator && clicked.level === 1 ? clicked : undefined;
     const rotation = mergeTarget?.rotation ?? this.generatorRotation;
@@ -367,6 +375,7 @@ class MergePrototypeScene extends Phaser.Scene {
     this.pieces = this.pieces.filter((piece) => piece.id !== target.id);
     const merged = this.makePiece(target.type, target.row, target.column, target.rotation, 2);
     this.pieces.push(merged);
+    this.generatorPlacementActive = false;
     this.merges += 1;
     this.refreshControls();
     this.refreshUi(`${this.partName(target.type)} Lv.1을 같은 위치에 놓아 Lv.2로 머지했습니다.`);
@@ -463,7 +472,7 @@ class MergePrototypeScene extends Phaser.Scene {
 
   private refreshControls() {
     this.controls.filter((object): object is Phaser.GameObjects.Rectangle => object instanceof Phaser.GameObjects.Rectangle && Boolean(object.getData('part')))
-      .forEach((button) => button.setFillStyle(button.getData('part') === this.selectedGenerator && !this.selectedPiece ? 0x21445a : 0x13263b));
+      .forEach((button) => button.setFillStyle(button.getData('part') === this.selectedGenerator && !this.selectedPiece && this.generatorPlacementActive ? 0x21445a : 0x13263b));
     this.controls.filter((object): object is Phaser.GameObjects.Container => object instanceof Phaser.GameObjects.Container && Boolean(object.getData('previewPart')))
       .forEach((preview) => preview.setVisible(preview.getData('previewPart') === this.selectedGenerator && preview.getData('previewRotation') === this.generatorRotation));
     this.pieces.forEach((piece) => piece.item.setScale(piece.id === this.selectedPiece?.id ? 1.06 : 1));
