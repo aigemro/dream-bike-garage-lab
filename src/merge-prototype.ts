@@ -141,6 +141,19 @@ class MergePrototypeScene extends Phaser.Scene {
     this.add.text(814, 482, '• 보드 없이 주문 자체가 플레이 공간이 되는가\n• 추가·머지 결과를 즉시 이해할 수 있는가\n• 완성 부품과 미완성 부품이 구분되는가', {
       fontFamily: 'Arial', fontSize: '11px', color: '#91a9bc', lineSpacing: 9,
     });
+    const switchButton = this.add.rectangle(940, 640, 292, 36, 0x17324a).setStrokeStyle(1, 0x55d6be).setInteractive({ useHandCursor: true });
+    switchButton.on('pointerdown', () => this.switchOrderBike());
+    this.add.text(940, 640, '로드바이크 ↔ MTB 주문 비교', { fontFamily: 'Arial', fontSize: '11px', color: '#dce9f2', fontStyle: 'bold' }).setOrigin(0.5);
+  }
+
+  private switchOrderBike() {
+    this.orderIndex = this.orderIndex === 1 ? 0 : 1;
+    this.goals = ORDERS[this.orderIndex].map((goal) => ({ ...goal }));
+    PARTS.forEach((part) => this.orderParts.set(part.type, []));
+    this.actions = 0;
+    this.merges = 0;
+    this.startedAt = this.time.now;
+    this.refreshUi(this.orderIndex === 1 ? '트레일 MTB 주문으로 변경했습니다. 굵은 타이어와 플랫바 형상을 확인하세요.' : '에어로 로드바이크 주문으로 변경했습니다. 얇은 휠과 드롭바 형상을 확인하세요.');
   }
 
   private addPartToOrder(type: PartType) {
@@ -548,7 +561,9 @@ class MergePrototypeScene extends Phaser.Scene {
     if (!this.orderText) return;
     if (this.mode === 'order') {
       const completed = this.goals.filter((goal) => goal.delivered).length;
-      this.orderText.setText(`CUSTOMER ORDER ${this.orderIndex + 1}/3  ·  어반 로드 자전거  ·  완성 ${completed}/4`);
+      const bikeName = this.orderIndex === 1 ? '트레일 MTB' : this.orderIndex === 2 ? '엔듀런스 로드바이크' : '에어로 로드바이크';
+      this.orderText.setText(`CUSTOMER ORDER ${this.orderIndex + 1}/3  ·  ${bikeName}  ·  완성 ${completed}/4`);
+      this.drawOrderBike();
       this.goals.forEach((goal) => {
         const slot = this.goalSlots.get(goal.type);
         if (!slot) return;
@@ -561,7 +576,10 @@ class MergePrototypeScene extends Phaser.Scene {
         if (display) {
           display.removeAll(true);
           if (levels.length === 0) {
-            display.add(this.add.text(0, 0, '부품을 추가해 주세요', { fontFamily: 'Arial', fontSize: '11px', color: '#536b80' }));
+            const ghost = this.add.rectangle(22, 12, 44, 28, part.color, 0.08).setStrokeStyle(1, part.color, 0.45);
+            const ghostText = this.add.text(22, 12, `Lv.${goal.level}`, { fontFamily: 'Arial', fontSize: '10px', color: '#6f8799', fontStyle: 'bold' }).setOrigin(0.5);
+            const hint = this.add.text(54, 12, '필요 부품 고스트', { fontFamily: 'Arial', fontSize: '10px', color: '#536b80' }).setOrigin(0, 0.5);
+            display.add([ghost, ghostText, hint]);
           } else {
             levels.slice(0, 5).forEach((level, index) => {
               const complete = level >= goal.level;
@@ -581,11 +599,69 @@ class MergePrototypeScene extends Phaser.Scene {
   private drawOrderBike() {
     if (!this.orderBike) return;
     const g = this.orderBike.clear();
-    g.lineStyle(5, 0xffb35c, 1).strokeCircle(226, 322, 43).strokeCircle(538, 322, 43);
-    g.lineStyle(7, 0x55d6be, 1).strokeTriangle(248, 316, 376, 234, 462, 316).lineBetween(248, 316, 462, 316).lineBetween(376, 234, 538, 322);
-    g.lineStyle(5, 0xff7185, 1).strokeCircle(376, 308, 15).lineBetween(376, 308, 462, 316);
-    g.lineStyle(5, 0x8c7bff, 1).lineBetween(492, 226, 538, 322).lineBetween(474, 226, 520, 226);
-    g.fillStyle(0x55d6be).fillRect(344, 214, 68, 7);
+    const isMtb = this.orderIndex === 1;
+    const delivered = (type: PartType) => this.goals.find((goal) => goal.type === type)?.delivered ?? false;
+    const alpha = (type: PartType) => delivered(type) ? 1 : 0.16;
+    const ghost = (type: PartType) => delivered(type) ? 0 : 0.52;
+
+    const rearX = 218;
+    const frontX = 546;
+    const groundY = 350;
+    const radius = isMtb ? 54 : 48;
+    const crankX = 378;
+    const crankY = isMtb ? 316 : 310;
+    const seatX = isMtb ? 350 : 358;
+    const seatY = isMtb ? 228 : 220;
+    const headX = isMtb ? 486 : 493;
+    const headY = isMtb ? 244 : 226;
+
+    const drawWheel = (x: number) => {
+      g.lineStyle(isMtb ? 9 : 6, 0xffb35c, alpha('wheel')).strokeCircle(x, groundY, radius);
+      g.lineStyle(2, 0xffd29a, alpha('wheel') * 0.7);
+      for (let angle = 0; angle < 360; angle += 30) {
+        const rad = Phaser.Math.DegToRad(angle);
+        g.lineBetween(x, groundY, x + Math.cos(rad) * (radius - 7), groundY + Math.sin(rad) * (radius - 7));
+      }
+      g.lineStyle(2, 0xffb35c, alpha('wheel')).strokeCircle(x, groundY, 6);
+    };
+    drawWheel(rearX);
+    drawWheel(frontX);
+
+    g.lineStyle(isMtb ? 10 : 8, 0x55d6be, alpha('frame'));
+    g.lineBetween(rearX, groundY, seatX, seatY);
+    g.lineBetween(seatX, seatY, crankX, crankY);
+    g.lineBetween(crankX, crankY, rearX, groundY);
+    g.lineBetween(seatX, seatY, headX, headY);
+    g.lineBetween(headX, headY, crankX, crankY);
+    g.lineBetween(headX, headY, frontX, groundY);
+    g.lineBetween(crankX, crankY, frontX, groundY);
+    g.lineStyle(5, 0x7cebd7, alpha('frame')).lineBetween(seatX - 25, seatY - 8, seatX + 35, seatY - 8);
+
+    g.lineStyle(5, 0xff7185, alpha('drivetrain')).strokeCircle(crankX, crankY, 17);
+    g.lineStyle(3, 0xff9bab, alpha('drivetrain')).strokeCircle(rearX, groundY, 11).lineBetween(crankX, crankY, rearX, groundY);
+    g.lineStyle(4, 0xff7185, alpha('drivetrain')).lineBetween(crankX, crankY, crankX + 35, crankY + 15);
+
+    if (isMtb) {
+      g.lineStyle(7, 0x8c7bff, alpha('handlebar')).lineBetween(headX, headY, headX + 10, headY - 36).lineBetween(headX - 34, headY - 37, headX + 48, headY - 37);
+      g.lineStyle(4, 0xb4a9ff, alpha('handlebar')).lineBetween(headX - 34, headY - 44, headX - 34, headY - 30).lineBetween(headX + 48, headY - 44, headX + 48, headY - 30);
+    } else {
+      g.lineStyle(6, 0x8c7bff, alpha('handlebar')).lineBetween(headX, headY, headX + 14, headY - 40).lineBetween(headX - 2, headY - 40, headX + 48, headY - 40);
+      g.lineStyle(5, 0xb4a9ff, alpha('handlebar')).arc(headX + 48, headY - 28, 13, -Math.PI / 2, Math.PI / 2, false);
+    }
+
+    (['frame', 'wheel', 'drivetrain', 'handlebar'] as PartType[]).forEach((type) => {
+      if (!ghost(type)) return;
+      const part = PARTS.find((item) => item.type === type)!;
+      g.lineStyle(2, part.color, ghost(type));
+      if (type === 'wheel') g.strokeCircle(frontX, groundY, radius + 7).strokeCircle(rearX, groundY, radius + 7);
+      if (type === 'frame') g.strokeTriangle(rearX, groundY, seatX, seatY, crankX, crankY);
+      if (type === 'drivetrain') g.strokeCircle(crankX, crankY, 24);
+      if (type === 'handlebar') g.strokeRect(headX - 12, headY - 51, 75, 26);
+    });
+
+    g.fillStyle(0x07111f, 0.82).fillRoundedRect(82, 234, 104, 28, 8);
+    g.lineStyle(1, 0x395a72, 1).strokeRoundedRect(82, 234, 104, 28, 8);
+    g.fillStyle(0xdce9f2, 1);
   }
 
   private destroySceneObject(object: Phaser.GameObjects.GameObject) {
