@@ -107,9 +107,9 @@ class MergePrototypeScene extends Phaser.Scene {
 
   private drawSizeControls() {
     this.add.text(24, 88, '보드 크기', { fontFamily: 'Arial', fontSize: '12px', color: '#8fa8ba' }).setOrigin(0, 0.5);
-    this.makeSizeStepper(132, 94, '열', 'columns');
-    this.makeSizeStepper(278, 94, '행', 'rows');
-    this.add.text(366, 78, '4~10칸 · 누르면 즉시 변경\n부품 선택 → 같은 부품을 다시 눌러 회전\n빈 칸 이동 · 같은 종류와 레벨끼리 머지', {
+    this.makeSizeStepper(154, 94, '열', 'columns');
+    this.makeSizeStepper(304, 94, '행', 'rows');
+    this.add.text(394, 78, '4~10칸 · 누르면 즉시 변경\n부품 선택 → 같은 부품을 다시 눌러 회전\n빈 칸 이동 · 같은 종류와 레벨끼리 머지', {
       fontFamily: 'Arial', fontSize: '10px', color: '#71899c', lineSpacing: 3, wordWrap: { width: 360 },
     });
   }
@@ -209,16 +209,16 @@ class MergePrototypeScene extends Phaser.Scene {
   }
 
   private drawDesktopPartControls() {
-    const controlsLeft = 770;
-    const controlsTop = 156;
+    const controlsLeft = 788;
+    const controlsTop = 174;
     const panel = this.add.rectangle(940, 404, 340, 520, 0x0e1d2e).setStrokeStyle(1, 0x29465e);
     const label = this.add.text(controlsLeft, controlsTop, '추가할 부품', { fontFamily: 'Arial', fontSize: '12px', color: '#8fa8ba' });
     this.controls.push(panel, label);
 
     PARTS.forEach((part, index) => {
-      const x = controlsLeft + 76 + (index % 2) * 164;
-      const y = controlsTop + 48 + Math.floor(index / 2) * 72;
-      const button = this.add.rectangle(x, y, 148, 58, 0x13263b).setStrokeStyle(2, part.color).setInteractive({ useHandCursor: true });
+      const x = controlsLeft + 67 + (index % 2) * 154;
+      const y = controlsTop + 52 + Math.floor(index / 2) * 72;
+      const button = this.add.rectangle(x, y, 136, 58, 0x13263b).setStrokeStyle(2, part.color).setInteractive({ useHandCursor: true });
       button.setData('part', part.type);
       button.on('pointerdown', () => {
         this.selectedGenerator = part.type;
@@ -230,7 +230,7 @@ class MergePrototypeScene extends Phaser.Scene {
       this.controls.push(button, text);
     });
 
-    const guide = this.add.text(controlsLeft, controlsTop + 196, '보드의 빈 칸을 눌러 배치합니다.\n배치된 부품을 한 번 누르면 선택하고,\n같은 부품을 다시 누르면 90° 회전합니다.\n선택 후 빈 칸을 누르면 이동합니다.', { fontFamily: 'Arial', fontSize: '11px', color: '#71899c', lineSpacing: 7, wordWrap: { width: 310 } });
+    const guide = this.add.text(controlsLeft, controlsTop + 210, '보드의 빈 칸을 눌러 배치합니다.\n배치된 부품을 한 번 누르면 선택하고,\n같은 부품을 다시 누르면 90° 회전합니다.\n선택 후 빈 칸을 누르면 이동합니다.', { fontFamily: 'Arial', fontSize: '11px', color: '#71899c', lineSpacing: 7, wordWrap: { width: 304 } });
     this.controls.push(guide);
     this.refreshControls();
   }
@@ -282,6 +282,8 @@ class MergePrototypeScene extends Phaser.Scene {
     const badgeHeight = Math.max(20, Math.min(28, this.cellSize * 0.48));
     const badge = this.add.rectangle(0, 0, badgeWidth, badgeHeight, 0x07111f, 0.9).setStrokeStyle(1, 0xffffff, 0.7);
     const tag = this.add.text(0, 0, `Lv.${level}`, { align: 'center', fontFamily: 'Arial', fontSize: `${Math.max(11, Math.min(15, this.cellSize * 0.25))}px`, color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+    badge.setAngle(rotation * 90);
+    tag.setAngle(rotation * 90);
     const item = this.add.container(0, 0, [...blocks, badge, tag]).setDepth(2);
     const piece: Piece = { id: this.nextId++, type, level, row, column, rotation, item };
     this.positionPiece(piece);
