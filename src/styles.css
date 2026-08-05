@@ -39,11 +39,16 @@ h1, h2, h3 { font-family: 'Manrope', sans-serif; margin: 0; }
 .open { margin-top: auto; color: #55d6be; font-size: 12px; }
 .variant-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 30px; }.variant-meta div { padding: 18px; border: 1px solid #294158; background: #0b1828; }.variant-meta span, .variant-meta strong { display: block; }.variant-meta strong { margin-top: 8px; color: #c2d0db; font-size: 13px; line-height: 1.55; }
 .demo-panel, .empty-panel { margin-top: 20px; border: 1px solid #294158; background: #0b1828; padding: 20px; }
-.demo-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }.demo-head span, .empty-panel > span { display: block; color: #55d6be; font-size: 9px; letter-spacing: .18em; }.demo-head strong { display: block; margin-top: 5px; font-size: 14px; }
-button { color: #d8e5ee; background: transparent; border: 1px solid #395168; padding: 9px 15px; cursor: pointer; }button:hover { border-color: #55d6be; color: #55d6be; }
+.demo-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center; margin-bottom: 18px; }.demo-head > div { min-width: 0; }.demo-head span, .empty-panel > span { display: block; color: #55d6be; font-size: 9px; letter-spacing: .18em; overflow-wrap: anywhere; }.demo-head strong { display: block; margin-top: 5px; font-size: 14px; overflow-wrap: anywhere; }
+button { position: relative; z-index: 1; flex: 0 0 auto; white-space: nowrap; color: #d8e5ee; background: transparent; border: 1px solid #395168; padding: 9px 15px; cursor: pointer; }button:hover { border-color: #55d6be; color: #55d6be; }
 #game-root { width: min(100%, 640px, calc((100dvh - 310px) * 8 / 9)); min-width: 280px; aspect-ratio: 8 / 9; margin: 0 auto; background: #07111f; overflow: hidden; }
-#game-root.demo-free { width: 100%; min-width: 760px; aspect-ratio: 14 / 9; }
+#game-root.demo-free { width: 100%; height: 100%; min-width: 0; min-height: 0; aspect-ratio: auto; }
 .hint { color: #70869a; font-size: 12px; margin: 12px 2px 0; }
+.demo-page { height: calc(100dvh - 72px); min-height: 0; padding-top: 12px !important; padding-bottom: 12px !important; }
+.demo-page .demo-panel { height: 100%; min-height: 0; margin-top: 0 !important; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+body:has(.demo-page) { overflow: hidden; }
+body:has(.demo-page) .topbar { height: 72px; }
+body:has(.demo-page) .site-footer { display: none; }
 .experiment-page:has(#game-root) { padding-top: 22px; }
 .experiment-page:has(#game-root) .experiment-title h1 { font-size: clamp(28px, 4vw, 44px); }
 .experiment-page:has(#game-root) .experiment-title > p:last-child { margin: 10px 0 0; line-height: 1.45; }
