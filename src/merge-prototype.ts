@@ -85,21 +85,22 @@ class MergePrototypeScene extends Phaser.Scene {
   private drawHeader() {
     const names = { free: 'A · 자유 보드 · 2차 구현', order: 'B · 주문 중심 · 2차 구현', guided: 'C · 자유 + 가이드' };
     this.add.text(24, 18, names[this.mode], { fontFamily: 'Arial', fontSize: '19px', color: '#55d6be', fontStyle: 'bold' });
-    this.info = this.add.text(24, 47, '', { fontFamily: 'Arial', fontSize: '12px', color: '#bfd0dc', wordWrap: { width: this.mode === 'free' ? 1040 : 592 } });
-    this.metrics = this.add.text(this.mode === 'free' ? 1096 : 616, 20, '', { fontFamily: 'Arial', fontSize: '11px', color: '#758da1' }).setOrigin(1, 0);
+    this.info = this.add.text(24, 47, '', { fontFamily: 'Arial', fontSize: '12px', color: '#bfd0dc', wordWrap: { width: 1040 } });
+    this.metrics = this.add.text(1096, 20, '', { fontFamily: 'Arial', fontSize: '11px', color: '#758da1' }).setOrigin(1, 0);
     if (this.mode === 'order') this.drawVisualOrder();
-    else if (this.mode !== 'free') this.orderText = this.add.text(24, 67, '', { fontFamily: 'Arial', fontSize: '10px', color: '#ffd37a', wordWrap: { width: 592 } });
+    else if (this.mode !== 'free') this.orderText = this.add.text(794, 508, '', { fontFamily: 'Arial', fontSize: '11px', color: '#ffd37a', wordWrap: { width: 292 } }).setDepth(2);
   }
 
   private drawVisualOrder() {
-    this.add.rectangle(320, 190, 584, 140, 0x10243a).setStrokeStyle(1, 0x294b64);
-    this.orderText = this.add.text(42, 130, '', { fontFamily: 'Arial', fontSize: '12px', color: '#91a9bc' });
-    this.orderBike = this.add.graphics();
+    this.add.rectangle(940, 581, 292, 212, 0x10243a).setStrokeStyle(1, 0x294b64).setDepth(1);
+    this.orderText = this.add.text(810, 488, '', { fontFamily: 'Arial', fontSize: '11px', color: '#91a9bc' }).setDepth(2);
+    this.orderBike = this.add.graphics().setDepth(2);
 
     PARTS.forEach((part, index) => {
-      const x = 91 + index * 152;
-      const panel = this.add.rectangle(x, 230, 138, 42, 0x0b1929).setStrokeStyle(1, part.color, 0.65);
-      const label = this.add.text(x, 230, '', { fontFamily: 'Arial', fontSize: '11px', color: '#dce9f2', align: 'center' }).setOrigin(0.5);
+      const x = 846 + (index % 2) * 188;
+      const y = 612 + Math.floor(index / 2) * 48;
+      const panel = this.add.rectangle(x, y, 120, 38, 0x0b1929).setStrokeStyle(1, part.color, 0.65).setDepth(2);
+      const label = this.add.text(x, y, '', { fontFamily: 'Arial', fontSize: '10px', color: '#dce9f2', align: 'center' }).setOrigin(0.5).setDepth(3);
       this.goalSlots.set(part.type, { label, panel });
     });
     this.drawOrderBike();
@@ -159,13 +160,11 @@ class MergePrototypeScene extends Phaser.Scene {
     this.boardObjects = [];
     this.controls = [];
     this.zones = [];
-    this.cellSize = this.mode === 'free'
-      ? Math.floor(Math.min(680 / this.columns, 520 / this.rows, 76))
-      : Math.floor(Math.min(440 / this.columns, 390 / this.rows));
+    this.cellSize = Math.floor(Math.min(680 / this.columns, 520 / this.rows, 76));
     this.gap = Math.max(2, Math.min(5, Math.floor(this.cellSize * 0.08)));
     const width = this.columns * this.cellSize;
-    this.boardLeft = this.mode === 'free' ? 32 + (704 - width) / 2 : (640 - width) / 2;
-    this.boardTop = this.mode === 'free' ? 142 + (536 - this.rows * this.cellSize) / 2 : this.mode === 'order' ? 276 : 128;
+    this.boardLeft = 32 + (704 - width) / 2;
+    this.boardTop = 142 + (536 - this.rows * this.cellSize) / 2;
     this.drawBoard();
     this.drawPartControls();
     this.refreshSizeFields();
@@ -186,26 +185,7 @@ class MergePrototypeScene extends Phaser.Scene {
   }
 
   private drawPartControls() {
-    if (this.mode === 'free') {
-      this.drawDesktopPartControls();
-      return;
-    }
-    const boardBottom = this.boardTop + this.rows * this.cellSize;
-    const controlsTop = Math.min(this.mode === 'order' ? 790 : 642, boardBottom + 10);
-    const label = this.add.text(24, controlsTop, '추가할 부품', { fontFamily: 'Arial', fontSize: '11px', color: '#8fa8ba' });
-    this.controls.push(label);
-    PARTS.forEach((part, index) => {
-      const x = 91 + index * 137;
-      const y = controlsTop + 28;
-      const button = this.add.rectangle(x, y, 124, 40, 0x13263b).setStrokeStyle(2, part.color).setInteractive({ useHandCursor: true });
-      button.setData('part', part.type);
-      button.on('pointerdown', () => { this.selectedGenerator = part.type; this.selectedPiece = undefined; this.refreshControls(); this.refreshUi(`${part.name}을 선택했습니다. 빈 공간을 눌러 배치하세요.`); });
-      const text = this.add.text(x, y, `${part.short}  ${part.name} · ${part.shape.length}칸`, { fontFamily: 'Arial', fontSize: '11px', color: '#e8f1f7', fontStyle: 'bold' }).setOrigin(0.5);
-      this.controls.push(button, text);
-    });
-    const guide = this.add.text(24, controlsTop + 58, '선택한 부품을 다시 누르면 90° 회전합니다.', { fontFamily: 'Arial', fontSize: '11px', color: '#71899c' });
-    this.controls.push(guide);
-    this.refreshControls();
+    this.drawDesktopPartControls();
   }
 
   private drawDesktopPartControls() {
@@ -216,7 +196,7 @@ class MergePrototypeScene extends Phaser.Scene {
     const buttonWidth = (panelWidth - panelPadding * 2 - columnGap) / 2;
     const controlsLeft = panelLeft + panelPadding;
     const controlsTop = 174;
-    const panel = this.add.rectangle(panelLeft + panelWidth / 2, 404, panelWidth, 520, 0x0e1d2e).setStrokeStyle(1, 0x29465e);
+    const panel = this.add.rectangle(panelLeft + panelWidth / 2, 404, panelWidth, 520, 0x0e1d2e).setStrokeStyle(1, 0x29465e).setDepth(0);
     const label = this.add.text(controlsLeft, controlsTop, '추가할 부품', { fontFamily: 'Arial', fontSize: '12px', color: '#8fa8ba' });
     this.controls.push(panel, label);
 
@@ -235,7 +215,12 @@ class MergePrototypeScene extends Phaser.Scene {
       this.controls.push(button, text);
     });
 
-    const guide = this.add.text(controlsLeft, controlsTop + 210, '보드의 빈 칸을 눌러 배치합니다.\n배치된 부품을 한 번 누르면 선택하고,\n같은 부품을 다시 누르면 90° 회전합니다.\n선택 후 빈 칸을 누르면 이동합니다.', { fontFamily: 'Arial', fontSize: '11px', color: '#71899c', lineSpacing: 7, wordWrap: { width: panelWidth - panelPadding * 2 } });
+    const modeGuide = this.mode === 'order'
+      ? '주문에서 다음으로 필요한 부품이 자동 선택됩니다.\n배치·이동·회전·머지 조작은 A안과 같습니다.'
+      : this.mode === 'guided'
+        ? '원하는 부품을 자유롭게 만들 수 있습니다.\n아래 주문 가이드로 필요한 목표를 확인합니다.'
+        : '보드의 빈 칸을 눌러 배치합니다.\n배치된 부품을 한 번 누르면 선택하고,\n같은 부품을 다시 누르면 90° 회전합니다.\n선택 후 빈 칸을 누르면 이동합니다.';
+    const guide = this.add.text(controlsLeft, controlsTop + 210, modeGuide, { fontFamily: 'Arial', fontSize: '11px', color: '#71899c', lineSpacing: 7, wordWrap: { width: panelWidth - panelPadding * 2 } });
     this.controls.push(guide);
     this.refreshControls();
   }
@@ -283,14 +268,41 @@ class MergePrototypeScene extends Phaser.Scene {
     const part = PARTS.find((item) => item.type === type)!;
     const cells = this.shape(type, rotation);
     const blocks = cells.map((point) => this.add.rectangle(point.x * this.cellSize, point.y * this.cellSize, this.cellSize - this.gap * 2, this.cellSize - this.gap * 2, part.color).setStrokeStyle(2, 0x07111f));
+    const silhouette = this.drawPartSilhouette(type, cells);
     const badgeWidth = Math.max(34, Math.min(52, this.cellSize - this.gap * 4));
     const badgeHeight = Math.max(20, Math.min(28, this.cellSize * 0.48));
     const badge = this.add.rectangle(0, 0, badgeWidth, badgeHeight, 0x07111f, 0.9).setStrokeStyle(1, 0xffffff, 0.7);
     const tag = this.add.text(0, 0, `Lv.${level}`, { align: 'center', fontFamily: 'Arial', fontSize: `${Math.max(11, Math.min(15, this.cellSize * 0.25))}px`, color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
-    const item = this.add.container(0, 0, [...blocks, badge, tag]).setDepth(2);
+    const item = this.add.container(0, 0, [...blocks, silhouette, badge, tag]).setDepth(2);
     const piece: Piece = { id: this.nextId++, type, level, row, column, rotation, item };
     this.positionPiece(piece);
     return piece;
+  }
+
+  private drawPartSilhouette(type: PartType, cells: Point[]) {
+    const graphics = this.add.graphics();
+    const centers = cells.map((point) => ({ x: point.x * this.cellSize, y: point.y * this.cellSize }));
+    const scale = Math.max(8, this.cellSize * 0.2);
+    graphics.lineStyle(Math.max(2, this.cellSize * 0.045), 0x07111f, 0.58);
+
+    if (type === 'frame') {
+      const [first, second, third] = centers;
+      graphics.strokeTriangle(first.x, first.y - scale, second.x, second.y + scale, third.x + scale, third.y);
+    } else if (type === 'wheel') {
+      centers.forEach((center) => graphics.strokeCircle(center.x, center.y, scale));
+    } else if (type === 'drivetrain') {
+      graphics.strokeCircle(0, 0, scale).strokeCircle(0, 0, scale * 0.45);
+      for (let index = 0; index < 8; index += 1) {
+        const angle = (Math.PI * 2 * index) / 8;
+        graphics.lineBetween(Math.cos(angle) * scale, Math.sin(angle) * scale, Math.cos(angle) * scale * 1.35, Math.sin(angle) * scale * 1.35);
+      }
+    } else {
+      const [first, second] = centers;
+      graphics.lineBetween(first.x - scale, first.y, second.x + scale, second.y);
+      graphics.lineBetween(first.x, first.y - scale * 0.65, first.x, first.y + scale * 0.65);
+      graphics.lineBetween(second.x, second.y - scale * 0.65, second.x, second.y + scale * 0.65);
+    }
+    return graphics;
   }
 
   private positionPiece(piece: Piece) {
@@ -404,11 +416,11 @@ class MergePrototypeScene extends Phaser.Scene {
   private drawOrderBike() {
     if (!this.orderBike) return;
     const g = this.orderBike.clear();
-    g.lineStyle(5, 0xffb35c, 1).strokeCircle(260, 178, 28).strokeCircle(382, 178, 28);
-    g.lineStyle(6, 0x55d6be, 1).strokeTriangle(274, 176, 327, 138, 352, 176).lineBetween(274, 176, 352, 176).lineBetween(327, 138, 382, 178);
-    g.lineStyle(5, 0xff7185, 1).strokeCircle(327, 172, 10).lineBetween(327, 172, 352, 176);
-    g.lineStyle(5, 0x8c7bff, 1).lineBetween(365, 134, 382, 178).lineBetween(358, 134, 377, 134);
-    g.fillStyle(0x55d6be).fillRect(312, 128, 29, 6);
+    g.lineStyle(3, 0xffb35c, 1).strokeCircle(870, 550, 19).strokeCircle(956, 550, 19);
+    g.lineStyle(4, 0x55d6be, 1).strokeTriangle(880, 548, 917, 520, 936, 548).lineBetween(880, 548, 936, 548).lineBetween(917, 520, 956, 550);
+    g.lineStyle(3, 0xff7185, 1).strokeCircle(917, 545, 7).lineBetween(917, 545, 936, 548);
+    g.lineStyle(3, 0x8c7bff, 1).lineBetween(944, 517, 956, 550).lineBetween(939, 517, 953, 517);
+    g.fillStyle(0x55d6be).fillRect(906, 511, 21, 4);
   }
 
   private refreshMetrics() {
@@ -426,8 +438,8 @@ export function startMergePrototype(parent: string, mode: MergePrototypeMode) {
   return new Phaser.Game({
     type: Phaser.AUTO,
     parent,
-    width: mode === 'free' ? 1120 : 640,
-    height: mode === 'order' ? 880 : 720,
+    width: 1120,
+    height: 720,
     backgroundColor: '#0b1727',
     scene: new MergePrototypeScene(mode),
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
