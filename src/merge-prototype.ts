@@ -141,6 +141,19 @@ class MergePrototypeScene extends Phaser.Scene {
     this.add.text(814, 482, '• 보드 없이 주문 자체가 플레이 공간이 되는가\n• 추가·머지 결과를 즉시 이해할 수 있는가\n• 완성 부품과 미완성 부품이 구분되는가', {
       fontFamily: 'Arial', fontSize: '11px', color: '#91a9bc', lineSpacing: 9,
     });
+    const switchButton = this.add.rectangle(940, 640, 292, 36, 0x17324a).setStrokeStyle(1, 0x55d6be).setInteractive({ useHandCursor: true });
+    switchButton.on('pointerdown', () => this.switchOrderBike());
+    this.add.text(940, 640, '로드바이크 ↔ MTB 주문 비교', { fontFamily: 'Arial', fontSize: '11px', color: '#dce9f2', fontStyle: 'bold' }).setOrigin(0.5);
+  }
+
+  private switchOrderBike() {
+    this.orderIndex = this.orderIndex === 1 ? 0 : 1;
+    this.goals = ORDERS[this.orderIndex].map((goal) => ({ ...goal }));
+    PARTS.forEach((part) => this.orderParts.set(part.type, []));
+    this.actions = 0;
+    this.merges = 0;
+    this.startedAt = this.time.now;
+    this.refreshUi(this.orderIndex === 1 ? '트레일 MTB 주문으로 변경했습니다. 굵은 타이어와 플랫바 형상을 확인하세요.' : '에어로 로드바이크 주문으로 변경했습니다. 얇은 휠과 드롭바 형상을 확인하세요.');
   }
 
   private addPartToOrder(type: PartType) {
