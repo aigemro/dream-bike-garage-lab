@@ -75,6 +75,8 @@ class MergePrototypeScene extends Phaser.Scene {
   private goalSlots = new Map<PartType, { label: Phaser.GameObjects.Text; panel: Phaser.GameObjects.Rectangle }>();
   private orderParts = new Map<PartType, number[]>();
   private orderPartDisplays = new Map<PartType, Phaser.GameObjects.Container>();
+  private guidedGoalDisplays = new Map<PartType, { panel: Phaser.GameObjects.Rectangle; status: Phaser.GameObjects.Text }>();
+  private guidedOrderProgress?: Phaser.GameObjects.Text;
 
   create() {
     this.cameras.main.setBackgroundColor('#0b1727');
@@ -87,8 +89,13 @@ class MergePrototypeScene extends Phaser.Scene {
       this.refreshUi('오른쪽 부품을 클릭해 커스텀 주문을 완성하세요. 같은 레벨 부품 2개는 자동으로 머지됩니다.');
       return;
     }
-    this.drawSizeControls();
-    this.rebuildBoard('열·행의 − / + 버튼을 누르면 보드 크기가 바로 변경됩니다.');
+    if (this.mode === 'guided') {
+      this.drawGuidedOrder();
+      this.rebuildBoard('왼쪽 주문 목표를 확인하고 오른쪽에서 필요한 부품을 선택하세요. 자유롭게 배치·회전·머지할 수 있습니다.');
+    } else {
+      this.drawSizeControls();
+      this.rebuildBoard('열·행의 − / + 버튼을 누르면 보드 크기가 바로 변경됩니다.');
+    }
   }
 
   update() { this.refreshMetrics(); }
@@ -98,7 +105,29 @@ class MergePrototypeScene extends Phaser.Scene {
     this.add.text(24, 18, names[this.mode], { fontFamily: 'Arial', fontSize: '19px', color: '#55d6be', fontStyle: 'bold' });
     this.info = this.add.text(24, 47, '', { fontFamily: 'Arial', fontSize: '12px', color: '#bfd0dc', wordWrap: { width: 1040 } });
     this.metrics = this.add.text(1096, 20, '', { fontFamily: 'Arial', fontSize: '11px', color: '#758da1' }).setOrigin(1, 0);
-    if (this.mode !== 'free' && this.mode !== 'order') this.orderText = this.add.text(794, 508, '', { fontFamily: 'Arial', fontSize: '11px', color: '#ffd37a', wordWrap: { width: 292 } }).setDepth(2);
+  }
+
+  private drawGuidedOrder() {
+    this.add.rectangle(122, 404, 220, 520, 0x0e1d2e).setStrokeStyle(1, 0x29465e);
+    this.add.text(30, 158, 'CUSTOMER ORDER', { fontFamily: 'Arial', fontSize: '10px', color: '#55d6be', fontStyle: 'bold' });
+    this.orderText = this.add.text(30, 180, '', { fontFamily: 'Arial', fontSize: '15px', color: '#dce9f2', fontStyle: 'bold' });
+    this.guidedOrderProgress = this.add.text(30, 208, '', { fontFamily: 'Arial', fontSize: '11px', color: '#8fa8ba' });
+
+    this.goals.forEach((goal, index) => {
+      const part = PARTS.find((item) => item.type === goal.type)!;
+      const y = 264 + index * 72;
+      const panel = this.add.rectangle(122, y, 184, 56, 0x0b1929).setStrokeStyle(1, part.color, 0.55);
+      this.add.rectangle(52, y, 28, 28, part.color, 0.24).setStrokeStyle(1, part.color);
+      this.add.text(52, y, part.short, { fontFamily: 'Arial', fontSize: '12px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+      this.add.text(76, y - 11, part.name, { fontFamily: 'Arial', fontSize: '11px', color: '#dce9f2', fontStyle: 'bold' });
+      const status = this.add.text(76, y + 7, '', { fontFamily: 'Arial', fontSize: '10px', color: '#71899c' });
+      this.guidedGoalDisplays.set(goal.type, { panel, status });
+    });
+
+    this.add.text(30, 574, 'C안 가이드', { fontFamily: 'Arial', fontSize: '11px', color: '#55d6be', fontStyle: 'bold' });
+    this.add.text(30, 598, '필요한 부품만 알려주며\n배치 위치와 제작 순서는\n플레이어가 자유롭게 정합니다.', {
+      fontFamily: 'Arial', fontSize: '10px', color: '#71899c', lineSpacing: 6,
+    });
   }
 
   private drawCustomOrder() {
@@ -235,10 +264,11 @@ class MergePrototypeScene extends Phaser.Scene {
     this.boardObjects = [];
     this.controls = [];
     this.zones = [];
-    this.cellSize = Math.floor(Math.min(680 / this.columns, 520 / this.rows, 76));
+    const boardWidth = this.mode === 'guided' ? 480 : 680;
+    this.cellSize = Math.floor(Math.min(boardWidth / this.columns, 520 / this.rows, 76));
     this.gap = Math.max(2, Math.min(5, Math.floor(this.cellSize * 0.08)));
     const width = this.columns * this.cellSize;
-    this.boardLeft = 32 + (704 - width) / 2;
+    this.boardLeft = this.mode === 'guided' ? 250 + (500 - width) / 2 : 32 + (704 - width) / 2;
     this.boardTop = 142 + (536 - this.rows * this.cellSize) / 2;
     this.drawBoard();
     this.drawPartControls();
@@ -367,12 +397,12 @@ class MergePrototypeScene extends Phaser.Scene {
       return;
     }
 
-    if (this.mode === 'free' && !this.generatorPlacementActive) {
+    if (this.mode !== 'order' && !this.generatorPlacementActive) {
       this.refreshUi('먼저 오른쪽에서 추가할 부품을 선택하세요.');
       return;
     }
     const type = this.mode === 'order' ? this.recommendedPart() : this.selectedGenerator;
-    const placementRotation = this.mode === 'free' ? this.generatorRotation : (this.findPlacementRotation(type, row, column) ?? 0);
+    const placementRotation = this.mode === 'order' ? (this.findPlacementRotation(type, row, column) ?? 0) : this.generatorRotation;
     if (!this.canPlace(type, row, column, placementRotation)) {
       this.mistakes += 1;
       this.refreshUi('미리보기 방향으로 배치할 공간이 부족합니다. 부품 버튼을 다시 눌러 회전하거나 다른 위치를 선택하세요.');
@@ -593,7 +623,20 @@ class MergePrototypeScene extends Phaser.Scene {
       if (completed === this.goals.length) this.info.setText('커스텀 주문의 모든 부품이 완성되었습니다. 완성 상태와 부품 구성을 확인하세요.');
       return;
     }
-    this.orderText.setText(`주문 ${this.orderIndex + 1}/3   ${this.goals.map((goal) => `${goal.delivered ? '✓' : '○'} ${this.partName(goal.type)} L${goal.level}`).join('   ')}`);
+    const completed = this.goals.filter((goal) => goal.delivered).length;
+    const bikeName = this.orderIndex === 1 ? '트레일 MTB' : this.orderIndex === 2 ? '엔듀런스 로드' : '에어로 로드';
+    this.orderText.setText(`${bikeName} #${this.orderIndex + 1}`);
+    this.guidedOrderProgress?.setText(`완성 ${completed}/4 · 목표 부품 가이드`);
+    this.goals.forEach((goal) => {
+      const display = this.guidedGoalDisplays.get(goal.type);
+      if (!display) return;
+      const part = PARTS.find((item) => item.type === goal.type)!;
+      const current = this.pieces.filter((piece) => piece.type === goal.type).reduce((max, piece) => Math.max(max, piece.level), 0);
+      display.panel.setFillStyle(goal.delivered ? part.color : 0x0b1929, goal.delivered ? 0.22 : 1);
+      display.panel.setStrokeStyle(goal.delivered ? 2 : 1, part.color, goal.delivered ? 1 : 0.55);
+      display.status.setText(goal.delivered ? `✓ Lv.${goal.level} 납품 완료` : `현재 Lv.${current || '-'}  →  목표 Lv.${goal.level}`)
+        .setColor(goal.delivered ? '#ffffff' : current > 0 ? '#ffd37a' : '#71899c');
+    });
   }
 
   private drawOrderBike() {
