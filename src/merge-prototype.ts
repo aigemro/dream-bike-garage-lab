@@ -73,12 +73,20 @@ class MergePrototypeScene extends Phaser.Scene {
   private orderText?: Phaser.GameObjects.Text;
   private orderBike?: Phaser.GameObjects.Graphics;
   private goalSlots = new Map<PartType, { label: Phaser.GameObjects.Text; panel: Phaser.GameObjects.Rectangle }>();
+  private orderParts = new Map<PartType, number[]>();
+  private orderPartDisplays = new Map<PartType, Phaser.GameObjects.Container>();
 
   create() {
     this.cameras.main.setBackgroundColor('#0b1727');
     this.startedAt = this.time.now;
     this.goals = ORDERS[0].map((goal) => ({ ...goal }));
     this.drawHeader();
+    if (this.mode === 'order') {
+      this.drawCustomOrder();
+      this.drawOrderPartControls();
+      this.refreshUi('오른쪽 부품을 클릭해 커스텀 주문을 완성하세요. 같은 레벨 부품 2개는 자동으로 머지됩니다.');
+      return;
+    }
     this.drawSizeControls();
     this.rebuildBoard('열·행의 − / + 버튼을 누르면 보드 크기가 바로 변경됩니다.');
   }
@@ -90,23 +98,73 @@ class MergePrototypeScene extends Phaser.Scene {
     this.add.text(24, 18, names[this.mode], { fontFamily: 'Arial', fontSize: '19px', color: '#55d6be', fontStyle: 'bold' });
     this.info = this.add.text(24, 47, '', { fontFamily: 'Arial', fontSize: '12px', color: '#bfd0dc', wordWrap: { width: 1040 } });
     this.metrics = this.add.text(1096, 20, '', { fontFamily: 'Arial', fontSize: '11px', color: '#758da1' }).setOrigin(1, 0);
-    if (this.mode === 'order') this.drawVisualOrder();
-    else if (this.mode !== 'free') this.orderText = this.add.text(794, 508, '', { fontFamily: 'Arial', fontSize: '11px', color: '#ffd37a', wordWrap: { width: 292 } }).setDepth(2);
+    if (this.mode !== 'free' && this.mode !== 'order') this.orderText = this.add.text(794, 508, '', { fontFamily: 'Arial', fontSize: '11px', color: '#ffd37a', wordWrap: { width: 292 } }).setDepth(2);
   }
 
-  private drawVisualOrder() {
-    this.add.rectangle(940, 581, 292, 212, 0x10243a).setStrokeStyle(1, 0x294b64).setDepth(1);
-    this.orderText = this.add.text(810, 488, '', { fontFamily: 'Arial', fontSize: '11px', color: '#91a9bc' }).setDepth(2);
+  private drawCustomOrder() {
+    this.add.rectangle(382, 394, 704, 556, 0x0e1d2e).setStrokeStyle(1, 0x29465e);
+    this.add.text(54, 136, 'CUSTOM ORDER WORKBENCH', { fontFamily: 'Arial', fontSize: '11px', color: '#55d6be', fontStyle: 'bold' });
+    this.orderText = this.add.text(54, 158, '', { fontFamily: 'Arial', fontSize: '16px', color: '#dce9f2', fontStyle: 'bold' });
+    this.add.text(54, 188, '완성된 부품은 주문 카드에 장착되어 표시됩니다.', { fontFamily: 'Arial', fontSize: '11px', color: '#71899c' });
     this.orderBike = this.add.graphics().setDepth(2);
 
     PARTS.forEach((part, index) => {
-      const x = 846 + (index % 2) * 188;
-      const y = 612 + Math.floor(index / 2) * 48;
-      const panel = this.add.rectangle(x, y, 120, 38, 0x0b1929).setStrokeStyle(1, part.color, 0.65).setDepth(2);
-      const label = this.add.text(x, y, '', { fontFamily: 'Arial', fontSize: '10px', color: '#dce9f2', align: 'center' }).setOrigin(0.5).setDepth(3);
+      const x = 218 + (index % 2) * 332;
+      const y = 476 + Math.floor(index / 2) * 118;
+      const panel = this.add.rectangle(x, y, 294, 94, 0x0b1929).setStrokeStyle(1, part.color, 0.65).setDepth(2);
+      const label = this.add.text(x - 126, y - 34, '', { fontFamily: 'Arial', fontSize: '11px', color: '#dce9f2' }).setDepth(3);
       this.goalSlots.set(part.type, { label, panel });
+      const display = this.add.container(x - 118, y + 12).setDepth(3);
+      this.orderPartDisplays.set(part.type, display);
+      this.orderParts.set(part.type, []);
     });
     this.drawOrderBike();
+  }
+
+  private drawOrderPartControls() {
+    const panelLeft = 770;
+    const panelWidth = 340;
+    this.add.rectangle(940, 404, panelWidth, 520, 0x0e1d2e).setStrokeStyle(1, 0x29465e);
+    this.add.text(794, 174, '추가할 부품', { fontFamily: 'Arial', fontSize: '12px', color: '#8fa8ba' });
+    PARTS.forEach((part, index) => {
+      const x = 865 + (index % 2) * 150;
+      const y = 226 + Math.floor(index / 2) * 72;
+      const button = this.add.rectangle(x, y, 134, 58, 0x13263b).setStrokeStyle(2, part.color).setInteractive({ useHandCursor: true });
+      button.on('pointerdown', () => this.addPartToOrder(part.type));
+      this.add.text(x, y, `${part.name}\nLv.1 추가`, { align: 'center', fontFamily: 'Arial', fontSize: '12px', color: '#e8f1f7', fontStyle: 'bold', lineSpacing: 4 }).setOrigin(0.5);
+    });
+    this.add.text(794, 354, '클릭할 때마다 Lv.1 부품이 주문에 추가됩니다.\n같은 레벨 2개는 즉시 상위 레벨로 합쳐집니다.', {
+      fontFamily: 'Arial', fontSize: '11px', color: '#71899c', lineSpacing: 7, wordWrap: { width: 292 },
+    });
+    this.add.rectangle(940, 526, 292, 178, 0x0b1929).setStrokeStyle(1, 0x29465e);
+    this.add.text(814, 455, 'B안 검증 포인트', { fontFamily: 'Arial', fontSize: '12px', color: '#55d6be', fontStyle: 'bold' });
+    this.add.text(814, 482, '• 보드 없이 주문 자체가 플레이 공간이 되는가\n• 추가·머지 결과를 즉시 이해할 수 있는가\n• 완성 부품과 미완성 부품이 구분되는가', {
+      fontFamily: 'Arial', fontSize: '11px', color: '#91a9bc', lineSpacing: 9,
+    });
+  }
+
+  private addPartToOrder(type: PartType) {
+    this.actions += 1;
+    const levels = [...(this.orderParts.get(type) ?? []), 1];
+    let merged = true;
+    while (merged) {
+      merged = false;
+      for (let level = 1; level < 4; level += 1) {
+        const matches = levels.filter((value) => value === level);
+        if (matches.length < 2) continue;
+        levels.splice(levels.indexOf(level), 1);
+        levels.splice(levels.indexOf(level), 1);
+        levels.push(level + 1);
+        this.merges += 1;
+        merged = true;
+        break;
+      }
+    }
+    levels.sort((a, b) => b - a);
+    this.orderParts.set(type, levels);
+    const goal = this.goals.find((item) => item.type === type);
+    if (goal && levels.some((level) => level >= goal.level)) goal.delivered = true;
+    this.refreshUi(`${this.partName(type)} 추가 · 현재 ${levels.map((level) => `Lv.${level}`).join(' + ')}`);
   }
 
   private drawSizeControls() {
@@ -492,7 +550,7 @@ class MergePrototypeScene extends Phaser.Scene {
 
   private refreshUi(message: string) {
     this.info.setText(message);
-    if (this.mode !== 'free') this.checkDelivery();
+    if (this.mode === 'guided') this.checkDelivery();
     this.refreshOrder();
     this.refreshMetrics();
   }
@@ -517,15 +575,31 @@ class MergePrototypeScene extends Phaser.Scene {
     if (!this.orderText) return;
     if (this.mode === 'order') {
       const completed = this.goals.filter((goal) => goal.delivered).length;
-      this.orderText.setText(`CUSTOMER ORDER ${this.orderIndex + 1}/3  ·  어반 로드 자전거  ·  준비 ${completed}/4`);
+      this.orderText.setText(`CUSTOMER ORDER ${this.orderIndex + 1}/3  ·  어반 로드 자전거  ·  완성 ${completed}/4`);
       this.goals.forEach((goal) => {
         const slot = this.goalSlots.get(goal.type);
         if (!slot) return;
         const part = PARTS.find((item) => item.type === goal.type)!;
         slot.panel.setFillStyle(goal.delivered ? part.color : 0x0b1929, goal.delivered ? 0.28 : 1);
         slot.panel.setStrokeStyle(goal.delivered ? 2 : 1, part.color, goal.delivered ? 1 : 0.65);
-        slot.label.setText(`${goal.delivered ? '✓ 완료' : part.name}\nLv.${goal.level}`).setColor(goal.delivered ? '#ffffff' : '#dce9f2');
+        const levels = this.orderParts.get(goal.type) ?? [];
+        slot.label.setText(`${goal.delivered ? '✓ 완성' : part.name}  ·  목표 Lv.${goal.level}`).setColor(goal.delivered ? '#ffffff' : '#dce9f2');
+        const display = this.orderPartDisplays.get(goal.type);
+        if (display) {
+          display.removeAll(true);
+          if (levels.length === 0) {
+            display.add(this.add.text(0, 0, '부품을 추가해 주세요', { fontFamily: 'Arial', fontSize: '11px', color: '#536b80' }));
+          } else {
+            levels.slice(0, 5).forEach((level, index) => {
+              const complete = level >= goal.level;
+              const chip = this.add.rectangle(index * 52 + 20, 12, 44, 28, part.color, complete ? 0.9 : 0.28).setStrokeStyle(1, part.color);
+              const text = this.add.text(index * 52 + 20, 12, `Lv.${level}`, { fontFamily: 'Arial', fontSize: '10px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+              display.add([chip, text]);
+            });
+          }
+        }
       });
+      if (completed === this.goals.length) this.info.setText('커스텀 주문의 모든 부품이 완성되었습니다. 완성 상태와 부품 구성을 확인하세요.');
       return;
     }
     this.orderText.setText(`주문 ${this.orderIndex + 1}/3   ${this.goals.map((goal) => `${goal.delivered ? '✓' : '○'} ${this.partName(goal.type)} L${goal.level}`).join('   ')}`);
@@ -534,11 +608,11 @@ class MergePrototypeScene extends Phaser.Scene {
   private drawOrderBike() {
     if (!this.orderBike) return;
     const g = this.orderBike.clear();
-    g.lineStyle(3, 0xffb35c, 1).strokeCircle(870, 550, 19).strokeCircle(956, 550, 19);
-    g.lineStyle(4, 0x55d6be, 1).strokeTriangle(880, 548, 917, 520, 936, 548).lineBetween(880, 548, 936, 548).lineBetween(917, 520, 956, 550);
-    g.lineStyle(3, 0xff7185, 1).strokeCircle(917, 545, 7).lineBetween(917, 545, 936, 548);
-    g.lineStyle(3, 0x8c7bff, 1).lineBetween(944, 517, 956, 550).lineBetween(939, 517, 953, 517);
-    g.fillStyle(0x55d6be).fillRect(906, 511, 21, 4);
+    g.lineStyle(5, 0xffb35c, 1).strokeCircle(226, 322, 43).strokeCircle(538, 322, 43);
+    g.lineStyle(7, 0x55d6be, 1).strokeTriangle(248, 316, 376, 234, 462, 316).lineBetween(248, 316, 462, 316).lineBetween(376, 234, 538, 322);
+    g.lineStyle(5, 0xff7185, 1).strokeCircle(376, 308, 15).lineBetween(376, 308, 462, 316);
+    g.lineStyle(5, 0x8c7bff, 1).lineBetween(492, 226, 538, 322).lineBetween(474, 226, 520, 226);
+    g.fillStyle(0x55d6be).fillRect(344, 214, 68, 7);
   }
 
   private destroySceneObject(object: Phaser.GameObjects.GameObject) {
@@ -549,6 +623,10 @@ class MergePrototypeScene extends Phaser.Scene {
   private refreshMetrics() {
     if (!this.metrics) return;
     const seconds = Math.floor((this.time.now - this.startedAt) / 1000);
+    if (this.mode === 'order') {
+      this.metrics.setText(`${seconds}s · 클릭 ${this.actions} · 자동 머지 ${this.merges} · 완성 ${this.goals.filter((goal) => goal.delivered).length}/4`);
+      return;
+    }
     const occupied = this.pieces.reduce((sum, piece) => sum + this.shape(piece.type, piece.rotation).length, 0);
     this.metrics.setText(`${seconds}s · 행동 ${this.actions} · 머지 ${this.merges} · 오입력 ${this.mistakes} · 빈칸 ${this.rows * this.columns - occupied}`);
   }
