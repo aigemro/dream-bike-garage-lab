@@ -54,7 +54,6 @@ class MergePrototypeScene extends Phaser.Scene {
   private controls: Phaser.GameObjects.GameObject[] = [];
   private selectedPiece?: Piece;
   private selectedGenerator: PartType = 'frame';
-  private activeSizeField: 'columns' | 'rows' | undefined;
   private nextId = 1;
   private orderIndex = 0;
   private boardLeft = 0;
@@ -78,8 +77,7 @@ class MergePrototypeScene extends Phaser.Scene {
     this.goals = ORDERS[0].map((goal) => ({ ...goal }));
     this.drawHeader();
     this.drawSizeControls();
-    this.rebuildBoard('열·행 값을 직접 입력해 보드 크기를 바꿀 수 있습니다.');
-    this.input.keyboard?.on('keydown', (event: KeyboardEvent) => this.handleSizeInput(event));
+    this.rebuildBoard('열·행의 − / + 버튼을 누르면 보드 크기가 바로 변경됩니다.');
   }
 
   update() { this.refreshMetrics(); }
@@ -87,7 +85,7 @@ class MergePrototypeScene extends Phaser.Scene {
   private drawHeader() {
     const names = { free: 'A · 자유 보드 · 2차 구현', order: 'B · 주문 중심 · 2차 구현', guided: 'C · 자유 + 가이드' };
     this.add.text(24, 18, names[this.mode], { fontFamily: 'Arial', fontSize: '19px', color: '#55d6be', fontStyle: 'bold' });
-    this.info = this.add.text(24, 47, '', { fontFamily: 'Arial', fontSize: '12px', color: '#bfd0dc', wordWrap: { width: this.mode === 'free' ? 720 : 592 } });
+    this.info = this.add.text(24, 47, '', { fontFamily: 'Arial', fontSize: '12px', color: '#bfd0dc', wordWrap: { width: this.mode === 'free' ? 1040 : 592 } });
     this.metrics = this.add.text(this.mode === 'free' ? 1096 : 616, 20, '', { fontFamily: 'Arial', fontSize: '11px', color: '#758da1' }).setOrigin(1, 0);
     if (this.mode === 'order') this.drawVisualOrder();
     else if (this.mode !== 'free') this.orderText = this.add.text(24, 67, '', { fontFamily: 'Arial', fontSize: '10px', color: '#ffd37a', wordWrap: { width: 592 } });
@@ -108,50 +106,51 @@ class MergePrototypeScene extends Phaser.Scene {
   }
 
   private drawSizeControls() {
-    this.add.text(24, 82, '보드 크기', { fontFamily: 'Arial', fontSize: '12px', color: '#8fa8ba' });
-    this.makeSizeField(102, 94, '열', 'columns');
-    this.makeSizeField(205, 94, '행', 'rows');
-    const apply = this.add.rectangle(300, 94, 76, 32, 0x21445a).setStrokeStyle(1, 0x55d6be).setInteractive({ useHandCursor: true });
-    this.add.text(300, 94, '적용', { fontFamily: 'Arial', fontSize: '12px', color: '#e8f1f7', fontStyle: 'bold' }).setOrigin(0.5);
-    apply.on('pointerdown', () => this.rebuildBoard('보드 크기를 변경했습니다. 배치된 부품은 초기화됩니다.'));
-    this.add.text(350, 86, '4~10 입력 · 부품 선택 후 빈 칸 배치\n부품 선택 → 회전 또는 빈 칸 이동', { fontFamily: 'Arial', fontSize: '10px', color: '#71899c', lineSpacing: 3 });
+    this.add.text(24, 88, '보드 크기', { fontFamily: 'Arial', fontSize: '12px', color: '#8fa8ba' }).setOrigin(0, 0.5);
+    this.makeSizeStepper(132, 94, '열', 'columns');
+    this.makeSizeStepper(278, 94, '행', 'rows');
+    this.add.text(366, 78, '4~10칸 · 누르면 즉시 변경\n부품 선택 → 같은 부품을 다시 눌러 회전\n빈 칸 이동 · 같은 종류와 레벨끼리 머지', {
+      fontFamily: 'Arial', fontSize: '10px', color: '#71899c', lineSpacing: 3, wordWrap: { width: 360 },
+    });
   }
 
-  private makeSizeField(x: number, y: number, label: string, field: 'columns' | 'rows') {
-    const box = this.add.rectangle(x, y, 78, 32, 0x101f31).setStrokeStyle(1, 0x395a72).setInteractive({ useHandCursor: true });
-    this.add.text(x - 30, y, label, { fontFamily: 'Arial', fontSize: '11px', color: '#7990a2' }).setOrigin(0, 0.5);
-    const text = this.add.text(x + 15, y, String(field === 'columns' ? this.columns : this.rows), { fontFamily: 'Arial', fontSize: '14px', color: '#eaf2f8', fontStyle: 'bold' }).setOrigin(0.5);
+  private makeSizeStepper(x: number, y: number, label: string, field: 'columns' | 'rows') {
+    this.add.text(x - 68, y, label, { fontFamily: 'Arial', fontSize: '11px', color: '#7990a2' }).setOrigin(0.5);
+    const minus = this.add.rectangle(x - 34, y, 30, 32, 0x101f31).setStrokeStyle(1, 0x395a72).setInteractive({ useHandCursor: true });
+    const valueBox = this.add.rectangle(x, y, 38, 32, 0x101f31).setStrokeStyle(1, 0x395a72);
+    const plus = this.add.rectangle(x + 38, y, 30, 32, 0x101f31).setStrokeStyle(1, 0x395a72).setInteractive({ useHandCursor: true });
+    this.add.text(x - 34, y, '−', { fontFamily: 'Arial', fontSize: '18px', color: '#dce8f0' }).setOrigin(0.5);
+    this.add.text(x + 38, y, '+', { fontFamily: 'Arial', fontSize: '18px', color: '#dce8f0' }).setOrigin(0.5);
+    const text = this.add.text(x, y, String(field === 'columns' ? this.columns : this.rows), { fontFamily: 'Arial', fontSize: '14px', color: '#55d6be', fontStyle: 'bold' }).setOrigin(0.5);
     text.setData('sizeField', field);
-    box.on('pointerdown', () => { this.activeSizeField = field; this.refreshSizeFields(); });
+    minus.on('pointerdown', () => this.changeBoardSize(field, -1));
+    plus.on('pointerdown', () => this.changeBoardSize(field, 1));
+    void valueBox;
   }
 
   private refreshSizeFields() {
     this.children.list.filter((object): object is Phaser.GameObjects.Text => object instanceof Phaser.GameObjects.Text && Boolean(object.getData('sizeField')))
       .forEach((text) => {
         const field = text.getData('sizeField') as 'columns' | 'rows';
-        text.setText(`${field === 'columns' ? this.columns : this.rows}${this.activeSizeField === field ? '|' : ''}`);
-        text.setColor(this.activeSizeField === field ? '#55d6be' : '#eaf2f8');
+        text.setText(String(field === 'columns' ? this.columns : this.rows));
       });
   }
 
-  private handleSizeInput(event: KeyboardEvent) {
-    if (!this.activeSizeField) return;
-    const current = String(this.activeSizeField === 'columns' ? this.columns : this.rows);
-    let next = current;
-    if (/^[0-9]$/.test(event.key)) next = current === '10' || current.length >= 2 ? event.key : `${current}${event.key}`;
-    else if (event.key === 'Backspace') next = current.slice(0, -1) || '0';
-    else if (event.key === 'Enter') { this.activeSizeField = undefined; this.rebuildBoard('보드 크기를 변경했습니다. 배치된 부품은 초기화됩니다.'); return; }
-    else return;
-    const value = Number(next);
-    if (this.activeSizeField === 'columns') this.columns = Math.min(10, value);
-    else this.rows = Math.min(10, value);
-    this.refreshSizeFields();
+  private changeBoardSize(field: 'columns' | 'rows', amount: number) {
+    const current = field === 'columns' ? this.columns : this.rows;
+    const next = Phaser.Math.Clamp(current + amount, 4, 10);
+    if (next === current) {
+      this.refreshUi(`보드 ${field === 'columns' ? '열' : '행'}은 4~10 사이에서 변경할 수 있습니다.`);
+      return;
+    }
+    if (field === 'columns') this.columns = next;
+    else this.rows = next;
+    this.rebuildBoard(`보드를 ${this.columns}열 × ${this.rows}행으로 변경했습니다. 배치된 부품은 초기화됩니다.`);
   }
 
   private rebuildBoard(message: string) {
     this.columns = Phaser.Math.Clamp(this.columns || 4, 4, 10);
     this.rows = Phaser.Math.Clamp(this.rows || 4, 4, 10);
-    this.activeSizeField = undefined;
     this.selectedPiece = undefined;
     this.pieces.forEach((piece) => piece.item.destroy());
     this.pieces = [];
@@ -204,14 +203,8 @@ class MergePrototypeScene extends Phaser.Scene {
       const text = this.add.text(x, y, `${part.short}  ${part.name} · ${part.shape.length}칸`, { fontFamily: 'Arial', fontSize: '11px', color: '#e8f1f7', fontStyle: 'bold' }).setOrigin(0.5);
       this.controls.push(button, text);
     });
-    const rotateY = controlsTop + 58;
-    const rotate = this.add.rectangle(253, rotateY, 270, 30, 0x101f31).setStrokeStyle(1, 0x557086).setInteractive({ useHandCursor: true });
-    const rotateText = this.add.text(253, rotateY, '선택한 부품 90° 회전', { fontFamily: 'Arial', fontSize: '11px', color: '#d5e2eb' }).setOrigin(0.5);
-    const remove = this.add.rectangle(453, rotateY, 116, 30, 0x251c29).setStrokeStyle(1, 0x8b5365).setInteractive({ useHandCursor: true });
-    const removeText = this.add.text(453, rotateY, '선택 제거', { fontFamily: 'Arial', fontSize: '11px', color: '#e3bec9' }).setOrigin(0.5);
-    rotate.on('pointerdown', () => this.rotateSelected());
-    remove.on('pointerdown', () => this.removeSelected());
-    this.controls.push(rotate, rotateText, remove, removeText);
+    const guide = this.add.text(24, controlsTop + 58, '선택한 부품을 다시 누르면 90° 회전합니다.', { fontFamily: 'Arial', fontSize: '11px', color: '#71899c' });
+    this.controls.push(guide);
     this.refreshControls();
   }
 
@@ -237,16 +230,8 @@ class MergePrototypeScene extends Phaser.Scene {
       this.controls.push(button, text);
     });
 
-    const guide = this.add.text(controlsLeft, controlsTop + 196, '보드의 빈 칸을 눌러 배치합니다.\n배치된 부품을 선택하면 이동·회전·머지가 가능합니다.', { fontFamily: 'Arial', fontSize: '11px', color: '#71899c', lineSpacing: 7, wordWrap: { width: 310 } });
-    const rotateY = controlsTop + 292;
-    const rotate = this.add.rectangle(controlsLeft + 170, rotateY, 300, 44, 0x101f31).setStrokeStyle(1, 0x557086).setInteractive({ useHandCursor: true });
-    const rotateText = this.add.text(controlsLeft + 170, rotateY, '선택한 부품 90° 회전', { fontFamily: 'Arial', fontSize: '12px', color: '#d5e2eb' }).setOrigin(0.5);
-    const removeY = rotateY + 58;
-    const remove = this.add.rectangle(controlsLeft + 170, removeY, 300, 44, 0x251c29).setStrokeStyle(1, 0x8b5365).setInteractive({ useHandCursor: true });
-    const removeText = this.add.text(controlsLeft + 170, removeY, '선택한 부품 제거', { fontFamily: 'Arial', fontSize: '12px', color: '#e3bec9' }).setOrigin(0.5);
-    rotate.on('pointerdown', () => this.rotateSelected());
-    remove.on('pointerdown', () => this.removeSelected());
-    this.controls.push(guide, rotate, rotateText, remove, removeText);
+    const guide = this.add.text(controlsLeft, controlsTop + 196, '보드의 빈 칸을 눌러 배치합니다.\n배치된 부품을 한 번 누르면 선택하고,\n같은 부품을 다시 누르면 90° 회전합니다.\n선택 후 빈 칸을 누르면 이동합니다.', { fontFamily: 'Arial', fontSize: '11px', color: '#71899c', lineSpacing: 7, wordWrap: { width: 310 } });
+    this.controls.push(guide);
     this.refreshControls();
   }
 
@@ -260,7 +245,7 @@ class MergePrototypeScene extends Phaser.Scene {
         this.refreshUi(`${this.partName(clicked.type)} Lv.${clicked.level} 선택 · 빈 칸으로 이동하거나 같은 부품에 머지하세요.`);
         return;
       }
-      if (clicked.id === this.selectedPiece.id) { this.selectedPiece = undefined; this.refreshControls(); this.refreshUi('선택을 취소했습니다.'); return; }
+      if (clicked.id === this.selectedPiece.id) { this.rotateSelected(); return; }
       if (clicked.type === this.selectedPiece.type && clicked.level === this.selectedPiece.level && clicked.level < 4) {
         this.mergePieces(this.selectedPiece, clicked);
         return;
@@ -324,15 +309,6 @@ class MergePrototypeScene extends Phaser.Scene {
     this.selectedPiece = replacement;
     this.refreshControls();
     this.refreshUi(`${this.partName(replacement.type)}을 90° 회전했습니다.`);
-  }
-
-  private removeSelected() {
-    if (!this.selectedPiece) { this.refreshUi('먼저 제거할 부품을 선택하세요.'); return; }
-    this.selectedPiece.item.destroy();
-    this.pieces = this.pieces.filter((piece) => piece.id !== this.selectedPiece!.id);
-    this.selectedPiece = undefined;
-    this.refreshControls();
-    this.refreshUi('선택한 부품을 보드에서 제거했습니다.');
   }
 
   private mergePieces(source: Piece, target: Piece) {
