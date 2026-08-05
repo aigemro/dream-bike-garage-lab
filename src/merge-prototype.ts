@@ -428,7 +428,6 @@ class MergePrototypeScene extends Phaser.Scene {
     const part = PARTS.find((item) => item.type === type)!;
     const cells = this.shape(type, rotation);
     const blocks = cells.map((point) => this.add.rectangle(point.x * this.cellSize, point.y * this.cellSize, this.cellSize - this.gap * 2, this.cellSize - this.gap * 2, part.color).setStrokeStyle(2, 0x07111f));
-    const silhouette = this.drawPartSilhouette(type, cells);
     const center = cells.reduce((sum, point) => ({ x: sum.x + point.x, y: sum.y + point.y }), { x: 0, y: 0 });
     center.x /= cells.length;
     center.y /= cells.length;
@@ -443,36 +442,10 @@ class MergePrototypeScene extends Phaser.Scene {
     const badgeHeight = Math.max(18, Math.min(28, this.cellSize - this.gap * 4, this.cellSize * 0.48));
     const badge = this.add.rectangle(badgeX, badgeY, badgeWidth, badgeHeight, 0x07111f, 0.9).setStrokeStyle(1, 0xffffff, 0.7);
     const tag = this.add.text(badgeX, badgeY, `Lv.${level}`, { align: 'center', fontFamily: 'Arial', fontSize: `${Math.max(10, Math.min(15, badgeHeight * 0.58))}px`, color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
-    const item = this.add.container(0, 0, [...blocks, silhouette, badge, tag]).setDepth(2);
+    const item = this.add.container(0, 0, [...blocks, badge, tag]).setDepth(2);
     const piece: Piece = { id: this.nextId++, type, level, row, column, rotation, item };
     this.positionPiece(piece);
     return piece;
-  }
-
-  private drawPartSilhouette(type: PartType, cells: Point[]) {
-    const graphics = this.add.graphics();
-    const centers = cells.map((point) => ({ x: point.x * this.cellSize, y: point.y * this.cellSize }));
-    const scale = Math.max(8, this.cellSize * 0.2);
-    graphics.lineStyle(Math.max(2, this.cellSize * 0.045), 0x07111f, 0.58);
-
-    if (type === 'frame') {
-      const [first, second, third] = centers;
-      graphics.strokeTriangle(first.x, first.y - scale, second.x, second.y + scale, third.x + scale, third.y);
-    } else if (type === 'wheel') {
-      centers.forEach((center) => graphics.strokeCircle(center.x, center.y, scale));
-    } else if (type === 'drivetrain') {
-      graphics.strokeCircle(0, 0, scale).strokeCircle(0, 0, scale * 0.45);
-      for (let index = 0; index < 8; index += 1) {
-        const angle = (Math.PI * 2 * index) / 8;
-        graphics.lineBetween(Math.cos(angle) * scale, Math.sin(angle) * scale, Math.cos(angle) * scale * 1.35, Math.sin(angle) * scale * 1.35);
-      }
-    } else {
-      const [first, second] = centers;
-      graphics.lineBetween(first.x - scale, first.y, second.x + scale, second.y);
-      graphics.lineBetween(first.x, first.y - scale * 0.65, first.x, first.y + scale * 0.65);
-      graphics.lineBetween(second.x, second.y - scale * 0.65, second.x, second.y + scale * 0.65);
-    }
-    return graphics;
   }
 
   private positionPiece(piece: Piece) {
