@@ -707,19 +707,8 @@ class MergePrototypeScene extends Phaser.Scene {
       g.lineStyle(3, 0xd5cfff, barAlpha).lineBetween(barX - 4, stemY - 6, barX + 2, stemY + 5);
     }
 
-    // 미완성 부품은 실제 장착 위치 바깥쪽에 고스트 외곽선으로 표시한다.
-    (['frame', 'wheel', 'drivetrain', 'handlebar'] as PartType[]).forEach((type) => {
-      if (!ghost(type)) return;
-      const part = PARTS.find((item) => item.type === type)!;
-      g.lineStyle(2, part.color, ghost(type));
-      if (type === 'wheel') g.strokeCircle(frontX, groundY, radius + 8).strokeCircle(rearX, groundY, radius + 8);
-      if (type === 'frame') {
-        g.strokeTriangle(rearX, groundY, seatX, seatY, crankX, crankY);
-        g.strokeTriangle(seatX, seatY, headTopX, headTopY, crankX, crankY);
-      }
-      if (type === 'drivetrain') g.strokeCircle(crankX, crankY, 26);
-      if (type === 'handlebar') g.strokeRoundedRect(headTopX - 14, headTopY - 53, 82, 30, 6);
-    });
+    // 미완성 부품은 위 자전거 본체의 낮은 alpha로만 표시한다.
+    // 별도 외곽 도형은 실제 부품처럼 보이지 않고 화면에 잔여 UI로 오인되어 그리지 않는다.
   }
 
   private destroySceneObject(object: Phaser.GameObjects.GameObject) {
