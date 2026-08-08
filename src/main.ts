@@ -63,6 +63,38 @@ const tracks: Track[] = [
         controls: '원하는 부품을 자유롭게 만들되, 빛나는 목표 표시와 다음 행동 힌트를 참고합니다.',
         demo: 'guided', issueNumber: 25, documentId: 'merge-guided',
       },
+      {
+        id: 'board-size',
+        label: '검증',
+        title: '보드 크기·잠금 칸 검증',
+        description: '같은 머지 규칙에서 6×7, 7×9, 잠금 해제형 보드 조건만 바꿔 공간 전략과 난이도를 비교합니다.',
+        status: '준비 중',
+        question: '어떤 보드 크기와 잠금 칸 구성이 공간 전략의 재미와 난이도 균형에 가장 적합한가?',
+        controls: '같은 부품 구성으로 보드 크기와 잠금 칸 조건만 바꿔 비교합니다.',
+        issueNumber: 74, documentId: 'merge-board-size',
+      },
+    ],
+  },
+  {
+    id: 'parts-supply',
+    group: 'GAME CORE',
+    title: '부품 수급',
+    description: '머지 재료인 부품이 보드에 공급되는 방식을 비교해 플레이 템포와 기대감을 검증합니다.',
+    variants: [
+      { id: 'instant-button', label: 'A안', title: '즉시 생성 버튼형', description: '생성 버튼을 누르면 부품이 지연 없이 보드에 추가되는 현행 기준선입니다.', status: '준비 중', question: '지연 없는 공급이 머지 플레이 템포를 가장 잘 유지하는가?', controls: '생성 버튼을 눌러 부품을 보드에 추가하고 머지를 진행합니다.', issueNumber: 71, documentId: 'supply-instant' },
+      { id: 'parcel-box', label: 'B안', title: '택배 상자 개봉형', description: '주문한 부품이 택배 상자로 도착하고 상자를 개봉해 부품을 얻습니다.', status: '준비 중', question: '개봉 연출의 기대감이 템포 저하보다 큰 가치를 주는가?', controls: '도착한 택배 상자를 탭해 개봉하고 부품을 보드로 옮깁니다.', issueNumber: 72, documentId: 'supply-parcel' },
+      { id: 'cooldown-generator', label: 'C안', title: '쿨다운·충전식 생성기형', description: '충전량이 있는 생성기를 탭해 부품을 뽑고 쿨다운 후 다시 충전되는 장르 표준 방식입니다.', status: '준비 중', question: '장르 표준 생성기가 주문 단위의 짧은 세션 구조와 잘 맞는가?', controls: '생성기를 탭해 부품을 뽑고 충전량과 쿨다운을 관리합니다.', issueNumber: 73, documentId: 'supply-generator' },
+    ],
+  },
+  {
+    id: 'reward-progression',
+    group: 'GAME CORE',
+    title: '보상과 성장',
+    description: '납품 보상과 성장 구조가 다음 플레이 동기를 만드는 방식을 비교합니다.',
+    variants: [
+      { id: 'fixed-salary', label: 'A안', title: '고정 급여·직선 성장', description: '납품마다 정해진 급여를 받고 정해진 순서로 성장하는 기준선입니다.', status: '준비 중', question: '예측 가능한 보상이 안정적인 반복 플레이 동기를 만드는가?', controls: '주문을 납품하고 급여와 성장 해금 순서를 확인합니다.', issueNumber: 20, documentId: 'reward-fixed-salary' },
+      { id: 'performance-bonus', label: 'B안', title: '성과 보너스·성장 선택', description: '납품 성과에 따라 보너스가 달라지고 성장 방향을 직접 선택합니다.', status: '준비 중', question: '변동 보상과 성장 선택지가 반복 플레이 동기를 높이는가?', controls: '납품 성과에 따른 보너스를 확인하고 성장 방향을 선택합니다.', issueNumber: 21, documentId: 'reward-performance-bonus' },
+      { id: 'soft-timer', label: 'C안', title: '소프트 타이머·시간 vs 품질', description: '시간 안에 납품하면 시간 보너스, 늦더라도 품질을 높이면 품질 보너스를 받습니다.', status: '준비 중', question: '시간과 품질 중 선택하는 긴장감이 실제 재미로 이어지는가?', controls: '주문의 소프트 타이머를 보며 빠른 납품과 고품질 납품 중 하나를 선택합니다.', issueNumber: 75, documentId: 'reward-soft-timer' },
     ],
   },
   {

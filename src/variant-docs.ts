@@ -16,6 +16,13 @@ import doc10 from '../docs/variants/storage-local.md?raw';
 import doc11 from '../docs/variants/storage-indexed-db.md?raw';
 import doc12 from '../docs/variants/toss-lifecycle.md?raw';
 import doc13 from '../docs/variants/toss-sdk.md?raw';
+import doc18 from '../docs/variants/merge-board-size.md?raw';
+import doc19 from '../docs/variants/supply-instant.md?raw';
+import doc20 from '../docs/variants/supply-parcel.md?raw';
+import doc21 from '../docs/variants/supply-generator.md?raw';
+import doc22 from '../docs/variants/reward-fixed-salary.md?raw';
+import doc23 from '../docs/variants/reward-performance-bonus.md?raw';
+import doc24 from '../docs/variants/reward-soft-timer.md?raw';
 
 const variantDocs: Record<string, string> = {
   'merge-free-board': doc0,
@@ -36,6 +43,13 @@ const variantDocs: Record<string, string> = {
   'storage-indexed-db': doc11,
   'toss-lifecycle': doc12,
   'toss-sdk': doc13,
+  'merge-board-size': doc18,
+  'supply-instant': doc19,
+  'supply-parcel': doc20,
+  'supply-generator': doc21,
+  'reward-fixed-salary': doc22,
+  'reward-performance-bonus': doc23,
+  'reward-soft-timer': doc24,
 };
 
 export default variantDocs;
