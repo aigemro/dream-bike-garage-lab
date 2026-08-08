@@ -133,9 +133,9 @@ mindmap
 | Game Core | 머지 코어 | B: 주문 목표 중심 2-to-1 | 검토 준비 | 주문 카드 시각화 후 A/C와 목표 이해도 비교 | [#13](https://github.com/aigemro/dream-bike-garage-lab/issues/13), [PR #31](https://github.com/aigemro/dream-bike-garage-lab/pull/31) |
 | Game Core | 머지 코어 | C: 자유 보드 + 주문 가이드 | 검토 준비 | 가이드 강도와 자유도의 균형 비교 | [#25](https://github.com/aigemro/dream-bike-garage-lab/issues/25), [PR #26](https://github.com/aigemro/dream-bike-garage-lab/pull/26) |
 | Game Core | 머지 코어 | 보드 크기·잠금 칸 검증 | 준비 (허브 등록) | 비교 데모 구현, 메인 8/13(M0) 보드 크기 결정 지원 | [#74](https://github.com/aigemro/dream-bike-garage-lab/issues/74) |
-| Game Core | 부품 수급 | A: 즉시 생성 버튼형 | 준비 (허브 등록) | 현행 기준선으로 B/C와 템포 비교 데모 구현 | [#70](https://github.com/aigemro/dream-bike-garage-lab/issues/70), [#71](https://github.com/aigemro/dream-bike-garage-lab/issues/71) |
-| Game Core | 부품 수급 | B: 택배 상자 개봉형 | 준비 (허브 등록) | 개봉 연출의 만족감과 템포 저하 비교 데모 구현 | [#72](https://github.com/aigemro/dream-bike-garage-lab/issues/72) |
-| Game Core | 부품 수급 | C: 쿨다운·충전식 생성기형 | 준비 (허브 등록) | 장르 표준 생성기의 주문 단위 세션 부합 검증 데모 구현 | [#73](https://github.com/aigemro/dream-bike-garage-lab/issues/73) |
+| Game Core | 부품 수급 | A: 즉시 생성 버튼형 | 개발 중 (1차 데모) | 동일 조건(5×4 보드, Lv.3 ×2 목표)에서 B/C와 템포 비교 플레이 테스트 | [#70](https://github.com/aigemro/dream-bike-garage-lab/issues/70), [#71](https://github.com/aigemro/dream-bike-garage-lab/issues/71) |
+| Game Core | 부품 수급 | B: 택배 상자 개봉형 | 개발 중 (1차 데모) | 개봉 연출의 만족감과 템포 저하 비교 플레이 테스트 | [#72](https://github.com/aigemro/dream-bike-garage-lab/issues/72) |
+| Game Core | 부품 수급 | C: 쿨다운·충전식 생성기형 | 개발 중 (1차 데모) | 장르 표준 생성기의 주문 단위 세션 부합 플레이 테스트 | [#73](https://github.com/aigemro/dream-bike-garage-lab/issues/73) |
 | Game Core | 수집 | A: 자전거 도감형 | 준비 | 최소 도감 화면과 획득 피드백 정의 | [#14](https://github.com/aigemro/dream-bike-garage-lab/issues/14) |
 | Game Core | 수집 | B: Garage 전시·성장형 | 준비 | 전시와 성장 중 핵심 소유감 검증 | [#12](https://github.com/aigemro/dream-bike-garage-lab/issues/12) |
 | Game Core | 주문·조립 | A: 조립 슬롯 직접 배치 | 준비 | 직접 배치의 조립감과 추가 피로 비교 | [#18](https://github.com/aigemro/dream-bike-garage-lab/issues/18) |
