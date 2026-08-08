@@ -90,25 +90,83 @@ class CollectionScene extends Phaser.Scene {
 
   private drawBike(x: number, y: number, scale: number, color: number, level = 1, locked = false) {
     const g = this.add.graphics().setAlpha(locked ? .22 : 1);
-    const line = locked ? 0x607080 : color;
-    g.lineStyle(5 * scale, line, 1);
-    g.strokeCircle(x - 48 * scale, y + 24 * scale, 30 * scale);
-    g.strokeCircle(x + 48 * scale, y + 24 * scale, 30 * scale);
-    g.lineBetween(x - 48 * scale, y + 24 * scale, x - 10 * scale, y - 15 * scale);
-    g.lineBetween(x - 10 * scale, y - 15 * scale, x + 15 * scale, y + 24 * scale);
-    g.lineBetween(x + 15 * scale, y + 24 * scale, x - 48 * scale, y + 24 * scale);
-    g.lineBetween(x - 10 * scale, y - 15 * scale, x + 35 * scale, y - 15 * scale);
-    g.lineBetween(x + 35 * scale, y - 15 * scale, x + 48 * scale, y + 24 * scale);
-    g.lineBetween(x - 20 * scale, y - 22 * scale, x + 2 * scale, y - 22 * scale);
-    g.lineBetween(x + 29 * scale, y - 24 * scale, x + 46 * scale, y - 31 * scale);
-    if (level >= 2) {
-      g.fillStyle(color, .2);
-      g.fillTriangle(x - 45 * scale, y + 20 * scale, x - 8 * scale, y - 12 * scale, x + 12 * scale, y + 20 * scale);
-    }
+    const main = locked ? 0x607080 : color;
+    const s = scale;
+    const w = (value: number) => Math.max(1, value * s); // 작은 스케일에서도 선이 사라지지 않도록 최소 1px 보장
+
+    // 다이아몬드 프레임 기준점
+    const rearHub = { x: x - 52 * s, y: y + 26 * s };
+    const frontHub = { x: x + 52 * s, y: y + 26 * s };
+    const crank = { x: x + 2 * s, y: y + 28 * s };
+    const seatTop = { x: x - 22 * s, y: y - 18 * s };
+    const headTop = { x: x + 34 * s, y: y - 20 * s };
+    const headBottom = { x: x + 40 * s, y: y - 6 * s };
+    const wheelRadius = 26 * s;
+
+    // 드림 등급 오라는 자전거 뒤에 깔리도록 먼저 그린다
     if (level >= 3) {
-      g.lineStyle(3 * scale, 0xffdf6b, 1);
-      g.strokeCircle(x, y + 5 * scale, 62 * scale);
+      g.lineStyle(w(3), 0xffdf6b, 1);
+      g.strokeCircle(x, y + 5 * s, 62 * s);
     }
+
+    // 바퀴: 타이어 + 림 + 스포크 + 허브
+    [rearHub, frontHub].forEach((hub) => {
+      g.lineStyle(w(4), main, 1).strokeCircle(hub.x, hub.y, wheelRadius);
+      g.lineStyle(w(1.5), main, .5).strokeCircle(hub.x, hub.y, wheelRadius - 5 * s);
+      g.lineStyle(w(1), main, .4);
+      for (let angle = 0; angle < 360; angle += 30) {
+        const rad = Phaser.Math.DegToRad(angle);
+        g.lineBetween(hub.x, hub.y, hub.x + Math.cos(rad) * (wheelRadius - 6 * s), hub.y + Math.sin(rad) * (wheelRadius - 6 * s));
+      }
+      g.fillStyle(main, 1).fillCircle(hub.x, hub.y, Math.max(1.5, 2.5 * s));
+    });
+
+    // 성장한 자전거는 프레임 안쪽을 은은하게 채워 강조한다
+    if (level >= 2) {
+      g.fillStyle(main, .16);
+      g.fillTriangle(seatTop.x, seatTop.y, headTop.x, headTop.y, crank.x, crank.y);
+      g.fillTriangle(headTop.x, headTop.y, headBottom.x, headBottom.y, crank.x, crank.y);
+      g.fillTriangle(rearHub.x, rearHub.y, seatTop.x, seatTop.y, crank.x, crank.y);
+    }
+
+    // 프레임: 체인스테이·시트스테이·시트튜브·탑튜브·다운튜브·헤드튜브·포크
+    g.lineStyle(w(3.5), main, 1);
+    g.lineBetween(rearHub.x, rearHub.y, crank.x, crank.y);
+    g.lineBetween(rearHub.x, rearHub.y, seatTop.x, seatTop.y);
+    g.lineBetween(seatTop.x, seatTop.y, crank.x, crank.y);
+    g.lineBetween(seatTop.x, seatTop.y, headTop.x, headTop.y);
+    g.lineBetween(headBottom.x, headBottom.y, crank.x, crank.y);
+    g.lineBetween(headTop.x, headTop.y, headBottom.x, headBottom.y);
+    g.lineBetween(headBottom.x, headBottom.y, frontHub.x, frontHub.y);
+
+    // 시트포스트 + 안장
+    const saddle = { x: seatTop.x - 5 * s, y: seatTop.y - 12 * s };
+    g.lineStyle(w(2.5), main, 1).lineBetween(seatTop.x, seatTop.y, saddle.x, saddle.y);
+    g.lineStyle(w(4), main, 1).lineBetween(saddle.x - 9 * s, saddle.y, saddle.x + 8 * s, saddle.y);
+
+    // 스템 + 드롭 핸들바
+    const stem = { x: headTop.x + 4 * s, y: headTop.y - 10 * s };
+    g.lineStyle(w(2.5), main, 1)
+      .lineBetween(headTop.x, headTop.y, stem.x, stem.y)
+      .lineBetween(stem.x, stem.y, stem.x + 9 * s, stem.y);
+    g.lineStyle(w(2), main, 1);
+    g.beginPath();
+    g.arc(stem.x + 9 * s, stem.y + 5 * s, 5 * s, -Math.PI / 2, Math.PI / 2, false);
+    g.strokePath();
+
+    // 체인 + 체인링 + 크랭크·페달
+    g.lineStyle(w(1.5), main, .55)
+      .lineBetween(crank.x, crank.y - 7 * s, rearHub.x, rearHub.y - 3 * s)
+      .lineBetween(crank.x, crank.y + 7 * s, rearHub.x, rearHub.y + 3 * s);
+    g.lineStyle(w(2.5), main, 1).strokeCircle(crank.x, crank.y, 7 * s);
+    const pedalTop = { x: crank.x + 7 * s, y: crank.y - 9 * s };
+    const pedalBottom = { x: crank.x - 7 * s, y: crank.y + 9 * s };
+    g.lineStyle(w(2.5), main, 1)
+      .lineBetween(crank.x, crank.y, pedalTop.x, pedalTop.y)
+      .lineBetween(crank.x, crank.y, pedalBottom.x, pedalBottom.y);
+    g.lineStyle(w(3), main, 1)
+      .lineBetween(pedalTop.x - 3.5 * s, pedalTop.y, pedalTop.x + 3.5 * s, pedalTop.y)
+      .lineBetween(pedalBottom.x - 3.5 * s, pedalBottom.y, pedalBottom.x + 3.5 * s, pedalBottom.y);
     return g;
   }
 
