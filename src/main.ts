@@ -4,6 +4,7 @@ import variantDocs from './variant-docs';
 import { startMergePrototype, type MergePrototypeMode } from './merge-prototype';
 import { startCollectionPrototype, type CollectionPrototypeMode } from './collection-prototype';
 import { startSupplyPrototype, type SupplyPrototypeMode } from './supply-prototype';
+import { startRewardPrototype, type RewardPrototypeMode } from './reward-prototype';
 
 type Status = '체험 가능' | '준비 중';
 type Variant = {
@@ -17,6 +18,7 @@ type Variant = {
   demo?: MergePrototypeMode;
   collectionDemo?: CollectionPrototypeMode;
   supplyDemo?: SupplyPrototypeMode;
+  rewardDemo?: RewardPrototypeMode;
   issueNumber: number;
   documentId: string;
 };
@@ -94,9 +96,9 @@ const tracks: Track[] = [
     title: '보상과 성장',
     description: '납품 보상과 성장 구조가 다음 플레이 동기를 만드는 방식을 비교합니다.',
     variants: [
-      { id: 'fixed-salary', label: 'A안', title: '고정 급여·직선 성장', description: '납품마다 정해진 급여를 받고 정해진 순서로 성장하는 기준선입니다.', status: '준비 중', question: '예측 가능한 보상이 안정적인 반복 플레이 동기를 만드는가?', controls: '주문을 납품하고 급여와 성장 해금 순서를 확인합니다.', issueNumber: 20, documentId: 'reward-fixed-salary' },
-      { id: 'performance-bonus', label: 'B안', title: '성과 보너스·성장 선택', description: '납품 성과에 따라 보너스가 달라지고 성장 방향을 직접 선택합니다.', status: '준비 중', question: '변동 보상과 성장 선택지가 반복 플레이 동기를 높이는가?', controls: '납품 성과에 따른 보너스를 확인하고 성장 방향을 선택합니다.', issueNumber: 21, documentId: 'reward-performance-bonus' },
-      { id: 'soft-timer', label: 'C안', title: '소프트 타이머·시간 vs 품질', description: '시간 안에 납품하면 시간 보너스, 늦더라도 품질을 높이면 품질 보너스를 받습니다.', status: '준비 중', question: '시간과 품질 중 선택하는 긴장감이 실제 재미로 이어지는가?', controls: '주문의 소프트 타이머를 보며 빠른 납품과 고품질 납품 중 하나를 선택합니다.', issueNumber: 75, documentId: 'reward-soft-timer' },
+      { id: 'fixed-salary', label: 'A안', title: '고정 급여·직선 성장', description: '납품마다 정해진 급여를 받고 정해진 순서로 성장하는 기준선입니다.', status: '체험 가능', question: '예측 가능한 보상이 안정적인 반복 플레이 동기를 만드는가?', controls: '주문을 납품해 고정 급여를 받고, 정해진 순서대로 성장 항목을 해금합니다.', rewardDemo: 'fixed', issueNumber: 20, documentId: 'reward-fixed-salary' },
+      { id: 'performance-bonus', label: 'B안', title: '성과 보너스·성장 선택', description: '납품 성과에 따라 보너스가 달라지고 성장 방향을 직접 선택합니다.', status: '체험 가능', question: '변동 보상과 성장 선택지가 반복 플레이 동기를 높이는가?', controls: '납품 품질을 선택해 성과 보너스를 받고, 원하는 성장 경로에 급여를 투자합니다.', rewardDemo: 'performance', issueNumber: 21, documentId: 'reward-performance-bonus' },
+      { id: 'soft-timer', label: 'C안', title: '소프트 타이머·시간 vs 품질', description: '시간 안에 납품하면 시간 보너스, 늦더라도 품질을 높이면 품질 보너스를 받습니다.', status: '체험 가능', question: '시간과 품질 중 선택하는 긴장감이 실제 재미로 이어지는가?', controls: '빠른 기본 품질 납품과 시간이 걸리는 고품질 납품의 보상 차이를 비교합니다. 시간이 지나도 주문은 실패하지 않습니다.', rewardDemo: 'soft-timer', issueNumber: 75, documentId: 'reward-soft-timer' },
     ],
   },
   {
@@ -249,10 +251,10 @@ function renderVariant(track: Track, variant: Variant) {
 function renderDemo(track: Track, variant: Variant) {
   destroyGame();
   shell(`<main class="experiment-page demo-page">
-    ${variant.demo || variant.collectionDemo || variant.supplyDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${variant.supplyDemo ? '동일 5×4 보드 · 목표 Lv.3 ×2' : variant.collectionDemo ? '동일 데이터 · 3,000코인' : variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div><button id="reset-demo">초기화</button></div><div id="game-root" class="demo-${variant.supplyDemo ?? variant.collectionDemo ?? variant.demo}"></div><p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
+    ${variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${variant.rewardDemo ? '동일 시작 급여 1,000 · 기본 보상 500' : variant.supplyDemo ? '동일 5×4 보드 · 목표 Lv.3 ×2' : variant.collectionDemo ? '동일 데이터 · 3,000코인' : variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div><button id="reset-demo">초기화</button></div><div id="game-root" class="demo-${variant.rewardDemo ?? variant.supplyDemo ?? variant.collectionDemo ?? variant.demo}"></div><p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
   </main>`, { href: `#/track/${track.id}/${variant.id}`, label: `${variant.title} 상세` });
-  if (variant.demo || variant.collectionDemo || variant.supplyDemo) {
-    const start = () => { destroyGame(); game = variant.supplyDemo ? startSupplyPrototype('game-root', variant.supplyDemo) : variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
+  if (variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo) {
+    const start = () => { destroyGame(); game = variant.rewardDemo ? startRewardPrototype('game-root', variant.rewardDemo) : variant.supplyDemo ? startSupplyPrototype('game-root', variant.supplyDemo) : variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
     start();
     document.querySelector('#reset-demo')?.addEventListener('click', start);
   }
