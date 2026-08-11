@@ -8,7 +8,7 @@ const ROWS = 4;
 const CELL = 96;
 const GAP = 8;
 const BOARD_X = 64;
-const BOARD_Y = 128;
+const BOARD_Y = 112;
 const GOAL_LEVEL = 3;
 const GOAL_COUNT = 2;
 const PARCEL_DELIVERY_MS = 1500;
@@ -218,7 +218,7 @@ class SupplyScene extends Phaser.Scene {
   }
 
   private renderSupplyZone() {
-    const y = 566;
+    const y = 570;
     this.add.rectangle(300, y, 472, 76, C.panel).setStrokeStyle(1, C.line);
     let label = '부품 생성';
     let sub = '탭하면 Lv.1 부품이 즉시 추가됩니다';
