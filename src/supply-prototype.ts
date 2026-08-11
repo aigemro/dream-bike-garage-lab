@@ -9,6 +9,8 @@ const CELL = 96;
 const GAP = 8;
 const BOARD_X = 64;
 const BOARD_Y = 112;
+const BOARD_WIDTH = COLS * CELL + (COLS - 1) * GAP;
+const BOARD_CENTER_X = BOARD_X + BOARD_WIDTH / 2;
 const GOAL_LEVEL = 3;
 const GOAL_COUNT = 2;
 const PARCEL_DELIVERY_MS = 1500;
@@ -218,8 +220,9 @@ class SupplyScene extends Phaser.Scene {
   }
 
   private renderSupplyZone() {
+    const x = BOARD_CENTER_X;
     const y = 570;
-    this.add.rectangle(300, y, 472, 76, C.panel).setStrokeStyle(1, C.line);
+    this.add.rectangle(x, y, BOARD_WIDTH, 76, C.panel).setStrokeStyle(1, C.line);
     let label = '부품 생성';
     let sub = '탭하면 Lv.1 부품이 즉시 추가됩니다';
     let enabled = true;
@@ -232,23 +235,23 @@ class SupplyScene extends Phaser.Scene {
       if (this.generatorCharge <= 0) { label = '재충전 중…'; sub = ''; enabled = false; }
       else { label = '생성기 가동'; sub = '충전량을 소모해 부품을 뽑습니다'; }
       for (let i = 0; i < GENERATOR_MAX_CHARGE; i += 1) {
-        this.add.rectangle(388 + i * 26, y + 24, 18, 8, i < this.generatorCharge ? 0x55d6be : 0x1c3a52);
+        this.add.rectangle(x + 88 + i * 26, y + 24, 18, 8, i < this.generatorCharge ? 0x55d6be : 0x1c3a52);
       }
     }
-    const button = this.add.rectangle(300, y - 6, 200, 44, enabled ? 0x123049 : 0x0c1c2d)
+    const button = this.add.rectangle(x, y - 6, BOARD_WIDTH - 40, 44, enabled ? 0x123049 : 0x0c1c2d)
       .setStrokeStyle(2, enabled ? 0x55d6be : C.line);
     if (enabled) {
       button.setInteractive({ useHandCursor: true });
       button.on('pointerdown', () => this.onSupplyAction());
     }
-    this.text(300, y - 6, label, 16, enabled ? C.text : C.muted, true).setOrigin(0.5, 0.5);
-    if (sub) this.text(300, y + 26, sub, 12, C.muted).setOrigin(0.5, 0.5);
+    this.text(x, y - 6, label, 16, enabled ? C.text : C.muted, true).setOrigin(0.5, 0.5);
+    if (sub) this.text(x, y + 26, sub, 12, C.muted).setOrigin(0.5, 0.5);
     if (this.mode === 'parcel' && this.parcelArriveAt !== null) {
-      const countdown = this.text(300, y + 26, this.liveLabel('parcel-countdown'), 13, C.gold, true).setOrigin(0.5, 0.5).setName('parcel-countdown');
+      const countdown = this.text(x, y + 26, this.liveLabel('parcel-countdown'), 13, C.gold, true).setOrigin(0.5, 0.5).setName('parcel-countdown');
       this.liveTexts.push(countdown);
     }
     if (this.mode === 'generator' && this.generatorReadyAt !== null) {
-      const countdown = this.text(300, y + 26, this.liveLabel('generator-countdown'), 13, C.gold, true).setOrigin(0.5, 0.5).setName('generator-countdown');
+      const countdown = this.text(x, y + 26, this.liveLabel('generator-countdown'), 13, C.gold, true).setOrigin(0.5, 0.5).setName('generator-countdown');
       this.liveTexts.push(countdown);
     }
   }
