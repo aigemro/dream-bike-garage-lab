@@ -23,6 +23,9 @@ import doc21 from '../docs/variants/supply-generator.md?raw';
 import doc22 from '../docs/variants/reward-fixed-salary.md?raw';
 import doc23 from '../docs/variants/reward-performance-bonus.md?raw';
 import doc24 from '../docs/variants/reward-soft-timer.md?raw';
+import doc25 from '../docs/variants/play-screen-top-order.md?raw';
+import doc26 from '../docs/variants/play-screen-bike-first.md?raw';
+import doc27 from '../docs/variants/play-screen-step-flow.md?raw';
 
 const variantDocs: Record<string, string> = {
   'merge-free-board': doc0,
@@ -50,6 +53,9 @@ const variantDocs: Record<string, string> = {
   'reward-fixed-salary': doc22,
   'reward-performance-bonus': doc23,
   'reward-soft-timer': doc24,
+  'play-screen-top-order': doc25,
+  'play-screen-bike-first': doc26,
+  'play-screen-step-flow': doc27,
 };
 
 export default variantDocs;

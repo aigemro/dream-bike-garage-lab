@@ -27,6 +27,7 @@ flowchart TB
     CORE --> COLLECTION["수집"]
     CORE --> ORDER["주문 · 조립"]
     CORE --> REWARD["보상 · 성장"]
+    CORE --> PLAY["기초 플레이 화면 구성"]
 
     PLATFORM --> INPUT["입력 방식"]
     PLATFORM --> RESPONSIVE["반응형 화면"]
@@ -90,6 +91,13 @@ mindmap
       향후 후보
         컬렉션 해금
         드림 바이크 성장 분기
+    기초 플레이 화면 구성
+      A 주문 상단 통합형
+        1차 데모 구현
+      B 자전거 우선형
+        1차 데모 구현
+      C 단계 전환형
+        1차 데모 구현
 ```
 
 ## 4. Platform & Technology 프로토타입
@@ -129,6 +137,7 @@ mindmap
 
 | 분류 | 트랙 | Prototype / 작업 | 현재 상태 | 다음 확인 | 관련 항목 |
 |---|---|---|---|---|---|
+| Game Core | 기초 플레이 화면 구성 | A/B/C 통합 플레이 화면 | 개발 중 (1차 데모) | 동일 주문 완주 흐름에서 정보 배치·조립 성취감·단계 집중도 비교 | [#87](https://github.com/aigemro/dream-bike-garage-lab/issues/87), [#88](https://github.com/aigemro/dream-bike-garage-lab/issues/88), [#89](https://github.com/aigemro/dream-bike-garage-lab/issues/89), [#90](https://github.com/aigemro/dream-bike-garage-lab/issues/90) |
 | Game Core | 머지 코어 | A: 자유 보드 2-to-1 | 개발 중 | 웹브라우저 중심 레이아웃 PR 검토 및 플레이 테스트 | [#10](https://github.com/aigemro/dream-bike-garage-lab/issues/10), [PR #30](https://github.com/aigemro/dream-bike-garage-lab/pull/30), [PR #40](https://github.com/aigemro/dream-bike-garage-lab/pull/40) |
 | Game Core | 머지 코어 | B: 주문 목표 중심 2-to-1 | 검토 준비 | 주문 카드 시각화 후 A/C와 목표 이해도 비교 | [#13](https://github.com/aigemro/dream-bike-garage-lab/issues/13), [PR #31](https://github.com/aigemro/dream-bike-garage-lab/pull/31) |
 | Game Core | 머지 코어 | C: 자유 보드 + 주문 가이드 | 검토 준비 | 가이드 강도와 자유도의 균형 비교 | [#25](https://github.com/aigemro/dream-bike-garage-lab/issues/25), [PR #26](https://github.com/aigemro/dream-bike-garage-lab/pull/26) |
