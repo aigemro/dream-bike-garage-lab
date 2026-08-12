@@ -7,6 +7,7 @@ import { startSupplyPrototype, type SupplyPrototypeMode } from './supply-prototy
 import { startRewardPrototype, type RewardPrototypeMode } from './reward-prototype';
 import { startAssemblyPrototype, type AssemblyPrototypeMode } from './assembly-prototype';
 import { startHomePlayPrototype, type HomePlayPrototypeMode } from './home-play-prototype';
+import { startInputPrototype, type InputPrototypeMode } from './input-prototype';
 
 type Status = '체험 가능' | '준비 중';
 type Variant = {
@@ -23,6 +24,7 @@ type Variant = {
   rewardDemo?: RewardPrototypeMode;
   assemblyDemo?: AssemblyPrototypeMode;
   homePlayDemo?: HomePlayPrototypeMode;
+  inputDemo?: InputPrototypeMode;
   issueNumber: number;
   documentId: string;
 };
@@ -144,9 +146,9 @@ const tracks: Track[] = [
     title: '입력 방식',
     description: '화면 구성과 분리해 탭·드래그 조작을 어떤 규칙으로 처리할지 비교합니다.',
     variants: [
-      { id: 'tap-move', label: 'A안', title: '탭 선택·탭 이동', description: '부품과 목적지를 순서대로 탭해 이동하거나 머지합니다.', status: '준비 중', question: '작은 모바일 화면에서 가장 정확하고 이해하기 쉬운가?', controls: '부품을 탭한 뒤 목적지 칸을 다시 탭합니다.', issueNumber: 32, documentId: 'input-tap' },
-      { id: 'drag-drop', label: 'B안', title: '직접 드래그 앤 드롭', description: '부품을 직접 끌어 목적지에 놓아 이동하거나 머지합니다.', status: '준비 중', question: '직접 조작하는 손맛과 의도가 가장 잘 전달되는가?', controls: '부품을 누른 채 끌어서 목적지에 놓습니다.', issueNumber: 34, documentId: 'input-drag' },
-      { id: 'hybrid-input', label: 'C안', title: '탭·드래그 하이브리드', description: '탭과 드래그를 모두 허용하고 같은 명령으로 연결합니다.', status: '준비 중', question: '선택권을 늘리면서도 입력 규칙의 혼란을 피할 수 있는가?', controls: '짧게 탭하거나 일정 거리 이상 끌어 같은 부품 조작을 수행합니다.', issueNumber: 37, documentId: 'input-hybrid' },
+      { id: 'tap-move', label: 'A안', title: '탭 선택·탭 이동', description: '부품과 목적지를 순서대로 탭해 이동하거나 머지합니다.', status: '체험 가능', question: '작은 모바일 화면에서 가장 정확하고 이해하기 쉬운가?', controls: '부품을 탭한 뒤 목적지 칸을 다시 탭합니다.', inputDemo: 'tap', issueNumber: 32, documentId: 'input-tap' },
+      { id: 'drag-drop', label: 'B안', title: '직접 드래그 앤 드롭', description: '부품을 직접 끌어 목적지에 놓아 이동하거나 머지합니다.', status: '체험 가능', question: '직접 조작하는 손맛과 의도가 가장 잘 전달되는가?', controls: '부품을 누른 채 끌어서 목적지에 놓습니다. 보드 밖에 놓으면 원위치로 돌아옵니다.', inputDemo: 'drag', issueNumber: 34, documentId: 'input-drag' },
+      { id: 'hybrid-input', label: 'C안', title: '탭·드래그 하이브리드', description: '탭과 드래그를 모두 허용하고 같은 명령으로 연결합니다.', status: '체험 가능', question: '선택권을 늘리면서도 입력 규칙의 혼란을 피할 수 있는가?', controls: '짧게 탭하거나 12px 이상 끌어 같은 이동·머지 명령을 수행합니다.', inputDemo: 'hybrid', issueNumber: 37, documentId: 'input-hybrid' },
     ],
   },
   {
@@ -267,10 +269,10 @@ function renderVariant(track: Track, variant: Variant) {
 function renderDemo(track: Track, variant: Variant) {
   destroyGame();
   shell(`<main class="experiment-page demo-page">
-    ${variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${variant.homePlayDemo ? '390×810 · 동일 주문·메뉴·보드 데이터' : variant.assemblyDemo ? '동일 주문 · 동일 부품 4종' : variant.rewardDemo ? '동일 시작 급여 1,000 · 기본 보상 500' : variant.supplyDemo ? '동일 5×4 보드 · 목표 Lv.3 ×2' : variant.collectionDemo ? '동일 데이터 · 3,000코인' : variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div><button id="reset-demo">초기화</button></div><div id="game-root" class="demo-${variant.homePlayDemo ?? variant.assemblyDemo ?? variant.rewardDemo ?? variant.supplyDemo ?? variant.collectionDemo ?? variant.demo}"></div><p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
+    ${variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.inputDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${variant.inputDemo ? '동일 6×5 보드 · 동일 초기 부품 · 입력 규칙만 비교' : variant.homePlayDemo ? '390×810 · 동일 주문·메뉴·보드 데이터' : variant.assemblyDemo ? '동일 주문 · 동일 부품 4종' : variant.rewardDemo ? '동일 시작 급여 1,000 · 기본 보상 500' : variant.supplyDemo ? '동일 5×4 보드 · 목표 Lv.3 ×2' : variant.collectionDemo ? '동일 데이터 · 3,000코인' : variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div><button id="reset-demo">초기화</button></div><div id="game-root" class="demo-${variant.inputDemo ?? variant.homePlayDemo ?? variant.assemblyDemo ?? variant.rewardDemo ?? variant.supplyDemo ?? variant.collectionDemo ?? variant.demo}"></div><p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
   </main>`, { href: `#/track/${track.id}/${variant.id}`, label: `${variant.title} 상세` });
-  if (variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo) {
-    const start = () => { destroyGame(); game = variant.homePlayDemo ? startHomePlayPrototype('game-root', variant.homePlayDemo) : variant.assemblyDemo ? startAssemblyPrototype('game-root', variant.assemblyDemo) : variant.rewardDemo ? startRewardPrototype('game-root', variant.rewardDemo) : variant.supplyDemo ? startSupplyPrototype('game-root', variant.supplyDemo) : variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
+  if (variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.inputDemo) {
+    const start = () => { destroyGame(); game = variant.inputDemo ? startInputPrototype('game-root', variant.inputDemo) : variant.homePlayDemo ? startHomePlayPrototype('game-root', variant.homePlayDemo) : variant.assemblyDemo ? startAssemblyPrototype('game-root', variant.assemblyDemo) : variant.rewardDemo ? startRewardPrototype('game-root', variant.rewardDemo) : variant.supplyDemo ? startSupplyPrototype('game-root', variant.supplyDemo) : variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
     start();
     document.querySelector('#reset-demo')?.addEventListener('click', start);
   }
