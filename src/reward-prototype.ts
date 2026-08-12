@@ -139,7 +139,7 @@ class RewardScene extends Phaser.Scene {
         void box;
       });
     } else {
-      this.text(58, 255, '주문 난이도와 관계없이 동일한 급여를 지급합니다.', 14, C.muted);
+      this.text(58, 238, '주문 난이도와 관계없이 동일한 급여를 지급합니다.', 14, C.muted);
       this.panel(282, 302, 420, 70, true);
       this.text(82, 278, '예정 급여', 12, C.muted);
       this.text(82, 303, `+${BASE_REWARD} 코인`, 23, C.gold, true);
@@ -163,7 +163,7 @@ class RewardScene extends Phaser.Scene {
   }
 
   private renderGrowth() {
-    this.panel(730, 330, 356, 410);
+    this.panel(730, 355, 356, 460);
     this.text(574, 142, this.mode === 'fixed' ? '직선 성장 경로' : '성장 경로 선택', 17, C.text, true);
     this.text(574, 171, this.mode === 'fixed' ? '정해진 순서대로 해금합니다.' : '원하는 항목에 급여를 투자합니다.', 12, C.muted);
 
