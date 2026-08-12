@@ -6,6 +6,7 @@ import { startCollectionPrototype, type CollectionPrototypeMode } from './collec
 import { startSupplyPrototype, type SupplyPrototypeMode } from './supply-prototype';
 import { startRewardPrototype, type RewardPrototypeMode } from './reward-prototype';
 import { startAssemblyPrototype, type AssemblyPrototypeMode } from './assembly-prototype';
+import { startHomePlayPrototype, type HomePlayPrototypeMode } from './home-play-prototype';
 
 type Status = '체험 가능' | '준비 중';
 type Variant = {
@@ -21,6 +22,7 @@ type Variant = {
   supplyDemo?: SupplyPrototypeMode;
   rewardDemo?: RewardPrototypeMode;
   assemblyDemo?: AssemblyPrototypeMode;
+  homePlayDemo?: HomePlayPrototypeMode;
   issueNumber: number;
   documentId: string;
 };
@@ -33,6 +35,17 @@ type Track = {
 };
 
 const tracks: Track[] = [
+  {
+    id: 'main-home-play',
+    group: 'GAME CORE',
+    title: '메인 홈·플레이 화면',
+    description: '게임 접속 후 계속 머무는 메인 화면에서 플레이와 주요 기능을 어떤 우선순위로 보여줄지 비교합니다.',
+    variants: [
+      { id: 'play-focus', label: 'A안', title: '플레이 집중형', description: '회의 화이트보드 배치를 바탕으로 머지 보드를 가장 크게 유지합니다.', status: '체험 가능', question: '머지 보드를 우선한 구성이 첫 행동을 가장 명확하게 만드는가?', controls: '보드의 같은 레벨 부품을 차례로 눌러 머지하고, 가장자리 메뉴의 발견성을 확인합니다.', homePlayDemo: 'play-focus', issueNumber: 95, documentId: 'home-play-focus' },
+      { id: 'order-focus', label: 'B안', title: '주문·자전거 강조형', description: '현재 주문 자전거와 조립 진행률을 큰 상단 카드로 강조합니다.', status: '체험 가능', question: '주문과 자전거를 먼저 보여주면 목표 이해와 완성 기대감이 높아지는가?', controls: '상단 주문 카드와 보드 사이의 시선 흐름을 확인하고 같은 방식으로 부품을 머지합니다.', homePlayDemo: 'order-focus', issueNumber: 96, documentId: 'home-order-focus' },
+      { id: 'hub-focus', label: 'C안', title: '홈 허브 강조형', description: '이벤트·Tour·랭킹의 접근성을 높이면서 중앙 플레이 영역을 유지합니다.', status: '체험 가능', question: '홈 기능 진입성을 높여도 주문과 머지 플레이의 집중도가 유지되는가?', controls: '상단 허브 메뉴를 눌러 피드백을 확인하고 중앙 보드에서 같은 조건으로 머지합니다.', homePlayDemo: 'hub-focus', issueNumber: 97, documentId: 'home-hub-focus' },
+    ],
+  },
   {
     id: 'merge-core',
     group: 'GAME CORE',
@@ -253,10 +266,10 @@ function renderVariant(track: Track, variant: Variant) {
 function renderDemo(track: Track, variant: Variant) {
   destroyGame();
   shell(`<main class="experiment-page demo-page">
-    ${variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${variant.assemblyDemo ? '동일 주문 · 동일 부품 4종' : variant.rewardDemo ? '동일 시작 급여 1,000 · 기본 보상 500' : variant.supplyDemo ? '동일 5×4 보드 · 목표 Lv.3 ×2' : variant.collectionDemo ? '동일 데이터 · 3,000코인' : variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div><button id="reset-demo">초기화</button></div><div id="game-root" class="demo-${variant.assemblyDemo ?? variant.rewardDemo ?? variant.supplyDemo ?? variant.collectionDemo ?? variant.demo}"></div><p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
+    ${variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${variant.homePlayDemo ? '390×810 · 동일 주문·메뉴·보드 데이터' : variant.assemblyDemo ? '동일 주문 · 동일 부품 4종' : variant.rewardDemo ? '동일 시작 급여 1,000 · 기본 보상 500' : variant.supplyDemo ? '동일 5×4 보드 · 목표 Lv.3 ×2' : variant.collectionDemo ? '동일 데이터 · 3,000코인' : variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div><button id="reset-demo">초기화</button></div><div id="game-root" class="demo-${variant.homePlayDemo ?? variant.assemblyDemo ?? variant.rewardDemo ?? variant.supplyDemo ?? variant.collectionDemo ?? variant.demo}"></div><p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
   </main>`, { href: `#/track/${track.id}/${variant.id}`, label: `${variant.title} 상세` });
-  if (variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo) {
-    const start = () => { destroyGame(); game = variant.assemblyDemo ? startAssemblyPrototype('game-root', variant.assemblyDemo) : variant.rewardDemo ? startRewardPrototype('game-root', variant.rewardDemo) : variant.supplyDemo ? startSupplyPrototype('game-root', variant.supplyDemo) : variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
+  if (variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo) {
+    const start = () => { destroyGame(); game = variant.homePlayDemo ? startHomePlayPrototype('game-root', variant.homePlayDemo) : variant.assemblyDemo ? startAssemblyPrototype('game-root', variant.assemblyDemo) : variant.rewardDemo ? startRewardPrototype('game-root', variant.rewardDemo) : variant.supplyDemo ? startSupplyPrototype('game-root', variant.supplyDemo) : variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
     start();
     document.querySelector('#reset-demo')?.addEventListener('click', start);
   }
