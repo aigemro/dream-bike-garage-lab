@@ -8,6 +8,7 @@ import { startRewardPrototype, type RewardPrototypeMode } from './reward-prototy
 import { startAssemblyPrototype, type AssemblyPrototypeMode } from './assembly-prototype';
 import { startHomePlayPrototype, type HomePlayPrototypeMode } from './home-play-prototype';
 import { startInputPrototype, type InputPrototypeMode } from './input-prototype';
+import { startStoragePrototype, type StoragePrototypeMode } from './storage-prototype';
 
 type Status = '체험 가능' | '준비 중';
 type Variant = {
@@ -25,6 +26,7 @@ type Variant = {
   assemblyDemo?: AssemblyPrototypeMode;
   homePlayDemo?: HomePlayPrototypeMode;
   inputDemo?: InputPrototypeMode;
+  storageDemo?: StoragePrototypeMode;
   issueNumber: number;
   documentId: string;
 };
@@ -169,8 +171,8 @@ const tracks: Track[] = [
     title: '진행 상태 저장',
     description: '보드와 재화를 유지하는 저장 방식을 단계적으로 비교합니다.',
     variants: [
-      { id: 'local-storage', label: 'A안', title: 'localStorage', description: '가장 단순한 브라우저 저장 방식입니다.', status: '준비 중', question: 'MVP 진행 상태를 충분히 안정적으로 보존하는가?', controls: '플레이 후 새로고침하고 상태를 비교합니다.', issueNumber: 3, documentId: 'storage-local' },
-      { id: 'indexed-db', label: 'B안', title: 'IndexedDB', description: '더 큰 구조화 데이터를 브라우저에 저장합니다.', status: '준비 중', question: '복잡한 상태와 버전 변경을 관리하기 쉬운가?', controls: '여러 저장 슬롯과 데이터 변경을 검증합니다.', issueNumber: 3, documentId: 'storage-indexed-db' },
+      { id: 'local-storage', label: 'A안', title: 'localStorage', description: '가장 단순한 브라우저 저장 방식입니다.', status: '체험 가능', question: 'MVP 진행 상태를 충분히 안정적으로 보존하는가?', controls: '상태 변경 → 저장 → 새로고침 → 불러오기 순서로 단일 슬롯 복원을 확인합니다.', storageDemo: 'local', issueNumber: 3, documentId: 'storage-local' },
+      { id: 'indexed-db', label: 'B안', title: 'IndexedDB', description: '더 큰 구조화 데이터를 브라우저에 저장합니다.', status: '체험 가능', question: '복잡한 상태와 버전 변경을 관리하기 쉬운가?', controls: '슬롯별로 서로 다른 상태를 저장하고 새로고침 후 선택한 슬롯을 복원합니다.', storageDemo: 'indexed-db', issueNumber: 3, documentId: 'storage-indexed-db' },
     ],
   },
   {
@@ -270,10 +272,10 @@ function renderVariant(track: Track, variant: Variant) {
 function renderDemo(track: Track, variant: Variant) {
   destroyGame();
   shell(`<main class="experiment-page demo-page">
-    ${variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.inputDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${variant.inputDemo ? '동일 6×5 보드 · 동일 초기 부품 · 입력 규칙만 비교' : variant.homePlayDemo ? '390×810 · 동일 주문·메뉴·보드 데이터' : variant.assemblyDemo ? '동일 주문 · 동일 부품 4종' : variant.rewardDemo ? '동일 시작 급여 1,000 · 기본 보상 500' : variant.supplyDemo ? '동일 5×4 보드 · 목표 Lv.3 ×2' : variant.collectionDemo ? '동일 데이터 · 3,000코인' : variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div><button id="reset-demo">초기화</button></div><div id="game-root" class="demo-${variant.inputDemo ?? variant.homePlayDemo ?? variant.assemblyDemo ?? variant.rewardDemo ?? variant.supplyDemo ?? variant.collectionDemo ?? variant.demo}"></div><p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
+    ${variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.inputDemo || variant.storageDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${variant.storageDemo ? '동일 상태 · 보드·재화·주문' : variant.inputDemo ? '동일 6×5 보드 · 동일 초기 부품 · 입력 규칙만 비교' : variant.homePlayDemo ? '390×810 · 동일 주문·메뉴·보드 데이터' : variant.assemblyDemo ? '동일 주문 · 동일 부품 4종' : variant.rewardDemo ? '동일 시작 급여 1,000 · 기본 보상 500' : variant.supplyDemo ? '동일 5×4 보드 · 목표 Lv.3 ×2' : variant.collectionDemo ? '동일 데이터 · 3,000코인' : variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div><button id="reset-demo">초기화</button></div><div id="game-root" class="demo-${variant.storageDemo ?? variant.inputDemo ?? variant.homePlayDemo ?? variant.assemblyDemo ?? variant.rewardDemo ?? variant.supplyDemo ?? variant.collectionDemo ?? variant.demo}"></div><p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
   </main>`, { href: `#/track/${track.id}/${variant.id}`, label: `${variant.title} 상세` });
-  if (variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.inputDemo) {
-    const start = () => { destroyGame(); game = variant.inputDemo ? startInputPrototype('game-root', variant.inputDemo) : variant.homePlayDemo ? startHomePlayPrototype('game-root', variant.homePlayDemo) : variant.assemblyDemo ? startAssemblyPrototype('game-root', variant.assemblyDemo) : variant.rewardDemo ? startRewardPrototype('game-root', variant.rewardDemo) : variant.supplyDemo ? startSupplyPrototype('game-root', variant.supplyDemo) : variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
+  if (variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.inputDemo || variant.storageDemo) {
+    const start = () => { destroyGame(); if (variant.storageDemo) { startStoragePrototype('game-root', variant.storageDemo); return; } game = variant.inputDemo ? startInputPrototype('game-root', variant.inputDemo) : variant.homePlayDemo ? startHomePlayPrototype('game-root', variant.homePlayDemo) : variant.assemblyDemo ? startAssemblyPrototype('game-root', variant.assemblyDemo) : variant.rewardDemo ? startRewardPrototype('game-root', variant.rewardDemo) : variant.supplyDemo ? startSupplyPrototype('game-root', variant.supplyDemo) : variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
     start();
     document.querySelector('#reset-demo')?.addEventListener('click', start);
   }
