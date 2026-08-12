@@ -32,7 +32,8 @@ class HomePlayScene extends Phaser.Scene {
     const box = this.add.rectangle(x, y, width, height, active ? 0x153d4a : C.panel2)
       .setStrokeStyle(active ? 2 : 1, active ? 0x55d6be : C.line)
       .setInteractive({ useHandCursor: true }).on('pointerdown', onClick);
-    const caption = this.text(x, y, label, 11, active ? C.accent : C.text, true).setOrigin(.5);
+    const caption = this.text(x, y, label, 11, active ? C.accent : C.text, true)
+      .setAlign('center').setLineSpacing(2).setOrigin(.5);
     caption.setInteractive({ useHandCursor: true }).on('pointerdown', onClick);
     return box;
   }
@@ -177,11 +178,11 @@ class HomePlayScene extends Phaser.Scene {
   }
 
   private renderBottomNavigation() {
-    this.panel(195, 749, 366, 86, true);
-    this.button(77, 741, 102, 54, '알바생\n직급', () => this.notify('직급'));
-    this.button(195, 741, 120, 54, 'STATUS\nLv.12', () => this.notify('Status'), true);
-    this.button(313, 741, 102, 54, '♥\n수집', () => this.notify('수집'));
-    this.text(195, 792, 'DREAM BIKE GARAGE · MAIN HOME', 8, C.muted, true).setOrigin(.5);
+    this.panel(195, 744, 366, 76, true);
+    this.button(77, 741, 102, 50, '알바생\n직급', () => this.notify('직급'));
+    this.button(195, 741, 120, 50, 'STATUS\nLv.12', () => this.notify('Status'), true);
+    this.button(313, 741, 102, 50, '♥\n수집', () => this.notify('수집'));
+    this.text(195, 795, 'DREAM BIKE GARAGE · MAIN HOME', 8, C.muted, true).setOrigin(.5);
   }
 
   private drawBike(x: number, y: number, scale: number) {
