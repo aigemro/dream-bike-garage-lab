@@ -6,7 +6,6 @@ import { startCollectionPrototype, type CollectionPrototypeMode } from './collec
 import { startSupplyPrototype, type SupplyPrototypeMode } from './supply-prototype';
 import { startRewardPrototype, type RewardPrototypeMode } from './reward-prototype';
 import { startAssemblyPrototype, type AssemblyPrototypeMode } from './assembly-prototype';
-import { startPlayScreenPrototype, type PlayScreenPrototypeMode } from './play-screen-prototype';
 
 type Status = '체험 가능' | '준비 중';
 type Variant = {
@@ -22,7 +21,6 @@ type Variant = {
   supplyDemo?: SupplyPrototypeMode;
   rewardDemo?: RewardPrototypeMode;
   assemblyDemo?: AssemblyPrototypeMode;
-  playScreenDemo?: PlayScreenPrototypeMode;
   issueNumber: number;
   documentId: string;
 };
@@ -35,17 +33,6 @@ type Track = {
 };
 
 const tracks: Track[] = [
-  {
-    id: 'basic-play-screen',
-    group: 'GAME CORE',
-    title: '기초 플레이 화면 구성',
-    description: '주문·부품 수급·머지·조립·납품을 한 화면 흐름으로 연결하고 정보 배치를 비교합니다.',
-    variants: [
-      { id: 'top-order', label: 'A안', title: '주문 상단 통합형', description: '상단에서 주문 목표를 고정하고 중앙에서 부품 제작과 조립 상태를 함께 확인합니다.', status: '체험 가능', question: '주문 목표를 놓치지 않으면서 제작과 조립을 한눈에 이해할 수 있는가?', controls: '부품 주문 버튼으로 Lv.1 부품을 받고 자동 머지해 목표 레벨을 만듭니다. 조립 후 납품하면 다음 주문으로 전환됩니다.', playScreenDemo: 'top-order', issueNumber: 88, documentId: 'play-screen-top-order' },
-      { id: 'bike-first', label: 'B안', title: '자전거 우선형', description: '주문 자전거를 상단에 크게 보여주고 하단에서 주문 정보와 부품 제작을 진행합니다.', status: '체험 가능', question: '자전거의 완성 과정이 더 잘 보여 조립 성취감을 높이는가?', controls: '상단 자전거의 부품별 완성 상태를 보면서 하단 부품몰에서 필요한 부품을 제작하고 납품합니다.', playScreenDemo: 'bike-first', issueNumber: 89, documentId: 'play-screen-bike-first' },
-      { id: 'step-flow', label: 'C안', title: '단계 전환형', description: '주문 확인·부품 제작·조립과 납품을 단계별 화면으로 나누어 집중도를 비교합니다.', status: '체험 가능', question: '한 번에 보여주는 정보를 줄이면 현재 행동과 다음 단계가 더 명확해지는가?', controls: '상단 단계 버튼을 따라 주문 확인 → 부품 제작 → 조립·납품 순서로 한 건을 완주합니다.', playScreenDemo: 'step-flow', issueNumber: 90, documentId: 'play-screen-step-flow' },
-    ],
-  },
   {
     id: 'merge-core',
     group: 'GAME CORE',
@@ -266,10 +253,10 @@ function renderVariant(track: Track, variant: Variant) {
 function renderDemo(track: Track, variant: Variant) {
   destroyGame();
   shell(`<main class="experiment-page demo-page">
-    ${variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.playScreenDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${variant.playScreenDemo ? '동일 주문 · 동일 부품 · 동일 완주 조건' : variant.assemblyDemo ? '동일 주문 · 동일 부품 4종' : variant.rewardDemo ? '동일 시작 급여 1,000 · 기본 보상 500' : variant.supplyDemo ? '동일 5×4 보드 · 목표 Lv.3 ×2' : variant.collectionDemo ? '동일 데이터 · 3,000코인' : variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div><button id="reset-demo">초기화</button></div><div id="game-root" class="demo-${variant.playScreenDemo ?? variant.assemblyDemo ?? variant.rewardDemo ?? variant.supplyDemo ?? variant.collectionDemo ?? variant.demo}"></div><p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
+    ${variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${variant.assemblyDemo ? '동일 주문 · 동일 부품 4종' : variant.rewardDemo ? '동일 시작 급여 1,000 · 기본 보상 500' : variant.supplyDemo ? '동일 5×4 보드 · 목표 Lv.3 ×2' : variant.collectionDemo ? '동일 데이터 · 3,000코인' : variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div><button id="reset-demo">초기화</button></div><div id="game-root" class="demo-${variant.assemblyDemo ?? variant.rewardDemo ?? variant.supplyDemo ?? variant.collectionDemo ?? variant.demo}"></div><p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
   </main>`, { href: `#/track/${track.id}/${variant.id}`, label: `${variant.title} 상세` });
-  if (variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.playScreenDemo) {
-    const start = () => { destroyGame(); game = variant.playScreenDemo ? startPlayScreenPrototype('game-root', variant.playScreenDemo) : variant.assemblyDemo ? startAssemblyPrototype('game-root', variant.assemblyDemo) : variant.rewardDemo ? startRewardPrototype('game-root', variant.rewardDemo) : variant.supplyDemo ? startSupplyPrototype('game-root', variant.supplyDemo) : variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
+  if (variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo) {
+    const start = () => { destroyGame(); game = variant.assemblyDemo ? startAssemblyPrototype('game-root', variant.assemblyDemo) : variant.rewardDemo ? startRewardPrototype('game-root', variant.rewardDemo) : variant.supplyDemo ? startSupplyPrototype('game-root', variant.supplyDemo) : variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
     start();
     document.querySelector('#reset-demo')?.addEventListener('click', start);
   }
