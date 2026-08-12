@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 
-export type HomePlayPrototypeMode = 'play-focus' | 'order-focus' | 'hub-focus';
+export type HomePlayPrototypeMode = 'play-focus' | 'order-focus' | 'hub-focus' | 'garage-lobby';
 
 const C = {
   bg: 0x07111f, panel: 0x0d1d2f, panel2: 0x11263b, line: 0x294158,
@@ -11,6 +11,7 @@ class HomePlayScene extends Phaser.Scene {
   private mode: HomePlayPrototypeMode;
   private selectedCell = -1;
   private message = '머지할 부품을 선택하세요.';
+  private garagePlaying = false;
   private board = [1, 1, 2, 0, 3, 0, 2, 0, 1, 0, 0, 3, 0, 2, 0, 1, 0, 0, 2, 0];
 
   constructor(mode: HomePlayPrototypeMode) {
@@ -44,6 +45,10 @@ class HomePlayScene extends Phaser.Scene {
     this.children.removeAll();
     this.add.rectangle(195, 405, 390, 810, C.bg);
     this.renderResourceBar();
+    if (this.mode === 'garage-lobby') {
+      this.garagePlaying ? this.renderGaragePlay() : this.renderGarageLobby();
+      return;
+    }
     if (this.mode === 'play-focus') this.renderPlayFocus();
     if (this.mode === 'order-focus') this.renderOrderFocus();
     if (this.mode === 'hub-focus') this.renderHubFocus();
@@ -87,6 +92,62 @@ class HomePlayScene extends Phaser.Scene {
     this.renderCompactOrder(18, 166, 354, 94);
     this.renderBoard(57, 280, 276, 292, 5, 4);
     this.renderMessage(18, 586, 354);
+  }
+
+  private renderGarageLobby() {
+    this.text(18, 76, 'D · GARAGE LOBBY', 10, C.accent, true);
+    this.button(55, 112, 74, 44, 'EVENT\n3', () => this.notify('이벤트'));
+    this.button(139, 112, 74, 44, 'TOUR\nDAY 2', () => this.notify('Tour'));
+    this.button(223, 112, 74, 44, 'RANK\n#18', () => this.notify('리더 순위'));
+    this.button(324, 112, 86, 44, 'SHOP', () => this.notify('상점'));
+
+    this.panel(195, 320, 354, 350, true);
+    this.text(34, 160, 'MY GARAGE', 10, C.accent, true);
+    this.text(34, 183, '나의 드림 바이크', 21, C.text, true);
+    this.text(34, 213, 'AERO ROAD · RARE', 10, C.gold, true);
+    this.add.rectangle(195, 330, 322, 204, 0x0a1726).setStrokeStyle(1, 0x294158);
+    this.add.ellipse(195, 410, 260, 32, 0x173047, .8);
+    this.drawBike(195, 315, 1.05);
+    this.text(195, 460, '대표 자전거를 눌러 전시 자전거 변경', 10, C.muted).setOrigin(.5);
+
+    this.panel(100, 557, 164, 92);
+    this.text(34, 526, 'BIKE COLLECTION', 9, C.muted, true);
+    this.text(34, 548, '8 / 24', 20, C.text, true);
+    this.add.rectangle(34, 582, 132, 7, 0x1b3447).setOrigin(0, .5);
+    this.add.rectangle(34, 582, 44, 7, 0x55d6be).setOrigin(0, .5);
+
+    this.panel(290, 557, 164, 92);
+    this.text(224, 526, 'NEXT UNLOCK', 9, C.muted, true);
+    this.text(224, 548, 'MTB TRAIL', 14, C.text, true);
+    this.text(224, 572, '주문 2건 남음', 10, C.gold, true);
+
+    this.panel(195, 744, 366, 76, true);
+    this.button(67, 741, 82, 50, 'GARAGE', () => this.notify('Garage'), true);
+    this.button(195, 741, 152, 56, '▶  PLAY', () => { this.garagePlaying = true; this.message = '머지 플레이 화면으로 이동했습니다.'; this.render(); }, true);
+    this.button(323, 741, 82, 50, '수집\n8/24', () => this.notify('자전거 수집'));
+    this.text(195, 795, 'GARAGE LOBBY · COLLECTION HUB', 8, C.muted, true).setOrigin(.5);
+  }
+
+  private renderGaragePlay() {
+    this.text(18, 76, 'D · MERGE PLAY', 10, C.accent, true);
+    this.button(54, 112, 72, 42, '← HOME', () => { this.garagePlaying = false; this.message = 'Garage 로비로 돌아왔습니다.'; this.render(); });
+    this.panel(230, 112, 266, 42, true);
+    this.text(112, 100, 'ORDER #01 · 에어로 로드', 11, C.text, true);
+    this.text(112, 118, '조립 진행 2 / 4', 10, C.gold, true);
+    this.renderBoard(35, 150, 320, 438, 5, 4);
+    this.renderMessage(18, 602, 354);
+    this.panel(195, 710, 354, 92, true);
+    this.text(34, 682, 'PLAY MODE', 9, C.accent, true);
+    this.text(34, 704, '같은 레벨 부품을 차례로 눌러 머지', 11, C.text, true);
+    this.button(300, 710, 112, 48, '부품 생성', () => this.addGaragePart());
+    this.text(195, 782, 'PLAY 종료 후 HOME으로 Garage에 복귀', 8, C.muted, true).setOrigin(.5);
+  }
+
+  private addGaragePart() {
+    const empty = this.board.findIndex((level) => level === 0);
+    this.message = empty < 0 ? '보드가 가득 찼습니다.' : 'Lv.1 부품을 보드에 추가했습니다.';
+    if (empty >= 0) this.board[empty] = 1;
+    this.render();
   }
 
   private renderOrderSlots(x: number, y: number, width: number, height: number) {

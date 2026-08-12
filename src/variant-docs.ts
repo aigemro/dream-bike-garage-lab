@@ -26,6 +26,7 @@ import doc24 from '../docs/variants/reward-soft-timer.md?raw';
 import doc25 from '../docs/variants/home-play-focus.md?raw';
 import doc26 from '../docs/variants/home-order-focus.md?raw';
 import doc27 from '../docs/variants/home-hub-focus.md?raw';
+import doc28 from '../docs/variants/home-garage-lobby.md?raw';
 
 const variantDocs: Record<string, string> = {
   'merge-free-board': doc0,
@@ -56,6 +57,7 @@ const variantDocs: Record<string, string> = {
   'home-play-focus': doc25,
   'home-order-focus': doc26,
   'home-hub-focus': doc27,
+  'home-garage-lobby': doc28,
 };
 
 export default variantDocs;
