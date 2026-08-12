@@ -45,6 +45,7 @@ const tracks: Track[] = [
       { id: 'order-focus', label: 'B안', title: '주문·자전거 강조형', description: '현재 주문 자전거와 조립 진행률을 큰 상단 카드로 강조합니다.', status: '체험 가능', question: '주문과 자전거를 먼저 보여주면 목표 이해와 완성 기대감이 높아지는가?', controls: '상단 주문 카드와 보드 사이의 시선 흐름을 확인하고 같은 방식으로 부품을 머지합니다.', homePlayDemo: 'order-focus', issueNumber: 96, documentId: 'home-order-focus' },
       { id: 'hub-focus', label: 'C안', title: '홈 허브 강조형', description: '이벤트·Tour·랭킹의 접근성을 높이면서 중앙 플레이 영역을 유지합니다.', status: '체험 가능', question: '홈 기능 진입성을 높여도 주문과 머지 플레이의 집중도가 유지되는가?', controls: '상단 허브 메뉴를 눌러 피드백을 확인하고 중앙 보드에서 같은 조건으로 머지합니다.', homePlayDemo: 'hub-focus', issueNumber: 97, documentId: 'home-hub-focus' },
       { id: 'garage-lobby', label: 'D안', title: 'Garage 로비·플레이 분리형', description: '중앙 Garage에서 자전거 수집 현황을 확인하고 PLAY로 별도 머지 화면에 진입합니다.', status: '체험 가능', question: '자전거 수집 중심의 로비와 게임 화면을 분리하면 장기 동기와 플레이 집중도가 함께 좋아지는가?', controls: 'Garage의 수집 현황을 확인한 뒤 PLAY로 머지 화면에 진입하고 HOME으로 돌아옵니다.', homePlayDemo: 'garage-lobby', issueNumber: 100, documentId: 'home-garage-lobby' },
+      { id: 'garage-agreement', label: 'E안', title: '회의안 기반 Garage 홈', description: '회의 배치대로 중앙에 자전거 수집 Garage를 두고 하단 PLAY로 별도 게임 화면에 진입합니다.', status: '체험 가능', question: '회의에서 합의한 정보 배치와 최근 수집형 로비 패턴을 결합하면 소유감과 다음 행동이 모두 명확한가?', controls: '상단 주문과 좌우 메뉴, 중앙 수집 현황을 확인한 뒤 PLAY로 현재 주문에 진입하고 HOME으로 돌아옵니다.', homePlayDemo: 'garage-agreement', issueNumber: 102, documentId: 'home-garage-agreement' },
     ],
   },
   {
