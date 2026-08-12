@@ -28,6 +28,10 @@ flowchart TB
     CORE --> ORDER["주문 · 조립"]
     CORE --> REWARD["보상 · 성장"]
     CORE --> HOME["메인 홈 · 플레이 화면"]
+    CORE --> LEVEL["레벨 디자인 · 해금"]
+    CORE --> CAREER["직급 · 커리어"]
+    CORE --> ECONOMY["난이도 · 경제"]
+    CORE --> FEEDBACK["피드백 · 연출"]
 
     PLATFORM --> INPUT["입력 방식"]
     PLATFORM --> RESPONSIVE["반응형 화면"]
@@ -102,6 +106,22 @@ mindmap
         1차 데모 구현
       E 회의안 기반 Garage 홈
         1차 데모 구현
+    레벨 디자인 · 해금
+      A 레벨 선형 해금
+      B 주문 챕터 해금
+      C 직급 · Garage 결합 해금
+    직급 · 커리어
+      A 레벨 자동 승진
+      B 승진 과제
+      C 성과 · 수집 복합 승진
+    난이도 · 경제
+      A 고정 곡선
+      B 성과 보너스
+      C 주문 선택
+    피드백 · 연출
+      A 빠른 캐주얼
+      B 기계적 조립감
+      C 완성 · 보상 강조
 ```
 
 ## 4. Platform & Technology 프로토타입
@@ -155,6 +175,10 @@ mindmap
 | Game Core | 보상·성장 | A/B | 준비 (허브 등록) | 고정 급여와 성과 보너스의 반복 동기 비교 데모 구현 | [#20](https://github.com/aigemro/dream-bike-garage-lab/issues/20), [#21](https://github.com/aigemro/dream-bike-garage-lab/issues/21) |
 | Game Core | 보상·성장 | C: 소프트 타이머·시간 vs 품질 | 준비 (허브 등록) | 시간 보너스 vs 품질 보너스 선택의 재미 검증 (차별화 지점) 데모 구현 | [#75](https://github.com/aigemro/dream-bike-garage-lab/issues/75) |
 | Game Core | 메인 홈·플레이 화면 | A/B/C/D/E | 검토 준비 | 통합형 3안, 일반 Garage D안, 회의 배치 기반 Garage E안 비교 | [#87](https://github.com/aigemro/dream-bike-garage-lab/issues/87), [#95](https://github.com/aigemro/dream-bike-garage-lab/issues/95), [#96](https://github.com/aigemro/dream-bike-garage-lab/issues/96), [#97](https://github.com/aigemro/dream-bike-garage-lab/issues/97), [#100](https://github.com/aigemro/dream-bike-garage-lab/issues/100), [#102](https://github.com/aigemro/dream-bike-garage-lab/issues/102) |
+| Game Core | 레벨 디자인·해금 | A/B/C | 개발 중 | 초반 10레벨 공개 순서와 진행 속도 비교 | [#106](https://github.com/aigemro/dream-bike-garage-lab/issues/106) |
+| Game Core | 직급·커리어 | A/B/C | 개발 중 | 자동·과제·복합 승진 조건 비교 | [#107](https://github.com/aigemro/dream-bike-garage-lab/issues/107) |
+| Game Core | 난이도·경제 | A/B/C | 개발 중 | 주문 시간·행동·수입·소비 측정 | [#108](https://github.com/aigemro/dream-bike-garage-lab/issues/108) |
+| Game Core | 피드백·연출 | A/B/C | 개발 중 | 동일 이벤트의 길이·강도·피로 비교 | [#109](https://github.com/aigemro/dream-bike-garage-lab/issues/109) |
 | Platform | 입력 방식 | A/B/C | 허브 반영 중 | 탭·드래그·하이브리드를 같은 보드에서 비교 | [#33](https://github.com/aigemro/dream-bike-garage-lab/issues/33), [PR #39](https://github.com/aigemro/dream-bike-garage-lab/pull/39) |
 | Platform | 반응형 화면 | A/B/C | 허브 반영 중 | 모바일·태블릿·웹브라우저 조건별 비교 | [#4](https://github.com/aigemro/dream-bike-garage-lab/issues/4), [PR #39](https://github.com/aigemro/dream-bike-garage-lab/pull/39) |
 | Platform | 저장·복구 | 방식 후보 | 준비 | MVP 저장 범위와 WebView 복구 조건 정의 | [#3](https://github.com/aigemro/dream-bike-garage-lab/issues/3), [#5](https://github.com/aigemro/dream-bike-garage-lab/issues/5) |

@@ -28,6 +28,18 @@ import doc26 from '../docs/variants/home-order-focus.md?raw';
 import doc27 from '../docs/variants/home-hub-focus.md?raw';
 import doc28 from '../docs/variants/home-garage-lobby.md?raw';
 import doc29 from '../docs/variants/home-garage-agreement.md?raw';
+import doc30 from '../docs/variants/level-linear.md?raw';
+import doc31 from '../docs/variants/level-chapter.md?raw';
+import doc32 from '../docs/variants/level-career.md?raw';
+import doc33 from '../docs/variants/career-auto.md?raw';
+import doc34 from '../docs/variants/career-mission.md?raw';
+import doc35 from '../docs/variants/career-collection.md?raw';
+import doc36 from '../docs/variants/economy-fixed.md?raw';
+import doc37 from '../docs/variants/economy-performance.md?raw';
+import doc38 from '../docs/variants/economy-choice.md?raw';
+import doc39 from '../docs/variants/feedback-casual.md?raw';
+import doc40 from '../docs/variants/feedback-mechanical.md?raw';
+import doc41 from '../docs/variants/feedback-reward.md?raw';
 
 const variantDocs: Record<string, string> = {
   'merge-free-board': doc0,
@@ -60,6 +72,18 @@ const variantDocs: Record<string, string> = {
   'home-hub-focus': doc27,
   'home-garage-lobby': doc28,
   'home-garage-agreement': doc29,
+  'level-linear': doc30,
+  'level-chapter': doc31,
+  'level-career': doc32,
+  'career-auto': doc33,
+  'career-mission': doc34,
+  'career-collection': doc35,
+  'economy-fixed': doc36,
+  'economy-performance': doc37,
+  'economy-choice': doc38,
+  'feedback-casual': doc39,
+  'feedback-mechanical': doc40,
+  'feedback-reward': doc41,
 };
 
 export default variantDocs;
