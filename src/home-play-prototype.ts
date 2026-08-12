@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 
-export type HomePlayPrototypeMode = 'play-focus' | 'order-focus' | 'hub-focus' | 'garage-lobby';
+export type HomePlayPrototypeMode = 'play-focus' | 'order-focus' | 'hub-focus' | 'garage-lobby' | 'garage-agreement';
 
 const C = {
   bg: 0x07111f, panel: 0x0d1d2f, panel2: 0x11263b, line: 0x294158,
@@ -45,8 +45,10 @@ class HomePlayScene extends Phaser.Scene {
     this.children.removeAll();
     this.add.rectangle(195, 405, 390, 810, C.bg);
     this.renderResourceBar();
-    if (this.mode === 'garage-lobby') {
-      this.garagePlaying ? this.renderGaragePlay() : this.renderGarageLobby();
+    if (this.mode === 'garage-lobby' || this.mode === 'garage-agreement') {
+      this.garagePlaying
+        ? this.renderGaragePlay()
+        : this.mode === 'garage-agreement' ? this.renderGarageAgreement() : this.renderGarageLobby();
       return;
     }
     if (this.mode === 'play-focus') this.renderPlayFocus();
@@ -94,6 +96,52 @@ class HomePlayScene extends Phaser.Scene {
     this.renderMessage(18, 586, 354);
   }
 
+
+  private renderGarageAgreement() {
+    this.text(18, 76, 'E · AGREED GARAGE HOME', 10, C.accent, true);
+
+    this.panel(195, 119, 238, 62, true);
+    this.text(88, 100, 'CURRENT ORDERS', 8, C.muted, true);
+    ['ROAD', 'MTB', '+2'].forEach((label, index) => {
+      this.button(118 + index * 77, 128, 66, 30, label, () => this.notify(index === 0 ? '현재 주문' : '대기 주문'), index === 0);
+    });
+
+    this.button(37, 205, 54, 48, 'EVENT\n3', () => this.notify('이벤트'));
+    this.button(37, 263, 54, 48, 'RANK\n#18', () => this.notify('리더 순위'));
+    this.button(353, 205, 54, 48, 'TOUR\nD2', () => this.notify('Tour'));
+    this.button(353, 263, 54, 48, '조립\n2/4', () => this.notify('조립·성장'));
+    this.button(353, 321, 54, 48, 'STATUS\nLv.12', () => this.notify('Status'));
+
+    this.panel(195, 385, 292, 446, true);
+    this.text(67, 176, 'MY GARAGE', 9, C.accent, true);
+    this.text(67, 197, '오늘의 대표 자전거', 18, C.text, true);
+    this.text(67, 222, 'AERO ROAD · RARE', 9, C.gold, true);
+
+    this.add.rectangle(195, 354, 260, 212, 0x0a1726).setStrokeStyle(1, 0x294158);
+    this.add.ellipse(195, 425, 224, 28, 0x173047, .85);
+    this.drawBike(195, 340, .88);
+    this.text(195, 454, '대표 자전거를 눌러 Garage 상세 보기', 9, C.muted).setOrigin(.5);
+
+    this.text(67, 489, 'COLLECTION', 8, C.muted, true);
+    this.text(67, 509, '8 / 24', 18, C.text, true);
+    this.text(186, 489, 'NEXT GOAL', 8, C.muted, true);
+    this.text(186, 509, 'MTB TRAIL', 13, C.text, true);
+    this.text(186, 530, '주문 2건 남음', 9, C.gold, true);
+    this.add.rectangle(67, 552, 256, 7, 0x1b3447).setOrigin(0, .5);
+    this.add.rectangle(67, 552, 86, 7, 0x55d6be).setOrigin(0, .5);
+    this.text(67, 570, '도감 33% · 다음 자전거까지 2 ORDERS', 9, C.muted);
+
+    this.panel(195, 744, 366, 76, true);
+    this.button(67, 741, 82, 50, '알바생\nPROFILE', () => this.notify('직급·프로필'));
+    this.button(195, 741, 152, 56, '▶  PLAY', () => {
+      this.garagePlaying = true;
+      this.message = '현재 주문의 머지 플레이 화면으로 이동했습니다.';
+      this.render();
+    }, true);
+    this.button(323, 741, 82, 50, '수집\n8/24', () => this.notify('자전거 수집'));
+    this.text(195, 795, 'GARAGE HOME · MEETING AGREEMENT', 8, C.muted, true).setOrigin(.5);
+  }
+
   private renderGarageLobby() {
     this.text(18, 76, 'D · GARAGE LOBBY', 10, C.accent, true);
     this.button(55, 112, 74, 44, 'EVENT\n3', () => this.notify('이벤트'));
@@ -129,7 +177,7 @@ class HomePlayScene extends Phaser.Scene {
   }
 
   private renderGaragePlay() {
-    this.text(18, 76, 'D · MERGE PLAY', 10, C.accent, true);
+    this.text(18, 76, this.mode === 'garage-agreement' ? 'E · MERGE PLAY' : 'D · MERGE PLAY', 10, C.accent, true);
     this.button(54, 112, 72, 42, '← HOME', () => { this.garagePlaying = false; this.message = 'Garage 로비로 돌아왔습니다.'; this.render(); });
     this.panel(230, 112, 266, 42, true);
     this.text(112, 100, 'ORDER #01 · 에어로 로드', 11, C.text, true);
