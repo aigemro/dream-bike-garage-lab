@@ -121,21 +121,21 @@ class RewardScene extends Phaser.Scene {
   }
 
   private renderOrder() {
-    this.panel(282, 330, 492, 410);
+    this.panel(282, 350, 492, 450);
     this.text(58, 142, 'CUSTOMER ORDER', 12, C.accent, true);
     this.text(58, 169, '에어로 로드 조립 주문', 22, C.text, true);
     this.text(58, 204, '프레임 · 휠셋 · 구동계 · 핸들바', 13, C.muted);
 
     if (this.mode !== 'fixed') {
-      this.text(58, 248, this.mode === 'performance' ? '납품 성과 선택' : '품질 단계 선택', 13, C.muted, true);
+      this.text(58, 236, this.mode === 'performance' ? '납품 성과 선택' : '품질 단계 선택', 13, C.muted, true);
       [1, 2, 3].forEach((quality, index) => {
         const x = 116 + index * 128;
         const active = this.selectedQuality === quality;
-        const box = this.add.rectangle(x, 294, 112, 62, active ? C.panelActive : 0x0e2136)
+        const box = this.add.rectangle(x, 286, 112, 62, active ? C.panelActive : 0x0e2136)
           .setStrokeStyle(active ? 2 : 1, active ? 0x55d6be : C.line)
           .setInteractive({ useHandCursor: true }).on('pointerdown', () => { this.selectedQuality = quality; this.render(); });
-        this.text(x, 281, `품질 Lv.${quality}`, 13, active ? C.accent : C.text, true).setOrigin(.5);
-        this.text(x, 304, quality === 1 ? '기본' : quality === 2 ? '우수' : '최상', 11, C.muted).setOrigin(.5);
+        this.text(x, 273, `품질 Lv.${quality}`, 13, active ? C.accent : C.text, true).setOrigin(.5);
+        this.text(x, 296, quality === 1 ? '기본' : quality === 2 ? '우수' : '최상', 11, C.muted).setOrigin(.5);
         void box;
       });
     } else {
@@ -146,19 +146,19 @@ class RewardScene extends Phaser.Scene {
     }
 
     if (this.mode === 'soft-timer') {
-      this.timerText = this.text(58, 345, `권장 시간  ${this.remainingSeconds().toFixed(1)}초`, 18, C.gold, true);
-      this.text(58, 376, '시간 내 납품 +300  ·  품질 Lv.2/3 +300/+600', 12, C.muted);
-      this.text(58, 399, '시간을 넘겨도 실패하지 않고 기본 급여를 받습니다.', 12, C.accent);
+      this.timerText = this.text(58, 331, `권장 시간  ${this.remainingSeconds().toFixed(1)}초`, 18, C.gold, true);
+      this.text(58, 360, '시간 내 납품 +300  ·  품질 Lv.2/3 +300/+600', 12, C.muted);
+      this.text(58, 382, '시간을 넘겨도 실패하지 않고 기본 급여를 받습니다.', 12, C.accent);
     } else if (this.mode === 'performance') {
-      this.text(58, 352, `예상 보상  기본 ${BASE_REWARD} + 성과 ${this.selectedQuality * 150}`, 15, C.gold, true);
-      this.text(58, 380, '높은 품질을 선택할수록 보너스가 증가합니다.', 12, C.muted);
+      this.text(58, 337, `예상 보상  기본 ${BASE_REWARD} + 성과 ${this.selectedQuality * 150}`, 15, C.gold, true);
+      this.text(58, 365, '높은 품질을 선택할수록 보너스가 증가합니다.', 12, C.muted);
     }
 
-    this.button(282, 448, 420, '주문 납품하기', () => this.deliver());
+    this.button(282, 446, 420, '주문 납품하기', () => this.deliver());
     if (this.lastReward.length) {
-      this.panel(282, 532, 420, 102, true);
-      this.text(82, 492, 'LAST REWARD', 11, C.accent, true);
-      this.text(82, 514, this.lastReward.join('  ·  '), 12, C.text, true).setWordWrapWidth(390);
+      this.panel(282, 532, 420, 94, true);
+      this.text(82, 496, 'LAST REWARD', 11, C.accent, true);
+      this.text(82, 518, this.lastReward.join('  ·  '), 12, C.text, true).setWordWrapWidth(390);
     }
   }
 
