@@ -138,8 +138,8 @@ mindmap
 | Game Core | 부품 수급 | C: 쿨다운·충전식 생성기형 | 개발 중 (1차 데모) | 장르 표준 생성기의 주문 단위 세션 부합 플레이 테스트 | [#73](https://github.com/aigemro/dream-bike-garage-lab/issues/73) |
 | Game Core | 수집 | A: 자전거 도감형 | 준비 | 최소 도감 화면과 획득 피드백 정의 | [#14](https://github.com/aigemro/dream-bike-garage-lab/issues/14) |
 | Game Core | 수집 | B: Garage 전시·성장형 | 준비 | 전시와 성장 중 핵심 소유감 검증 | [#12](https://github.com/aigemro/dream-bike-garage-lab/issues/12) |
-| Game Core | 주문·조립 | A: 조립 슬롯 직접 배치 | 준비 | 직접 배치의 조립감과 추가 피로 비교 | [#18](https://github.com/aigemro/dream-bike-garage-lab/issues/18) |
-| Game Core | 주문·조립 | B: 조건 충족 즉시 자동 조립 | 준비 | 캐주얼 템포와 조립 성취감 비교 | [#17](https://github.com/aigemro/dream-bike-garage-lab/issues/17) |
+| Game Core | 주문·조립 | A: 조건 충족 즉시 자동 조립 | 검토 준비 | 캐주얼 템포와 조립 성취감 비교 | [#17](https://github.com/aigemro/dream-bike-garage-lab/issues/17) |
+| Game Core | 주문·조립 | B: 조립 슬롯 직접 배치 | 검토 준비 | 직접 배치의 조립감과 추가 피로 비교 | [#18](https://github.com/aigemro/dream-bike-garage-lab/issues/18) |
 | Game Core | 보상·성장 | A/B | 준비 (허브 등록) | 고정 급여와 성과 보너스의 반복 동기 비교 데모 구현 | [#20](https://github.com/aigemro/dream-bike-garage-lab/issues/20), [#21](https://github.com/aigemro/dream-bike-garage-lab/issues/21) |
 | Game Core | 보상·성장 | C: 소프트 타이머·시간 vs 품질 | 준비 (허브 등록) | 시간 보너스 vs 품질 보너스 선택의 재미 검증 (차별화 지점) 데모 구현 | [#75](https://github.com/aigemro/dream-bike-garage-lab/issues/75) |
 | Platform | 입력 방식 | A/B/C | 허브 반영 중 | 탭·드래그·하이브리드를 같은 보드에서 비교 | [#33](https://github.com/aigemro/dream-bike-garage-lab/issues/33), [PR #39](https://github.com/aigemro/dream-bike-garage-lab/pull/39) |
