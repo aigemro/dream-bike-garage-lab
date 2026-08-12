@@ -112,24 +112,24 @@ class HomePlayScene extends Phaser.Scene {
     this.button(353, 263, 54, 48, '조립\n2/4', () => this.notify('조립·성장'));
     this.button(353, 321, 54, 48, 'STATUS\nLv.12', () => this.notify('Status'));
 
-    this.panel(195, 385, 292, 446, true);
-    this.text(67, 176, 'MY GARAGE', 9, C.accent, true);
-    this.text(67, 197, '오늘의 대표 자전거', 18, C.text, true);
-    this.text(67, 222, 'AERO ROAD · RARE', 9, C.gold, true);
+    this.panel(195, 385, 254, 446, true);
+    this.text(82, 176, 'MY GARAGE', 9, C.accent, true);
+    this.text(82, 197, '오늘의 대표 자전거', 18, C.text, true);
+    this.text(82, 222, 'AERO ROAD · RARE', 9, C.gold, true);
 
-    this.add.rectangle(195, 354, 260, 212, 0x0a1726).setStrokeStyle(1, 0x294158);
-    this.add.ellipse(195, 425, 224, 28, 0x173047, .85);
+    this.add.rectangle(195, 354, 226, 212, 0x0a1726).setStrokeStyle(1, 0x294158);
+    this.add.ellipse(195, 425, 204, 28, 0x173047, .85);
     this.drawBike(195, 340, .88);
     this.text(195, 454, '대표 자전거를 눌러 Garage 상세 보기', 9, C.muted).setOrigin(.5);
 
-    this.text(67, 489, 'COLLECTION', 8, C.muted, true);
-    this.text(67, 509, '8 / 24', 18, C.text, true);
+    this.text(82, 489, 'COLLECTION', 8, C.muted, true);
+    this.text(82, 509, '8 / 24', 18, C.text, true);
     this.text(186, 489, 'NEXT GOAL', 8, C.muted, true);
     this.text(186, 509, 'MTB TRAIL', 13, C.text, true);
     this.text(186, 530, '주문 2건 남음', 9, C.gold, true);
-    this.add.rectangle(67, 552, 256, 7, 0x1b3447).setOrigin(0, .5);
-    this.add.rectangle(67, 552, 86, 7, 0x55d6be).setOrigin(0, .5);
-    this.text(67, 570, '도감 33% · 다음 자전거까지 2 ORDERS', 9, C.muted);
+    this.add.rectangle(82, 552, 226, 7, 0x1b3447).setOrigin(0, .5);
+    this.add.rectangle(82, 552, 75, 7, 0x55d6be).setOrigin(0, .5);
+    this.text(82, 570, '도감 33% · 다음 자전거까지 2 ORDERS', 9, C.muted);
 
     this.panel(195, 744, 366, 76, true);
     this.button(67, 741, 82, 50, '알바생\nPROFILE', () => this.notify('직급·프로필'));
