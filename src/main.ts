@@ -5,6 +5,7 @@ import { startMergePrototype, type MergePrototypeMode } from './merge-prototype'
 import { startCollectionPrototype, type CollectionPrototypeMode } from './collection-prototype';
 import { startSupplyPrototype, type SupplyPrototypeMode } from './supply-prototype';
 import { startRewardPrototype, type RewardPrototypeMode } from './reward-prototype';
+import { startAssemblyPrototype, type AssemblyPrototypeMode } from './assembly-prototype';
 
 type Status = '체험 가능' | '준비 중';
 type Variant = {
@@ -19,6 +20,7 @@ type Variant = {
   collectionDemo?: CollectionPrototypeMode;
   supplyDemo?: SupplyPrototypeMode;
   rewardDemo?: RewardPrototypeMode;
+  assemblyDemo?: AssemblyPrototypeMode;
   issueNumber: number;
   documentId: string;
 };
@@ -118,8 +120,8 @@ const tracks: Track[] = [
     title: '주문과 조립',
     description: '머지한 부품이 고객 주문과 자전거 조립으로 이어지는 방식을 검증합니다.',
     variants: [
-      { id: 'parts-delivery', label: 'A안', title: '조건 충족 자동 조립', description: '요구 부품을 완성하면 즉시 자전거를 조립합니다.', status: '준비 중', question: '주문 목표를 가장 빠르게 이해할 수 있는가?', controls: '필요한 부품을 완성해 자동 조립 결과를 확인합니다.', issueNumber: 17, documentId: 'assembly-auto' },
-      { id: 'assembly-slots', label: 'B안', title: '슬롯 조립형', description: '프레임·휠·구동계 슬롯을 모두 채워 자전거를 완성합니다.', status: '준비 중', question: '자전거를 조립한다는 느낌이 충분히 전달되는가?', controls: '부품을 해당 조립 슬롯에 장착합니다.', issueNumber: 18, documentId: 'assembly-slots' },
+      { id: 'parts-delivery', label: 'A안', title: '조건 충족 자동 조립', description: '요구 부품을 완성하면 즉시 자전거를 조립합니다.', status: '체험 가능', question: '주문 목표를 가장 빠르게 이해할 수 있는가?', controls: '네 가지 필요 부품을 준비하면 별도 조작 없이 자전거가 자동으로 완성됩니다.', assemblyDemo: 'auto', issueNumber: 17, documentId: 'assembly-auto' },
+      { id: 'assembly-slots', label: 'B안', title: '슬롯 조립형', description: '프레임·휠·구동계 슬롯을 모두 채워 자전거를 완성합니다.', status: '체험 가능', question: '자전거를 조립한다는 느낌이 충분히 전달되는가?', controls: '부품을 준비한 뒤 작업대의 해당 슬롯을 눌러 하나씩 직접 장착합니다.', assemblyDemo: 'slots', issueNumber: 18, documentId: 'assembly-slots' },
     ],
   },
   {
@@ -251,10 +253,10 @@ function renderVariant(track: Track, variant: Variant) {
 function renderDemo(track: Track, variant: Variant) {
   destroyGame();
   shell(`<main class="experiment-page demo-page">
-    ${variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${variant.rewardDemo ? '동일 시작 급여 1,000 · 기본 보상 500' : variant.supplyDemo ? '동일 5×4 보드 · 목표 Lv.3 ×2' : variant.collectionDemo ? '동일 데이터 · 3,000코인' : variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div><button id="reset-demo">초기화</button></div><div id="game-root" class="demo-${variant.rewardDemo ?? variant.supplyDemo ?? variant.collectionDemo ?? variant.demo}"></div><p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
+    ${variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${variant.assemblyDemo ? '동일 주문 · 동일 부품 4종' : variant.rewardDemo ? '동일 시작 급여 1,000 · 기본 보상 500' : variant.supplyDemo ? '동일 5×4 보드 · 목표 Lv.3 ×2' : variant.collectionDemo ? '동일 데이터 · 3,000코인' : variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div><button id="reset-demo">초기화</button></div><div id="game-root" class="demo-${variant.assemblyDemo ?? variant.rewardDemo ?? variant.supplyDemo ?? variant.collectionDemo ?? variant.demo}"></div><p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
   </main>`, { href: `#/track/${track.id}/${variant.id}`, label: `${variant.title} 상세` });
-  if (variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo) {
-    const start = () => { destroyGame(); game = variant.rewardDemo ? startRewardPrototype('game-root', variant.rewardDemo) : variant.supplyDemo ? startSupplyPrototype('game-root', variant.supplyDemo) : variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
+  if (variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo) {
+    const start = () => { destroyGame(); game = variant.assemblyDemo ? startAssemblyPrototype('game-root', variant.assemblyDemo) : variant.rewardDemo ? startRewardPrototype('game-root', variant.rewardDemo) : variant.supplyDemo ? startSupplyPrototype('game-root', variant.supplyDemo) : variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
     start();
     document.querySelector('#reset-demo')?.addEventListener('click', start);
   }
