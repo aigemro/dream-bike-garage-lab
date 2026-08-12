@@ -8,6 +8,7 @@ import { startRewardPrototype, type RewardPrototypeMode } from './reward-prototy
 import { startAssemblyPrototype, type AssemblyPrototypeMode } from './assembly-prototype';
 import { startHomePlayPrototype, type HomePlayPrototypeMode } from './home-play-prototype';
 import { startInputPrototype, type InputPrototypeMode } from './input-prototype';
+import { startGameSystemPrototype, type GameSystemPrototypeMode } from './game-system-prototype';
 
 type Status = '체험 가능' | '준비 중';
 type Variant = {
@@ -25,6 +26,7 @@ type Variant = {
   assemblyDemo?: AssemblyPrototypeMode;
   homePlayDemo?: HomePlayPrototypeMode;
   inputDemo?: InputPrototypeMode;
+  systemDemo?: GameSystemPrototypeMode;
   issueNumber: number;
   documentId: string;
 };
@@ -37,6 +39,42 @@ type Track = {
 };
 
 const tracks: Track[] = [
+  {
+    id: 'level-design', group: 'GAME CORE', title: '레벨 디자인·콘텐츠 해금',
+    description: '초반 10레벨에서 규칙을 공개하는 순서와 큰 콘텐츠 해금 기준을 비교합니다.',
+    variants: [
+      { id: 'linear', label: 'A안', title: '레벨 선형 해금', description: '레벨마다 새 규칙과 콘텐츠를 한 단계씩 공개합니다.', status: '체험 가능', question: '가장 예측 가능하고 이해하기 쉬운 초반 진행인가?', controls: '현재 레벨 주문을 반복 완료하며 Lv.1~10 공개 순서와 성장 속도를 확인합니다.', systemDemo: 'level-linear', issueNumber: 106, documentId: 'level-linear' },
+      { id: 'chapter', label: 'B안', title: '주문 챕터 해금', description: '세 개의 주문을 하나의 챕터로 묶어 다음 콘텐츠를 공개합니다.', status: '체험 가능', question: '작은 목표 묶음이 진행 방향과 완주감을 더 잘 전달하는가?', controls: '주문을 완료해 챕터 단위 해금과 다음 목표의 가시성을 확인합니다.', systemDemo: 'level-chapter', issueNumber: 106, documentId: 'level-chapter' },
+      { id: 'career', label: 'C안', title: '직급·Garage 결합 해금', description: '레벨과 직급 구간을 함께 사용해 큰 기능을 공개합니다.', status: '체험 가능', question: '직급 게이트가 장기 성장 목표를 더 선명하게 만드는가?', controls: '레벨 진행과 직급 게이트가 콘텐츠 공개에 미치는 영향을 확인합니다.', systemDemo: 'level-career', issueNumber: 106, documentId: 'level-career' },
+    ],
+  },
+  {
+    id: 'career-rank', group: 'GAME CORE', title: '직급·커리어 성장',
+    description: '견습 알바에서 샵 오너까지 승진하는 조건과 기능 해금 체감을 비교합니다.',
+    variants: [
+      { id: 'auto', label: 'A안', title: '레벨 자동 승진', description: '기준 레벨에 도달하면 자동으로 다음 직급이 됩니다.', status: '체험 가능', question: '추가 조건 없는 승진이 캐주얼 성장에 가장 적합한가?', controls: '주문으로 경험치를 얻어 자동 승진 속도와 기능 해금을 확인합니다.', systemDemo: 'career-auto', issueNumber: 107, documentId: 'career-auto' },
+      { id: 'mission', label: 'B안', title: '승진 과제형', description: '레벨과 지정 주문을 모두 완료해야 승진합니다.', status: '체험 가능', question: '대표 과제가 승진의 성취감을 높이는가?', controls: '레벨과 승진 주문 조건을 채운 뒤 승진 판정을 실행합니다.', systemDemo: 'career-mission', issueNumber: 107, documentId: 'career-mission' },
+      { id: 'collection', label: 'C안', title: '성과·수집 복합형', description: '레벨·주문·자전거 수집을 함께 승진 조건으로 사용합니다.', status: '체험 가능', question: '복합 목표가 장기 동기를 높이면서도 과도하지 않은가?', controls: '주문과 수집 조건을 함께 달성해 승진 조건의 이해도와 부담을 비교합니다.', systemDemo: 'career-collection', issueNumber: 107, documentId: 'career-collection' },
+    ],
+  },
+  {
+    id: 'difficulty-economy', group: 'GAME CORE', title: '주문 난이도·게임 경제',
+    description: '주문 시간·행동 수·수입·소비를 같은 형식으로 측정해 성장 곡선을 비교합니다.',
+    variants: [
+      { id: 'fixed', label: 'A안', title: '고정 난이도·보상 곡선', description: '주문 순서에 따라 요구량과 보상이 예측 가능하게 증가합니다.', status: '체험 가능', question: '예측 가능한 곡선이 정체 없이 안정적으로 성장시키는가?', controls: '주문을 반복 완료하고 평균 시간·행동·수입과 Garage 비용을 비교합니다.', systemDemo: 'economy-fixed', issueNumber: 108, documentId: 'economy-fixed' },
+      { id: 'performance', label: 'B안', title: '성과 기반 보너스 곡선', description: '행동 효율과 완료 시간에 따라 추가 보상을 받습니다.', status: '체험 가능', question: '성과 보너스가 재도전 동기를 만들면서 격차를 과도하게 벌리지 않는가?', controls: '빠르게 주문을 완료해 고정안과 주문당 평균 수입을 비교합니다.', systemDemo: 'economy-performance', issueNumber: 108, documentId: 'economy-performance' },
+      { id: 'choice', label: 'C안', title: '주문 선택형 경제', description: '쉬운 일반 주문과 어려운 고보상 주문 중 하나를 선택합니다.', status: '체험 가능', question: '난이도와 보상의 선택이 의미 있는 판단을 만드는가?', controls: '두 주문을 번갈아 완료하고 행동 수 대비 수입을 확인합니다.', systemDemo: 'economy-choice', issueNumber: 108, documentId: 'economy-choice' },
+    ],
+  },
+  {
+    id: 'feedback-presentation', group: 'GAME CORE', title: '게임 피드백·연출·오디오',
+    description: '동일 이벤트에서 연출의 길이와 강도를 바꿔 결과 인지·손맛·반복 피로를 비교합니다.',
+    variants: [
+      { id: 'casual', label: 'A안', title: '빠른 캐주얼 연출', description: '짧은 확대와 색상 피드백으로 플레이 템포를 유지합니다.', status: '체험 가능', question: '최소 연출만으로 결과가 충분히 명확한가?', controls: '여섯 이벤트를 반복 실행해 짧은 연출의 인지성과 피로도를 확인합니다.', systemDemo: 'feedback-casual', issueNumber: 109, documentId: 'feedback-casual' },
+      { id: 'mechanical', label: 'B안', title: '기계적 조립감 연출', description: '흡착·체결·금속성 움직임으로 조립 과정을 강조합니다.', status: '체험 가능', question: '조립감 강화가 추가 대기시간보다 큰 가치를 주는가?', controls: '머지·장착 이벤트의 체결선과 연출 길이를 A/C와 비교합니다.', systemDemo: 'feedback-mechanical', issueNumber: 109, documentId: 'feedback-mechanical' },
+      { id: 'reward', label: 'C안', title: '완성·보상 강조 연출', description: '완성차·납품·승진 같은 중요 순간을 크게 보여줍니다.', status: '체험 가능', question: '큰 연출이 중요 순간의 성취감을 높이면서 반복을 방해하지 않는가?', controls: '중요 이벤트를 반복해 650ms 강조 연출의 성취감과 피로도를 확인합니다.', systemDemo: 'feedback-reward', issueNumber: 109, documentId: 'feedback-reward' },
+    ],
+  },
   {
     id: 'main-home-play',
     group: 'GAME CORE',
@@ -270,10 +308,10 @@ function renderVariant(track: Track, variant: Variant) {
 function renderDemo(track: Track, variant: Variant) {
   destroyGame();
   shell(`<main class="experiment-page demo-page">
-    ${variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.inputDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${variant.inputDemo ? '동일 6×5 보드 · 동일 초기 부품 · 입력 규칙만 비교' : variant.homePlayDemo ? '390×810 · 동일 주문·메뉴·보드 데이터' : variant.assemblyDemo ? '동일 주문 · 동일 부품 4종' : variant.rewardDemo ? '동일 시작 급여 1,000 · 기본 보상 500' : variant.supplyDemo ? '동일 5×4 보드 · 목표 Lv.3 ×2' : variant.collectionDemo ? '동일 데이터 · 3,000코인' : variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div><button id="reset-demo">초기화</button></div><div id="game-root" class="demo-${variant.inputDemo ?? variant.homePlayDemo ?? variant.assemblyDemo ?? variant.rewardDemo ?? variant.supplyDemo ?? variant.collectionDemo ?? variant.demo}"></div><p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
+    ${variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.inputDemo || variant.systemDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${variant.systemDemo ? '동일 초반 레벨·주문·직급 데이터' : variant.inputDemo ? '동일 6×5 보드 · 동일 초기 부품 · 입력 규칙만 비교' : variant.homePlayDemo ? '390×810 · 동일 주문·메뉴·보드 데이터' : variant.assemblyDemo ? '동일 주문 · 동일 부품 4종' : variant.rewardDemo ? '동일 시작 급여 1,000 · 기본 보상 500' : variant.supplyDemo ? '동일 5×4 보드 · 목표 Lv.3 ×2' : variant.collectionDemo ? '동일 데이터 · 3,000코인' : variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div><button id="reset-demo">초기화</button></div><div id="game-root" class="demo-${variant.systemDemo ?? variant.inputDemo ?? variant.homePlayDemo ?? variant.assemblyDemo ?? variant.rewardDemo ?? variant.supplyDemo ?? variant.collectionDemo ?? variant.demo}"></div><p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
   </main>`, { href: `#/track/${track.id}/${variant.id}`, label: `${variant.title} 상세` });
-  if (variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.inputDemo) {
-    const start = () => { destroyGame(); game = variant.inputDemo ? startInputPrototype('game-root', variant.inputDemo) : variant.homePlayDemo ? startHomePlayPrototype('game-root', variant.homePlayDemo) : variant.assemblyDemo ? startAssemblyPrototype('game-root', variant.assemblyDemo) : variant.rewardDemo ? startRewardPrototype('game-root', variant.rewardDemo) : variant.supplyDemo ? startSupplyPrototype('game-root', variant.supplyDemo) : variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
+  if (variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.inputDemo || variant.systemDemo) {
+    const start = () => { destroyGame(); game = variant.systemDemo ? startGameSystemPrototype('game-root', variant.systemDemo) : variant.inputDemo ? startInputPrototype('game-root', variant.inputDemo) : variant.homePlayDemo ? startHomePlayPrototype('game-root', variant.homePlayDemo) : variant.assemblyDemo ? startAssemblyPrototype('game-root', variant.assemblyDemo) : variant.rewardDemo ? startRewardPrototype('game-root', variant.rewardDemo) : variant.supplyDemo ? startSupplyPrototype('game-root', variant.supplyDemo) : variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
     start();
     document.querySelector('#reset-demo')?.addEventListener('click', start);
   }
