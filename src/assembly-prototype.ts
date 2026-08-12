@@ -130,20 +130,70 @@ class AssemblyScene extends Phaser.Scene {
     this.text(522, 194, this.mode === 'auto' ? '4개 조건이 충족되면 즉시 완성됩니다.' : '준비된 슬롯을 눌러 하나씩 장착합니다.', 11, C.muted);
 
     const g = this.add.graphics();
-    const alpha = this.completed ? 1 : .36;
-    g.lineStyle(7, this.installed.has('wheelset') ? 0x6ea8ff : 0x385066, alpha);
-    g.strokeCircle(604, 390, 58); g.strokeCircle(810, 390, 58);
-    g.lineStyle(9, this.installed.has('frame') ? 0x55d6be : 0x385066, alpha);
-    g.beginPath(); g.moveTo(604, 390); g.lineTo(675, 292); g.lineTo(722, 390); g.lineTo(604, 390); g.lineTo(704, 390); g.lineTo(675, 292); g.strokePath();
-    g.lineStyle(7, this.installed.has('handlebar') ? 0xd596ff : 0x385066, alpha);
-    g.beginPath(); g.moveTo(722, 390); g.lineTo(775, 282); g.lineTo(820, 270); g.moveTo(798, 268); g.lineTo(832, 286); g.strokePath();
-    g.lineStyle(5, this.installed.has('drivetrain') ? 0xf4c95d : 0x385066, alpha);
-    g.strokeCircle(704, 390, 18); g.beginPath(); g.moveTo(704, 390); g.lineTo(746, 409); g.strokePath();
+    const partAlpha = (part: PartId) => this.installed.has(part) ? 1 : .2;
+    const rearX = 602;
+    const frontX = 812;
+    const axleY = 382;
+    const radius = 50;
+    const crankX = 704;
+    const crankY = 390;
+    const seatX = 674;
+    const seatY = 282;
+    const headTopX = 764;
+    const headTopY = 290;
+    const headBottomX = 778;
+    const headBottomY = 322;
+
+    // 로드 휠: 타이어·림·스포크·허브를 분리해 실루엣만으로도 휠셋을 알아볼 수 있게 한다.
+    [rearX, frontX].forEach((x) => {
+      const wheelAlpha = partAlpha('wheelset');
+      g.lineStyle(4, 0x6ea8ff, wheelAlpha).strokeCircle(x, axleY, radius);
+      g.lineStyle(2, 0xb9d3ff, wheelAlpha * .9).strokeCircle(x, axleY, radius - 6);
+      g.lineStyle(1, 0x8ab8ff, wheelAlpha * .72);
+      for (let angle = 0; angle < 360; angle += 30) {
+        const rad = Phaser.Math.DegToRad(angle);
+        g.lineBetween(x, axleY, x + Math.cos(rad) * (radius - 8), axleY + Math.sin(rad) * (radius - 8));
+      }
+      g.fillStyle(0x6ea8ff, wheelAlpha).fillCircle(x, axleY, 5);
+    });
+
+    // 프레임: 로드바이크의 다이아몬드 프레임과 포크, 시트포스트·안장을 실제 연결 구조로 그린다.
+    const frameAlpha = partAlpha('frame');
+    g.lineStyle(8, 0x55d6be, frameAlpha)
+      .lineBetween(rearX, axleY, seatX, seatY)
+      .lineBetween(seatX, seatY, crankX, crankY)
+      .lineBetween(crankX, crankY, rearX, axleY)
+      .lineBetween(seatX, seatY, headTopX, headTopY)
+      .lineBetween(headTopX, headTopY, headBottomX, headBottomY)
+      .lineBetween(headBottomX, headBottomY, crankX, crankY);
+    g.lineStyle(6, 0x82ead8, frameAlpha).lineBetween(headBottomX, headBottomY, frontX, axleY);
+    g.lineStyle(5, 0x82ead8, frameAlpha).lineBetween(seatX, seatY, seatX - 5, seatY - 25);
+    g.lineStyle(7, 0xa4f4e6, frameAlpha).lineBetween(seatX - 28, seatY - 30, seatX + 14, seatY - 30);
+
+    // 구동계: 체인링·크랭크·페달·체인을 표시한다.
+    const driveAlpha = partAlpha('drivetrain');
+    g.lineStyle(4, 0xf4c95d, driveAlpha).strokeCircle(crankX, crankY, 17);
+    g.lineStyle(2, 0xffe6a4, driveAlpha)
+      .strokeCircle(crankX, crankY, 9)
+      .lineBetween(crankX, crankY - 17, rearX, axleY - 8)
+      .lineBetween(crankX, crankY + 17, rearX, axleY + 8);
+    g.lineStyle(4, 0xf4c95d, driveAlpha).lineBetween(crankX - 20, crankY - 13, crankX + 20, crankY + 13);
+    g.lineStyle(5, 0xffe6a4, driveAlpha)
+      .lineBetween(crankX + 16, crankY + 13, crankX + 31, crankY + 13)
+      .lineBetween(crankX - 31, crankY - 13, crankX - 16, crankY - 13);
+
+    // 로드 콕핏: 스템에서 이어지는 드롭바를 별도 색으로 강조한다.
+    const barAlpha = partAlpha('handlebar');
+    g.lineStyle(5, 0xd596ff, barAlpha).lineBetween(headTopX, headTopY, 793, 286);
+    g.lineStyle(6, 0xe4b8ff, barAlpha);
+    g.beginPath();
+    g.moveTo(788, 283); g.lineTo(817, 283); g.lineTo(824, 296); g.lineTo(820, 310); g.lineTo(811, 313);
+    g.strokePath();
 
     if (this.mode === 'slots' && !this.completed) {
       PARTS.forEach((part, index) => {
         const x = 572 + (index % 2) * 182;
-        const y = 478 + Math.floor(index / 2) * 50;
+        const y = 466 + Math.floor(index / 2) * 46;
         const ready = this.prepared.has(part.id);
         const installed = this.installed.has(part.id);
         this.button(x, y, 164, installed ? `${part.name} 장착됨` : ready ? `${part.name} 장착` : `${part.name} 미준비`, () => this.install(part), ready && !installed);
