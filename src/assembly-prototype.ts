@@ -101,9 +101,9 @@ class AssemblyScene extends Phaser.Scene {
     this.renderOrder();
     this.renderBike();
 
-    this.panel(480, 574, 892, 54, true);
-    this.text(52, 563, this.message, 13, this.completed ? C.gold : C.text, true);
-    if (this.completed) this.button(820, 574, 160, '다음 주문 받기', () => this.nextOrder());
+    this.panel(480, 584, 892, 48, true);
+    this.text(52, 574, this.message, 13, this.completed ? C.gold : C.text, true);
+    if (this.completed) this.button(820, 584, 160, '다음 주문 받기', () => this.nextOrder());
   }
 
   private renderOrder() {
@@ -192,11 +192,11 @@ class AssemblyScene extends Phaser.Scene {
 
     if (this.mode === 'slots' && !this.completed) {
       PARTS.forEach((part, index) => {
-        const x = 572 + (index % 2) * 182;
-        const y = 466 + Math.floor(index / 2) * 46;
+        const x = 610 + (index % 2) * 204;
+        const y = 460 + Math.floor(index / 2) * 48;
         const ready = this.prepared.has(part.id);
         const installed = this.installed.has(part.id);
-        this.button(x, y, 164, installed ? `${part.name} 장착됨` : ready ? `${part.name} 장착` : `${part.name} 미준비`, () => this.install(part), ready && !installed);
+        this.button(x, y, 180, installed ? `${part.name} 장착됨` : ready ? `${part.name} 장착` : `${part.name} 미준비`, () => this.install(part), ready && !installed);
       });
     } else {
       const progress = this.prepared.size / PARTS.length;
