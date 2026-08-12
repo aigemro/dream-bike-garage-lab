@@ -12,6 +12,7 @@
 - 전체 트랙·프로토타입 지도: [docs/LAB_PROTOTYPE_MAP.md](docs/LAB_PROTOTYPE_MAP.md)
 - GitHub Issue 의견 연동: [docs/GITHUB_ISSUE_INTEGRATION.md](docs/GITHUB_ISSUE_INTEGRATION.md)
 - 메인 프로젝트와의 역할 경계: [docs/PROJECT_BOUNDARY.md](docs/PROJECT_BOUNDARY.md)
+- 게임 필수 시스템 준비 로드맵: [docs/GAME_SYSTEM_ROADMAP.md](docs/GAME_SYSTEM_ROADMAP.md)
 
 ## Lab의 역할
 
@@ -41,6 +42,10 @@ Lab은 기능 하나를 완성하는 저장소가 아니라, 같은 게임 코�
 | Collection | 도감형, 전시형 Garage, 성장형 Dream Bike | 수집 동기, 완성감, 장기 목표, 반복 플레이 연결 |
 | Order & Assembly | 부품 납품형, 슬롯 조립형, 단계별 조립형 | 주문 이해도, 머지 결과의 사용감 |
 | Reward & Progression | 급여 중심, 컬렉션 해금, 드림 바이크 성장 | 보상 체감, 다음 플레이 동기 |
+| Level Design & Unlock | 레벨 선형, 챕터형, 직급 결합 해금 | 학습 속도, 콘텐츠 공개 순서, 초반 이탈 |
+| Career Rank | 자동 승진, 승진 과제, 컬렉션 복합 승진 | 큰 성장 목표와 기능 해금 체감 |
+| Difficulty & Economy | 고정 곡선, 성과 기반, 주문 선택형 | 주문 시간, 재화 수급·소비, 정체 구간 |
+| Feedback & Presentation | 캐주얼, 기계적 조립감, 보상 강조 | 결과 인지, 손맛, 반복 피로 |
 
 처음에는 **Merge Mechanics**와 **Collection**을 우선 트랙으로 운영합니다. 실험안은 A/B/C로 고정하지 않고 필요할 때 계속 추가할 수 있습니다.
 
