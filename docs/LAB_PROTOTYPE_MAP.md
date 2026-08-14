@@ -34,11 +34,11 @@ flowchart TB
     CORE --> ECONOMY["난이도 · 경제"]
     CORE --> FEEDBACK["피드백 · 연출"]
     ART --> BACKGROUND["배경 디자인 · Garage 공간"]
-    ART -. 향후 .-> CHARACTER["캐릭터 디자인"]
-    ART -. 향후 .-> UIART["UI · 아이콘"]
-    ART -. 향후 .-> ANIMATION["애니메이션"]
-    ART -. 향후 .-> BGM["배경음악"]
-    ART -. 향후 .-> SFX["효과음"]
+    ART --> CHARACTER["캐릭터 디자인"]
+    ART --> UIART["UI · 아이콘"]
+    ART --> ANIMATION["애니메이션"]
+    ART --> BGM["배경음악"]
+    ART --> SFX["효과음"]
 
     PLATFORM --> INPUT["입력 방식"]
     PLATFORM --> RESPONSIVE["반응형 화면"]
@@ -140,12 +140,21 @@ mindmap
       A 정통 16비트 픽셀 공방
       B 고밀도 32비트 생활형 픽셀
       C 픽셀 배경 + 캐주얼 UI 친화형
-    향후 트랙
-      캐릭터 디자인
-      UI · 아이콘
-      애니메이션
-      배경음악
-      효과음
+    캐릭터 디자인
+      트랙 이슈 준비
+      방안 추후 추가
+    UI · 아이콘
+      트랙 이슈 준비
+      방안 추후 추가
+    애니메이션
+      트랙 이슈 준비
+      방안 추후 추가
+    배경음악
+      트랙 이슈 준비
+      방안 추후 추가
+    효과음
+      트랙 이슈 준비
+      방안 추후 추가
 ```
 
 Art & Audio는 게임 규칙이나 플랫폼 기술이 아니라, 동일한 게임 상태를 어떤 시각·청각 언어로 전달할지 비교하는 상위 분류입니다. 배경·캐릭터·UI·애니메이션·음악·효과음을 각각 독립 트랙으로 관리합니다.
@@ -206,6 +215,11 @@ mindmap
 | Game Core | 난이도·경제 | A/B/C | 개발 중 | 주문 시간·행동·수입·소비 측정 | [#108](https://github.com/aigemro/dream-bike-garage-lab/issues/108) |
 | Game Core | 피드백·연출 | A/B/C | 개발 중 | 동일 이벤트의 길이·강도·피로 비교 | [#109](https://github.com/aigemro/dream-bike-garage-lab/issues/109) |
 | Art & Audio | 배경 디자인·Garage 공간 | A/B/C | 검토 준비 (시안·허브 등록) | 390×810 주문·PLAY UI 오버레이 후 감성·가독성·제작 비용 비교 | [#119](https://github.com/aigemro/dream-bike-garage-lab/issues/119), [#120](https://github.com/aigemro/dream-bike-garage-lab/issues/120), [#121](https://github.com/aigemro/dream-bike-garage-lab/issues/121), [#122](https://github.com/aigemro/dream-bike-garage-lab/issues/122) |
+| Art & Audio | 캐릭터 디자인·표현 방향 | 방안 추후 추가 | 트랙 준비 | 캐릭터 비율·실루엣·초상화 공통 조건 정의 | [#125](https://github.com/aigemro/dream-bike-garage-lab/issues/125) |
+| Art & Audio | UI·아이콘 아트 방향 | 방안 추후 추가 | 트랙 준비 | 모바일 가독성·상태 구분 평가 기준 정의 | [#126](https://github.com/aigemro/dream-bike-garage-lab/issues/126) |
+| Art & Audio | 애니메이션·모션 표현 방향 | 방안 추후 추가 | 트랙 준비 | 동작 범위·프레임·반복 피로·성능 기준 정의 | [#127](https://github.com/aigemro/dream-bike-garage-lab/issues/127) |
+| Art & Audio | 배경음악·공간 분위기 | 방안 추후 추가 | 트랙 준비 | Garage·플레이 상태별 음악 역할과 반복 기준 정의 | [#128](https://github.com/aigemro/dream-bike-garage-lab/issues/128) |
+| Art & Audio | 효과음·조작 피드백 | 방안 추후 추가 | 트랙 준비 | 행동별 성공·실패·조립감 피드백 기준 정의 | [#129](https://github.com/aigemro/dream-bike-garage-lab/issues/129) |
 | Integration | 출시 MVP 통합 검증 | 수직 슬라이스·튜토리얼·반복 성장·출시 QA | 준비 | 개별 실험을 주문→머지→조립→급여→성장→저장 흐름으로 연결 | [#113](https://github.com/aigemro/dream-bike-garage-lab/issues/113), [계획](MVP_READINESS_PLAN.md) |
 | Platform | 입력 방식 | A/B/C | 허브 반영 중 | 탭·드래그·하이브리드를 같은 보드에서 비교 | [#33](https://github.com/aigemro/dream-bike-garage-lab/issues/33), [PR #39](https://github.com/aigemro/dream-bike-garage-lab/pull/39) |
 | Platform | 반응형 화면 | A/B/C | 허브 반영 중 | 모바일·태블릿·웹브라우저 조건별 비교 | [#4](https://github.com/aigemro/dream-bike-garage-lab/issues/4), [PR #39](https://github.com/aigemro/dream-bike-garage-lab/pull/39) |
