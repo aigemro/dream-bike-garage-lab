@@ -40,6 +40,9 @@ import doc38 from '../docs/variants/economy-choice.md?raw';
 import doc39 from '../docs/variants/feedback-casual.md?raw';
 import doc40 from '../docs/variants/feedback-mechanical.md?raw';
 import doc41 from '../docs/variants/feedback-reward.md?raw';
+import doc42 from '../docs/variants/background-16bit.md?raw';
+import doc43 from '../docs/variants/background-32bit.md?raw';
+import doc44 from '../docs/variants/background-ui-friendly.md?raw';
 
 const variantDocs: Record<string, string> = {
   'merge-free-board': doc0,
@@ -84,6 +87,9 @@ const variantDocs: Record<string, string> = {
   'feedback-casual': doc39,
   'feedback-mechanical': doc40,
   'feedback-reward': doc41,
+  'background-16bit': doc42,
+  'background-32bit': doc43,
+  'background-ui-friendly': doc44,
 };
 
 export default variantDocs;
