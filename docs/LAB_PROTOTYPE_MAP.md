@@ -179,7 +179,7 @@ mindmap
 | Game Core | 직급·커리어 | A/B/C | 개발 중 | 자동·과제·복합 승진 조건 비교 | [#107](https://github.com/aigemro/dream-bike-garage-lab/issues/107) |
 | Game Core | 난이도·경제 | A/B/C | 개발 중 | 주문 시간·행동·수입·소비 측정 | [#108](https://github.com/aigemro/dream-bike-garage-lab/issues/108) |
 | Game Core | 피드백·연출 | A/B/C | 개발 중 | 동일 이벤트의 길이·강도·피로 비교 | [#109](https://github.com/aigemro/dream-bike-garage-lab/issues/109) |
-| Platform | 입력 방식 | A/B/C | 허브 반영 중 | 탭·드래그·하이브리드를 같은 보드에서 비교 | [#33](https://github.com/aigemro/dream-bike-garage-lab/issues/33), [PR #39](https://github.com/aigemro/dream-bike-garage-lab/pull/39) |
+| Integration | 출시 MVP 통합 검증 | 수직 슬라이스·튜토리얼·반복 성장·출시 QA | 준비 | 개별 실험을 주문→머지→조립→급여→성장→저장 흐름으로 연결 | [#113](https://github.com/aigemro/dream-bike-garage-lab/issues/113), [계획](MVP_READINESS_PLAN.md) |\n| Platform | 입력 방식 | A/B/C | 허브 반영 중 | 탭·드래그·하이브리드를 같은 보드에서 비교 | [#33](https://github.com/aigemro/dream-bike-garage-lab/issues/33), [PR #39](https://github.com/aigemro/dream-bike-garage-lab/pull/39) |
 | Platform | 반응형 화면 | A/B/C | 허브 반영 중 | 모바일·태블릿·웹브라우저 조건별 비교 | [#4](https://github.com/aigemro/dream-bike-garage-lab/issues/4), [PR #39](https://github.com/aigemro/dream-bike-garage-lab/pull/39) |
 | Platform | 저장·복구 | 방식 후보 | 준비 | MVP 저장 범위와 WebView 복구 조건 정의 | [#3](https://github.com/aigemro/dream-bike-garage-lab/issues/3), [#5](https://github.com/aigemro/dream-bike-garage-lab/issues/5) |
 | Platform | 앱인토스·운영 | 기반 이슈 | 준비 | SDK·로그인 이후 결제/광고/운영 순차 검증 | [#6](https://github.com/aigemro/dream-bike-garage-lab/issues/6), [#7](https://github.com/aigemro/dream-bike-garage-lab/issues/7), [#8](https://github.com/aigemro/dream-bike-garage-lab/issues/8) |
