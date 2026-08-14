@@ -20,6 +20,7 @@
 flowchart TB
     LAB["Dream Bike Garage Lab"]
     LAB --> CORE["Game Core<br/>게임의 재미와 구조"]
+    LAB --> ART["Art & Audio<br/>시각·청각 표현과 에셋"]
     LAB --> PLATFORM["Platform & Technology<br/>실행 환경과 기술 안정성"]
 
     CORE --> MERGE["머지 코어"]
@@ -32,7 +33,12 @@ flowchart TB
     CORE --> CAREER["직급 · 커리어"]
     CORE --> ECONOMY["난이도 · 경제"]
     CORE --> FEEDBACK["피드백 · 연출"]
-    CORE --> BACKGROUND["배경 디자인 · Garage 공간"]
+    ART --> BACKGROUND["배경 디자인 · Garage 공간"]
+    ART -. 향후 .-> CHARACTER["캐릭터 디자인"]
+    ART -. 향후 .-> UIART["UI · 아이콘"]
+    ART -. 향후 .-> ANIMATION["애니메이션"]
+    ART -. 향후 .-> BGM["배경음악"]
+    ART -. 향후 .-> SFX["효과음"]
 
     PLATFORM --> INPUT["입력 방식"]
     PLATFORM --> RESPONSIVE["반응형 화면"]
@@ -123,13 +129,28 @@ mindmap
       A 빠른 캐주얼
       B 기계적 조립감
       C 완성 · 보상 강조
+```
+
+## 4. Art & Audio 프로토타입
+
+```mermaid
+mindmap
+  root((Art & Audio))
     배경 디자인 · Garage 공간
       A 정통 16비트 픽셀 공방
       B 고밀도 32비트 생활형 픽셀
       C 픽셀 배경 + 캐주얼 UI 친화형
+    향후 트랙
+      캐릭터 디자인
+      UI · 아이콘
+      애니메이션
+      배경음악
+      효과음
 ```
 
-## 4. Platform & Technology 프로토타입
+Art & Audio는 게임 규칙이나 플랫폼 기술이 아니라, 동일한 게임 상태를 어떤 시각·청각 언어로 전달할지 비교하는 상위 분류입니다. 배경·캐릭터·UI·애니메이션·음악·효과음을 각각 독립 트랙으로 관리합니다.
+
+## 5. Platform & Technology 프로토타입
 
 ```mermaid
 mindmap
@@ -162,7 +183,7 @@ mindmap
       성능 · 분석 · 오류 수집
 ```
 
-## 5. 현재 진행 현황
+## 6. 현재 진행 현황
 
 | 분류 | 트랙 | Prototype / 작업 | 현재 상태 | 다음 확인 | 관련 항목 |
 |---|---|---|---|---|---|
@@ -184,7 +205,7 @@ mindmap
 | Game Core | 직급·커리어 | A/B/C | 개발 중 | 자동·과제·복합 승진 조건 비교 | [#107](https://github.com/aigemro/dream-bike-garage-lab/issues/107) |
 | Game Core | 난이도·경제 | A/B/C | 개발 중 | 주문 시간·행동·수입·소비 측정 | [#108](https://github.com/aigemro/dream-bike-garage-lab/issues/108) |
 | Game Core | 피드백·연출 | A/B/C | 개발 중 | 동일 이벤트의 길이·강도·피로 비교 | [#109](https://github.com/aigemro/dream-bike-garage-lab/issues/109) |
-| Game Core | 배경 디자인·Garage 공간 | A/B/C | 검토 준비 (시안·허브 등록) | 390×810 주문·PLAY UI 오버레이 후 감성·가독성·제작 비용 비교 | [#119](https://github.com/aigemro/dream-bike-garage-lab/issues/119), [#120](https://github.com/aigemro/dream-bike-garage-lab/issues/120), [#121](https://github.com/aigemro/dream-bike-garage-lab/issues/121), [#122](https://github.com/aigemro/dream-bike-garage-lab/issues/122) |
+| Art & Audio | 배경 디자인·Garage 공간 | A/B/C | 검토 준비 (시안·허브 등록) | 390×810 주문·PLAY UI 오버레이 후 감성·가독성·제작 비용 비교 | [#119](https://github.com/aigemro/dream-bike-garage-lab/issues/119), [#120](https://github.com/aigemro/dream-bike-garage-lab/issues/120), [#121](https://github.com/aigemro/dream-bike-garage-lab/issues/121), [#122](https://github.com/aigemro/dream-bike-garage-lab/issues/122) |
 | Integration | 출시 MVP 통합 검증 | 수직 슬라이스·튜토리얼·반복 성장·출시 QA | 준비 | 개별 실험을 주문→머지→조립→급여→성장→저장 흐름으로 연결 | [#113](https://github.com/aigemro/dream-bike-garage-lab/issues/113), [계획](MVP_READINESS_PLAN.md) |
 | Platform | 입력 방식 | A/B/C | 허브 반영 중 | 탭·드래그·하이브리드를 같은 보드에서 비교 | [#33](https://github.com/aigemro/dream-bike-garage-lab/issues/33), [PR #39](https://github.com/aigemro/dream-bike-garage-lab/pull/39) |
 | Platform | 반응형 화면 | A/B/C | 허브 반영 중 | 모바일·태블릿·웹브라우저 조건별 비교 | [#4](https://github.com/aigemro/dream-bike-garage-lab/issues/4), [PR #39](https://github.com/aigemro/dream-bike-garage-lab/pull/39) |
@@ -193,7 +214,7 @@ mindmap
 
 상태는 `아이디어 → 준비 → 개발 중 → 검토 준비 → 검토 → 완료`로 관리하며, 결과는 `채택 / 조건부 채택 / 보류 / 폐기`로 별도 기록합니다.
 
-## 6. 실험에서 메인 적용까지
+## 7. 실험에서 메인 적용까지
 
 ```mermaid
 flowchart LR
@@ -205,7 +226,7 @@ flowchart LR
     DECISION -->|보류·폐기| RECORD["결과와 배운 점 보존"]
 ```
 
-## 7. 신규 트랙·프로토타입 추가 규칙
+## 8. 신규 트랙·프로토타입 추가 규칙
 
 1. 기존 트랙의 해결 방안이면 해당 트랙 아래 Prototype을 추가합니다.
 2. 검증 질문과 평가 기준이 다르면 새 트랙을 만듭니다.
@@ -214,7 +235,7 @@ flowchart LR
 5. 실험 결과에는 측정값, 관찰, 장점, 한계, 메인 적용 여부를 남깁니다.
 6. 현재 MVP 밖의 브랜드·매치3·레이스·경영·과금 확장은 핵심 루프가 검증된 뒤 별도 트랙으로 승격합니다.
 
-## 8. 설계 자료 해석 기준
+## 9. 설계 자료 해석 기준
 
 - `Dream Bike Garage 머지게임 시스템 설계안`은 현재 핵심 루프와 MVP 범위의 기준 자료로 사용합니다.
 - 기존 `글로벌 자전거 브랜드 매치3·머지 게임 마케팅 기획서`의 브랜드, 매치3, 레이스, O2O, 과금 아이디어는 폐기하지 않되 현재 MVP와 섞지 않고 향후 확장 후보로 보관합니다.

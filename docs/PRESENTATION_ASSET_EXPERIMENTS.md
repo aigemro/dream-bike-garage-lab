@@ -2,6 +2,8 @@
 
 이 문서는 Dream Bike Garage Lab에서 디자인, 애니메이션, 이펙트, 사운드 방안을 비교할 때 적용하는 규칙입니다.
 
+이 실험들은 게임 규칙을 다루는 `GAME CORE`와 분리해 `ART & AUDIO` 상위 분류에서 관리합니다. 배경·캐릭터·UI·애니메이션·배경음악·효과음은 평가 질문이 다르므로 각각 독립 트랙으로 구성합니다.
+
 전체 에셋의 최종 관리 기준은 메인 저장소의 [디자인·사운드 에셋 운영 규칙](https://github.com/aigemro/dream-bike-garage/blob/main/docs/development/ASSET_WORKFLOW.md)을 따릅니다.
 
 ## 실험 대상

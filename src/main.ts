@@ -37,7 +37,7 @@ type Variant = {
 };
 type Track = {
   id: string;
-  group: 'GAME CORE' | 'PLATFORM & TECHNOLOGY';
+  group: 'GAME CORE' | 'ART & AUDIO' | 'PLATFORM & TECHNOLOGY';
   title: string;
   description: string;
   variants: Variant[];
@@ -72,7 +72,7 @@ const tracks: Track[] = [
     ],
   },
   {
-    id: 'feedback-presentation', group: 'GAME CORE', title: '게임 피드백·연출·오디오',
+    id: 'feedback-presentation', group: 'GAME CORE', title: '게임 피드백·연출',
     description: '동일 이벤트에서 연출의 길이와 강도를 바꿔 결과 인지·손맛·반복 피로를 비교합니다.',
     variants: [
       { id: 'casual', label: 'A안', title: '빠른 캐주얼 연출', description: '짧은 확대와 색상 피드백으로 플레이 템포를 유지합니다.', status: '체험 가능', question: '최소 연출만으로 결과가 충분히 명확한가?', controls: '여섯 이벤트를 반복 실행해 짧은 연출의 인지성과 피로도를 확인합니다.', systemDemo: 'feedback-casual', issueNumber: 109, documentId: 'feedback-casual' },
@@ -81,7 +81,7 @@ const tracks: Track[] = [
     ],
   },
   {
-    id: 'background-art', group: 'GAME CORE', title: '배경 디자인·Garage 공간 연출',
+    id: 'background-art', group: 'ART & AUDIO', title: '배경 디자인·Garage 공간 연출',
     description: '동일한 자전거 작업실을 서로 다른 픽셀 밀도와 UI 여백으로 표현해 감성·가독성·제작 비용을 비교합니다.',
     variants: [
       { id: 'pixel-16bit', label: 'A안', title: '정통 16비트 픽셀 공방', description: '굵은 실루엣과 제한된 색상으로 복고적인 작업실 감성을 강조합니다.', status: '체험 가능', question: '강한 픽셀 정체성이 모바일 가독성과 따뜻한 작업실 감성을 함께 전달하는가?', controls: '390×810 기준으로 중앙 자전거, 주문 게시판, 상·하단 UI 여백과 반복 노출 피로도를 확인합니다.', imageDemo: `${import.meta.env.BASE_URL}assets/prototypes/background-art/garage-16bit.png`, issueNumber: 120, documentId: 'background-16bit' },
@@ -259,7 +259,7 @@ function shell(content: string, back?: { href: string; label: string }) {
 
 function renderHome() {
   destroyGame();
-  const groups = ['GAME CORE', 'PLATFORM & TECHNOLOGY'] as const;
+  const groups = ['GAME CORE', 'ART & AUDIO', 'PLATFORM & TECHNOLOGY'] as const;
   shell(`<main>
     <section class="hero">
       <p class="eyebrow">TRACK · VARIANT · COMPARE</p>
@@ -268,7 +268,7 @@ function renderHome() {
       <div class="summary"><span><strong>${tracks.length}</strong> 실험 트랙</span><span><strong>${allVariants.length}</strong> 전체 방안</span><span><strong>${allVariants.filter((item) => item.status === '체험 가능').length}</strong> 체험 가능</span></div>
     </section>
     ${groups.map((group) => `<section class="catalog">
-      <div class="section-heading"><div><p class="eyebrow">${group}</p><h2>${group === 'GAME CORE' ? '게임 코어 트랙' : '플랫폼 기술 트랙'}</h2></div><p>트랙을 선택하면 내부의 여러 실험안을 확인할 수 있습니다.</p></div>
+      <div class="section-heading"><div><p class="eyebrow">${group}</p><h2>${group === 'GAME CORE' ? '게임 코어 트랙' : group === 'ART & AUDIO' ? '아트·오디오 트랙' : '플랫폼 기술 트랙'}</h2></div><p>${group === 'ART & AUDIO' ? '배경·캐릭터·UI·애니메이션·음악·효과음의 표현 방안을 비교합니다.' : '트랙을 선택하면 내부의 여러 실험안을 확인할 수 있습니다.'}</p></div>
       <div class="grid">${tracks.filter((track) => track.group === group).map((track, index) => `
         <a class="card ${track.variants.some((item) => item.status === '체험 가능') ? 'ready' : ''}" href="#/track/${track.id}">
           <div class="card-index">${String(index + 1).padStart(2, '0')}</div><p class="category">${track.group}</p><h3>${track.title}</h3><p>${track.description}</p>
