@@ -32,6 +32,7 @@ flowchart TB
     CORE --> CAREER["직급 · 커리어"]
     CORE --> ECONOMY["난이도 · 경제"]
     CORE --> FEEDBACK["피드백 · 연출"]
+    CORE --> BACKGROUND["배경 디자인 · Garage 공간"]
 
     PLATFORM --> INPUT["입력 방식"]
     PLATFORM --> RESPONSIVE["반응형 화면"]
@@ -122,6 +123,10 @@ mindmap
       A 빠른 캐주얼
       B 기계적 조립감
       C 완성 · 보상 강조
+    배경 디자인 · Garage 공간
+      A 정통 16비트 픽셀 공방
+      B 고밀도 32비트 생활형 픽셀
+      C 픽셀 배경 + 캐주얼 UI 친화형
 ```
 
 ## 4. Platform & Technology 프로토타입
@@ -179,6 +184,7 @@ mindmap
 | Game Core | 직급·커리어 | A/B/C | 개발 중 | 자동·과제·복합 승진 조건 비교 | [#107](https://github.com/aigemro/dream-bike-garage-lab/issues/107) |
 | Game Core | 난이도·경제 | A/B/C | 개발 중 | 주문 시간·행동·수입·소비 측정 | [#108](https://github.com/aigemro/dream-bike-garage-lab/issues/108) |
 | Game Core | 피드백·연출 | A/B/C | 개발 중 | 동일 이벤트의 길이·강도·피로 비교 | [#109](https://github.com/aigemro/dream-bike-garage-lab/issues/109) |
+| Game Core | 배경 디자인·Garage 공간 | A/B/C | 검토 준비 (시안·허브 등록) | 390×810 주문·PLAY UI 오버레이 후 감성·가독성·제작 비용 비교 | [#119](https://github.com/aigemro/dream-bike-garage-lab/issues/119), [#120](https://github.com/aigemro/dream-bike-garage-lab/issues/120), [#121](https://github.com/aigemro/dream-bike-garage-lab/issues/121), [#122](https://github.com/aigemro/dream-bike-garage-lab/issues/122) |
 | Integration | 출시 MVP 통합 검증 | 수직 슬라이스·튜토리얼·반복 성장·출시 QA | 준비 | 개별 실험을 주문→머지→조립→급여→성장→저장 흐름으로 연결 | [#113](https://github.com/aigemro/dream-bike-garage-lab/issues/113), [계획](MVP_READINESS_PLAN.md) |
 | Platform | 입력 방식 | A/B/C | 허브 반영 중 | 탭·드래그·하이브리드를 같은 보드에서 비교 | [#33](https://github.com/aigemro/dream-bike-garage-lab/issues/33), [PR #39](https://github.com/aigemro/dream-bike-garage-lab/pull/39) |
 | Platform | 반응형 화면 | A/B/C | 허브 반영 중 | 모바일·태블릿·웹브라우저 조건별 비교 | [#4](https://github.com/aigemro/dream-bike-garage-lab/issues/4), [PR #39](https://github.com/aigemro/dream-bike-garage-lab/pull/39) |
