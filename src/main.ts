@@ -10,6 +10,7 @@ import { startHomePlayPrototype, type HomePlayPrototypeMode } from './home-play-
 import { startInputPrototype, type InputPrototypeMode } from './input-prototype';
 import { startStoragePrototype, type StoragePrototypeMode } from './storage-prototype';
 import { startGameSystemPrototype, type GameSystemPrototypeMode } from './game-system-prototype';
+import { startBoardSizePrototype, type BoardSizeMode } from './board-size-prototype';
 
 type Status = '체험 가능' | '준비 중';
 type Variant = {
@@ -29,6 +30,7 @@ type Variant = {
   inputDemo?: InputPrototypeMode;
   storageDemo?: StoragePrototypeMode;
   systemDemo?: GameSystemPrototypeMode;
+  boardSizeDemo?: BoardSizeMode;
   issueNumber: number;
   documentId: string;
 };
@@ -131,9 +133,10 @@ const tracks: Track[] = [
         label: '검증',
         title: '보드 크기·잠금 칸 검증',
         description: '같은 머지 규칙에서 6×7, 7×9, 잠금 해제형 보드 조건만 바꿔 공간 전략과 난이도를 비교합니다.',
-        status: '준비 중',
+        status: '체험 가능',
         question: '어떤 보드 크기와 잠금 칸 구성이 공간 전략의 재미와 난이도 균형에 가장 적합한가?',
-        controls: '같은 부품 구성으로 보드 크기와 잠금 칸 조건만 바꿔 비교합니다.',
+        controls: '세 조건을 전환하면 같은 주문과 초기 부품으로 재시작합니다. 같은 종류·레벨 부품을 차례로 눌러 머지하고 공간감과 잠금 해제 성장을 비교합니다.',
+        boardSizeDemo: 'board-size',
         issueNumber: 74, documentId: 'merge-board-size',
       },
     ],
@@ -310,10 +313,10 @@ function renderVariant(track: Track, variant: Variant) {
 function renderDemo(track: Track, variant: Variant) {
   destroyGame();
   shell(`<main class="experiment-page demo-page">
-    ${variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.inputDemo || variant.systemDemo || variant.storageDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${variant.storageDemo ? '동일 상태 · 보드·재화·주문' : variant.systemDemo ? '동일 초반 레벨·주문·직급 데이터' : variant.inputDemo ? '동일 6×5 보드 · 동일 초기 부품 · 입력 규칙만 비교' : variant.homePlayDemo ? '390×810 · 동일 주문·메뉴·보드 데이터' : variant.assemblyDemo ? '동일 주문 · 동일 부품 4종' : variant.rewardDemo ? '동일 시작 급여 1,000 · 기본 보상 500' : variant.supplyDemo ? '동일 5×4 보드 · 목표 Lv.3 ×2' : variant.collectionDemo ? '동일 데이터 · 3,000코인' : variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div><button id="reset-demo">초기화</button></div><div id="game-root" class="demo-${variant.storageDemo ?? variant.systemDemo ?? variant.inputDemo ?? variant.homePlayDemo ?? variant.assemblyDemo ?? variant.rewardDemo ?? variant.supplyDemo ?? variant.collectionDemo ?? variant.demo}"></div><p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
+    ${variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.inputDemo || variant.systemDemo || variant.storageDemo || variant.boardSizeDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${variant.boardSizeDemo ? '동일 주문·초기 부품 · 보드 조건만 변경' : variant.storageDemo ? '동일 상태 · 보드·재화·주문' : variant.systemDemo ? '동일 초반 레벨·주문·직급 데이터' : variant.inputDemo ? '동일 6×5 보드 · 동일 초기 부품 · 입력 규칙만 비교' : variant.homePlayDemo ? '390×810 · 동일 주문·메뉴·보드 데이터' : variant.assemblyDemo ? '동일 주문 · 동일 부품 4종' : variant.rewardDemo ? '동일 시작 급여 1,000 · 기본 보상 500' : variant.supplyDemo ? '동일 5×4 보드 · 목표 Lv.3 ×2' : variant.collectionDemo ? '동일 데이터 · 3,000코인' : variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div><button id="reset-demo">초기화</button></div><div id="game-root" class="demo-${variant.boardSizeDemo ?? variant.storageDemo ?? variant.systemDemo ?? variant.inputDemo ?? variant.homePlayDemo ?? variant.assemblyDemo ?? variant.rewardDemo ?? variant.supplyDemo ?? variant.collectionDemo ?? variant.demo}"></div><p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
   </main>`, { href: `#/track/${track.id}/${variant.id}`, label: `${variant.title} 상세` });
-  if (variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.inputDemo || variant.systemDemo || variant.storageDemo) {
-    const start = () => { destroyGame(); if (variant.storageDemo) { startStoragePrototype('game-root', variant.storageDemo); return; } game = variant.systemDemo ? startGameSystemPrototype('game-root', variant.systemDemo) : variant.inputDemo ? startInputPrototype('game-root', variant.inputDemo) : variant.homePlayDemo ? startHomePlayPrototype('game-root', variant.homePlayDemo) : variant.assemblyDemo ? startAssemblyPrototype('game-root', variant.assemblyDemo) : variant.rewardDemo ? startRewardPrototype('game-root', variant.rewardDemo) : variant.supplyDemo ? startSupplyPrototype('game-root', variant.supplyDemo) : variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
+  if (variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.inputDemo || variant.systemDemo || variant.storageDemo || variant.boardSizeDemo) {
+    const start = () => { destroyGame(); if (variant.boardSizeDemo) { game = startBoardSizePrototype('game-root', variant.boardSizeDemo) as unknown as Phaser.Game; return; } if (variant.storageDemo) { startStoragePrototype('game-root', variant.storageDemo); return; } game = variant.systemDemo ? startGameSystemPrototype('game-root', variant.systemDemo) : variant.inputDemo ? startInputPrototype('game-root', variant.inputDemo) : variant.homePlayDemo ? startHomePlayPrototype('game-root', variant.homePlayDemo) : variant.assemblyDemo ? startAssemblyPrototype('game-root', variant.assemblyDemo) : variant.rewardDemo ? startRewardPrototype('game-root', variant.rewardDemo) : variant.supplyDemo ? startSupplyPrototype('game-root', variant.supplyDemo) : variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
     start();
     document.querySelector('#reset-demo')?.addEventListener('click', start);
   }
