@@ -8,6 +8,7 @@ import { startRewardPrototype, type RewardPrototypeMode } from './reward-prototy
 import { startAssemblyPrototype, type AssemblyPrototypeMode } from './assembly-prototype';
 import { startHomePlayPrototype, type HomePlayPrototypeMode } from './home-play-prototype';
 import { startHomeDesignPrototype, type HomeDesignPrototypeMode } from './home-design-prototype';
+import { startArtAudioPrototype, type ArtAudioPrototypeMode } from './art-audio-prototype';
 import { startInputPrototype, type InputPrototypeMode } from './input-prototype';
 import { startStoragePrototype, type StoragePrototypeMode } from './storage-prototype';
 import { startGameSystemPrototype, type GameSystemPrototypeMode } from './game-system-prototype';
@@ -32,6 +33,7 @@ type Variant = {
   assemblyDemo?: AssemblyPrototypeMode;
   homePlayDemo?: HomePlayPrototypeMode;
   homeDesignDemo?: HomeDesignPrototypeMode;
+  artAudioDemo?: ArtAudioPrototypeMode;
   inputDemo?: InputPrototypeMode;
   storageDemo?: StoragePrototypeMode;
   systemDemo?: GameSystemPrototypeMode;
@@ -96,11 +98,41 @@ const tracks: Track[] = [
       { id: 'ui-friendly', label: 'C안', title: '픽셀 배경 + 캐주얼 UI 친화형', description: '중간 수준의 픽셀 디테일과 넓은 저밀도 영역으로 모바일 UI가 올라갈 공간을 확보합니다.', status: '체험 가능', question: '픽셀 생활감은 유지하면서 주문·PLAY·성장 UI를 가장 명확하게 수용하는가?', controls: '상·하단 UI 안전 영역, 배경 대비, 중앙 자전거 식별성과 Garage 성장 표현의 확장성을 확인합니다.', imageDemo: garageUiFriendly, issueNumber: 122, documentId: 'background-ui-friendly' },
     ],
   },
-  { id: 'character-art', group: 'ART & AUDIO', title: '캐릭터 디자인·표현 방향', description: '플레이어·점장·고객 NPC의 비율, 실루엣, 초상화와 감정 표현 방향을 비교합니다.', issueNumber: 125, variants: [] },
-  { id: 'ui-icon-art', group: 'ART & AUDIO', title: 'UI·아이콘 아트 방향', description: '픽셀 배경 위에서 주문·부품·재화·상태 정보를 명확하게 전달하는 시각 체계를 비교합니다.', issueNumber: 126, variants: [] },
-  { id: 'animation-motion', group: 'ART & AUDIO', title: '애니메이션·모션 표현 방향', description: '캐릭터 행동, 부품 머지, 자전거 조립과 화면 전환의 움직임과 제작 범위를 비교합니다.', issueNumber: 127, variants: [] },
-  { id: 'background-music', group: 'ART & AUDIO', title: '배경음악·공간 분위기', description: 'Garage 홈과 플레이 상태에 어울리는 음악 방향, 반복 피로와 전환 규칙을 비교합니다.', issueNumber: 128, variants: [] },
-  { id: 'sound-effects', group: 'ART & AUDIO', title: '효과음·조작 피드백', description: '탭·생성·머지·장착·납품·보상의 소리와 기계적 조립감의 균형을 비교합니다.', issueNumber: 129, variants: [] },
+  {
+    id: 'character-art', group: 'ART & AUDIO', title: '캐릭터 디자인·표현 방향',
+    description: '플레이어·점장·고객 NPC의 비율, 실루엣, 초상화와 감정 표현 방향을 비교합니다.', issueNumber: 125,
+    variants: [
+      { id: 'warm-pixel-characters', label: 'A안', title: '따뜻한 생활형 픽셀 정비사·고객', description: '홈 A안의 목재 Garage에 맞춘 독자적 3등신 캐릭터와 역할별 색·소품·감정 초상화를 비교합니다.', status: '체험 가능', question: '작은 필드 캐릭터와 큰 대화 초상화에서 역할과 감정이 일관되게 읽히는가?', controls: '정비사·점장·고객을 바꾸고 기본·기쁨·고민 감정을 눌러 실루엣과 초상화 연결을 확인합니다.', artAudioDemo: 'character-warm-pixel', issueNumber: 133, documentId: 'character-warm-pixel' },
+    ],
+  },
+  {
+    id: 'ui-icon-art', group: 'ART & AUDIO', title: 'UI·아이콘 아트 방향',
+    description: '픽셀 배경 위에서 주문·부품·재화·상태 정보를 명확하게 전달하는 시각 체계를 비교합니다.', issueNumber: 126,
+    variants: [
+      { id: 'workshop-paper-ui', label: 'A안', title: '종이·목재 픽셀 공방 UI', description: '홈 A안의 크림 종이·목재 프레임을 주문 카드, 부품 타일, 재화와 상태 아이콘으로 확장합니다.', status: '체험 가능', question: '따뜻한 픽셀 감성을 유지하면서 READY·부족·잠금 상태가 색상 없이도 구분되는가?', controls: '기본·완료 가능·잠금 상태를 전환해 아이콘 형태, 텍스트와 배지의 중복 정보 전달을 확인합니다.', artAudioDemo: 'ui-warm-pixel', issueNumber: 134, documentId: 'ui-warm-pixel' },
+    ],
+  },
+  {
+    id: 'animation-motion', group: 'ART & AUDIO', title: '애니메이션·모션 표현 방향',
+    description: '캐릭터 행동, 부품 머지, 자전거 조립과 화면 전환의 움직임과 제작 범위를 비교합니다.', issueNumber: 127,
+    variants: [
+      { id: 'cozy-short-motion', label: 'A안', title: '짧고 포근한 픽셀 모션', description: '흡착·스쿼시·체결·반짝임을 0.4초 이하로 조합해 홈 A안의 포근함과 빠른 템포를 함께 유지합니다.', status: '체험 가능', question: '짧은 픽셀 모션만으로 머지·장착·완성 결과가 명확하고 반복 입력을 방해하지 않는가?', controls: 'MERGE·장착·완성 버튼을 반복해 연출 길이, 결과 인지와 반복 피로를 확인합니다.', artAudioDemo: 'motion-warm-pixel', issueNumber: 135, documentId: 'motion-warm-pixel' },
+    ],
+  },
+  {
+    id: 'background-music', group: 'ART & AUDIO', title: '배경음악·공간 분위기',
+    description: 'Garage 홈과 플레이 상태에 어울리는 음악 방향, 반복 피로와 전환 규칙을 비교합니다.', issueNumber: 128,
+    variants: [
+      { id: 'cozy-garage-chiptune', label: 'A안', title: '포근한 Garage 칩튠 루프', description: '홈 A안의 햇살과 목재 공방 분위기를 짧은 절차 생성 칩튠으로 표현하고 HOME·WORK 변주를 비교합니다.', status: '체험 가능', question: '포근한 칩튠이 Garage 생활감을 높이고 상태 전환 후에도 반복 피로 없이 이어지는가?', controls: 'PLAY MUSIC을 누른 뒤 HOME·WORK를 전환하고 루프 연결, 분위기 차이와 반복 피로를 확인합니다.', artAudioDemo: 'music-warm-pixel', issueNumber: 136, documentId: 'music-warm-pixel' },
+    ],
+  },
+  {
+    id: 'sound-effects', group: 'ART & AUDIO', title: '효과음·조작 피드백',
+    description: '탭·생성·머지·장착·납품·보상의 소리와 기계적 조립감의 균형을 비교합니다.', issueNumber: 129,
+    variants: [
+      { id: 'soft-workshop-sfx', label: 'A안', title: '부드러운 공방 조작 피드백', description: '짧은 목재 톡, 상자 팝, 상승음, 체결 클릭과 벨을 낮은 음량으로 구성해 홈 A안의 포근함을 유지합니다.', status: '체험 가능', question: '핵심 행동 여섯 가지가 소리만으로 구분되면서 연속 입력에서도 과도하지 않은가?', controls: '탭·생성·머지·장착·납품·보상 타일을 반복해 구분감과 반복 피로를 확인합니다.', artAudioDemo: 'sfx-warm-pixel', issueNumber: 137, documentId: 'sfx-warm-pixel' },
+    ],
+  },
   {
     id: 'home-screen-design', group: 'ART & AUDIO', title: '홈 화면 디자인',
     description: '회의안 기반 Garage 홈의 정보 구조를 유지하고, 실제 게임 화면의 픽셀 아트·UI·공간 연출을 비교합니다.',
@@ -343,10 +375,10 @@ function renderVariant(track: Track, variant: Variant) {
 function renderDemo(track: Track, variant: Variant) {
   destroyGame();
   shell(`<main class="experiment-page demo-page">
-    ${variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.homeDesignDemo || variant.inputDemo || variant.systemDemo || variant.storageDemo || variant.boardSizeDemo || variant.imageDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${variant.imageDemo ? '동일 Garage 장면 · 390×810 세로 화면' : variant.homeDesignDemo ? '회의안 기반 정보 구조 · 독자적 생활형 픽셀 디자인' : variant.boardSizeDemo ? '동일 주문·초기 부품 · 보드 조건만 변경' : variant.storageDemo ? '동일 상태 · 보드·재화·주문' : variant.systemDemo ? '동일 초반 레벨·주문·직급 데이터' : variant.inputDemo ? '동일 6×5 보드 · 동일 초기 부품 · 입력 규칙만 비교' : variant.homePlayDemo ? '390×810 · 동일 주문·메뉴·보드 데이터' : variant.assemblyDemo ? '동일 주문 · 동일 부품 4종' : variant.rewardDemo ? '동일 시작 급여 1,000 · 기본 보상 500' : variant.supplyDemo ? '동일 5×4 보드 · 목표 Lv.3 ×2' : variant.collectionDemo ? '동일 데이터 · 3,000코인' : variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div>${variant.imageDemo ? '' : '<button id="reset-demo">초기화</button>'}</div>${variant.imageDemo ? `<figure class="background-art-preview"><img src="${variant.imageDemo}" alt="${variant.title} Garage 배경 시안" /></figure>` : `<div id="game-root" class="demo-${variant.boardSizeDemo ?? variant.storageDemo ?? variant.systemDemo ?? variant.inputDemo ?? variant.homeDesignDemo ?? variant.homePlayDemo ?? variant.assemblyDemo ?? variant.rewardDemo ?? variant.supplyDemo ?? variant.collectionDemo ?? variant.demo}"></div>`}<p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
+    ${variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.homeDesignDemo || variant.artAudioDemo || variant.inputDemo || variant.systemDemo || variant.storageDemo || variant.boardSizeDemo || variant.imageDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${variant.imageDemo ? '동일 Garage 장면 · 390×810 세로 화면' : variant.artAudioDemo ? '홈 화면 A안 공통 스타일 · 390×810 체험' : variant.homeDesignDemo ? '회의안 기반 정보 구조 · 독자적 생활형 픽셀 디자인' : variant.boardSizeDemo ? '동일 주문·초기 부품 · 보드 조건만 변경' : variant.storageDemo ? '동일 상태 · 보드·재화·주문' : variant.systemDemo ? '동일 초반 레벨·주문·직급 데이터' : variant.inputDemo ? '동일 6×5 보드 · 동일 초기 부품 · 입력 규칙만 비교' : variant.homePlayDemo ? '390×810 · 동일 주문·메뉴·보드 데이터' : variant.assemblyDemo ? '동일 주문 · 동일 부품 4종' : variant.rewardDemo ? '동일 시작 급여 1,000 · 기본 보상 500' : variant.supplyDemo ? '동일 5×4 보드 · 목표 Lv.3 ×2' : variant.collectionDemo ? '동일 데이터 · 3,000코인' : variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div>${variant.imageDemo ? '' : '<button id="reset-demo">초기화</button>'}</div>${variant.imageDemo ? `<figure class="background-art-preview"><img src="${variant.imageDemo}" alt="${variant.title} Garage 배경 시안" /></figure>` : `<div id="game-root" class="demo-${variant.boardSizeDemo ?? variant.storageDemo ?? variant.systemDemo ?? variant.inputDemo ?? variant.artAudioDemo ?? variant.homeDesignDemo ?? variant.homePlayDemo ?? variant.assemblyDemo ?? variant.rewardDemo ?? variant.supplyDemo ?? variant.collectionDemo ?? variant.demo}"></div>`}<p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
   </main>`, { href: `#/track/${track.id}/${variant.id}`, label: `${variant.title} 상세` });
-  if (variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.homeDesignDemo || variant.inputDemo || variant.systemDemo || variant.storageDemo || variant.boardSizeDemo) {
-    const start = () => { destroyGame(); if (variant.boardSizeDemo) { game = startBoardSizePrototype('game-root', variant.boardSizeDemo) as unknown as Phaser.Game; return; } if (variant.storageDemo) { startStoragePrototype('game-root', variant.storageDemo); return; } game = variant.systemDemo ? startGameSystemPrototype('game-root', variant.systemDemo) : variant.inputDemo ? startInputPrototype('game-root', variant.inputDemo) : variant.homeDesignDemo ? startHomeDesignPrototype('game-root', variant.homeDesignDemo) : variant.homePlayDemo ? startHomePlayPrototype('game-root', variant.homePlayDemo) : variant.assemblyDemo ? startAssemblyPrototype('game-root', variant.assemblyDemo) : variant.rewardDemo ? startRewardPrototype('game-root', variant.rewardDemo) : variant.supplyDemo ? startSupplyPrototype('game-root', variant.supplyDemo) : variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
+  if (variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.homeDesignDemo || variant.artAudioDemo || variant.inputDemo || variant.systemDemo || variant.storageDemo || variant.boardSizeDemo) {
+    const start = () => { destroyGame(); if (variant.boardSizeDemo) { game = startBoardSizePrototype('game-root', variant.boardSizeDemo) as unknown as Phaser.Game; return; } if (variant.storageDemo) { startStoragePrototype('game-root', variant.storageDemo); return; } game = variant.systemDemo ? startGameSystemPrototype('game-root', variant.systemDemo) : variant.inputDemo ? startInputPrototype('game-root', variant.inputDemo) : variant.artAudioDemo ? startArtAudioPrototype('game-root', variant.artAudioDemo) : variant.homeDesignDemo ? startHomeDesignPrototype('game-root', variant.homeDesignDemo) : variant.homePlayDemo ? startHomePlayPrototype('game-root', variant.homePlayDemo) : variant.assemblyDemo ? startAssemblyPrototype('game-root', variant.assemblyDemo) : variant.rewardDemo ? startRewardPrototype('game-root', variant.rewardDemo) : variant.supplyDemo ? startSupplyPrototype('game-root', variant.supplyDemo) : variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
     start();
     document.querySelector('#reset-demo')?.addEventListener('click', start);
   }

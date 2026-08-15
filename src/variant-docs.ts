@@ -44,6 +44,11 @@ import doc42 from '../docs/variants/background-16bit.md?raw';
 import doc43 from '../docs/variants/background-32bit.md?raw';
 import doc44 from '../docs/variants/background-ui-friendly.md?raw';
 import doc45 from '../docs/variants/home-design-warm-pixel.md?raw';
+import doc46 from '../docs/variants/character-warm-pixel.md?raw';
+import doc47 from '../docs/variants/ui-warm-pixel.md?raw';
+import doc48 from '../docs/variants/motion-warm-pixel.md?raw';
+import doc49 from '../docs/variants/music-warm-pixel.md?raw';
+import doc50 from '../docs/variants/sfx-warm-pixel.md?raw';
 
 const variantDocs: Record<string, string> = {
   'merge-free-board': doc0,
@@ -92,6 +97,11 @@ const variantDocs: Record<string, string> = {
   'background-32bit': doc43,
   'background-ui-friendly': doc44,
   'home-design-warm-pixel': doc45,
+  'character-warm-pixel': doc46,
+  'ui-warm-pixel': doc47,
+  'motion-warm-pixel': doc48,
+  'music-warm-pixel': doc49,
+  'sfx-warm-pixel': doc50,
 };
 
 export default variantDocs;
