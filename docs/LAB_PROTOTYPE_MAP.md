@@ -90,9 +90,13 @@ mindmap
       B 조건 충족 즉시 자동 조립
         이슈 준비
       향후 후보
-        단계별 조립 연출
         완성차 실루엣 주문
         복수 주문 우선순위
+    장착 · 조립 연출
+      A 부품별 순차 자동 장착
+        1차 데모 구현
+      B 확인 후 순차 장착
+        1차 데모 구현
     보상 · 성장
       A 고정 급여·직선 성장
         허브 등록 완료
@@ -212,6 +216,7 @@ mindmap
 | Game Core | 수집 | B: Garage 전시·성장형 | 준비 | 전시와 성장 중 핵심 소유감 검증 | [#12](https://github.com/aigemro/dream-bike-garage-lab/issues/12) |
 | Game Core | 주문·조립 | A: 조건 충족 즉시 자동 조립 | 검토 준비 | 캐주얼 템포와 조립 성취감 비교 | [#17](https://github.com/aigemro/dream-bike-garage-lab/issues/17) |
 | Game Core | 주문·조립 | B: 조립 슬롯 직접 배치 | 검토 준비 | 직접 배치의 조립감과 추가 피로 비교 | [#18](https://github.com/aigemro/dream-bike-garage-lab/issues/18) |
+| Game Core | 장착·조립 연출 | A/B: 순차 자동 장착·확인 후 장착 | 개발 중 (1차 데모) | 자동 조립 과정 인지·성취감·반복 피로 비교 | [#151](https://github.com/aigemro/dream-bike-garage-lab/issues/151), [통합 검토](MVP_CORE_LOOP_INTEGRATION_REVIEW.md) |
 | Game Core | 보상·성장 | A/B | 준비 (허브 등록) | 고정 급여와 성과 보너스의 반복 동기 비교 데모 구현 | [#20](https://github.com/aigemro/dream-bike-garage-lab/issues/20), [#21](https://github.com/aigemro/dream-bike-garage-lab/issues/21) |
 | Game Core | 보상·성장 | C: 소프트 타이머·시간 vs 품질 | 준비 (허브 등록) | 시간 보너스 vs 품질 보너스 선택의 재미 검증 (차별화 지점) 데모 구현 | [#75](https://github.com/aigemro/dream-bike-garage-lab/issues/75) |
 | Game Core | 메인 홈·플레이 화면 | A/B/C/D/E | 검토 준비 | 통합형 3안, 일반 Garage D안, 회의 배치 기반 Garage E안 비교 | [#87](https://github.com/aigemro/dream-bike-garage-lab/issues/87), [#95](https://github.com/aigemro/dream-bike-garage-lab/issues/95), [#96](https://github.com/aigemro/dream-bike-garage-lab/issues/96), [#97](https://github.com/aigemro/dream-bike-garage-lab/issues/97), [#100](https://github.com/aigemro/dream-bike-garage-lab/issues/100), [#102](https://github.com/aigemro/dream-bike-garage-lab/issues/102) |
