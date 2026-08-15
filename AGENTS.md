@@ -53,7 +53,8 @@ src/
 - 상태 흐름: 아이디어 → 준비 → 개발 중 → 검토 준비 → 검토 → 완료 / 결과: 채택·조건부 채택·보류·폐기
 - 같은 트랙의 실험은 가능한 한 같은 초기 조건과 평가 항목으로 비교합니다.
 - 실패한 실험도 원인과 배운 점을 기록합니다.
-- Game Core(재미 비교)와 Platform & Technology(기술 검증)는 별도 트랙으로 관리합니다.
+- MVP Core Play(한 판의 직접 플레이), Meta Progression(장기 성장), Art & Audio(표현), Platform & Technology(기술), Release Integration(출시 연결)을 별도 상위 영역으로 관리합니다.
+- 상세 분류와 현재 통합 선택안은 [docs/TRACK_CLASSIFICATION.md](docs/TRACK_CLASSIFICATION.md)를 따릅니다.
 - 이슈 접두어: `[실험]` `[기술]` `[검증]` (메인은 `[기획]` `[설계]` `[적용]`)
 - 실험 완료 기준: 메인 이슈에 결과가 전달되고 양방향 링크가 남는 것
 
