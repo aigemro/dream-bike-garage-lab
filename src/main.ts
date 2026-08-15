@@ -12,6 +12,9 @@ import { startInputPrototype, type InputPrototypeMode } from './input-prototype'
 import { startStoragePrototype, type StoragePrototypeMode } from './storage-prototype';
 import { startGameSystemPrototype, type GameSystemPrototypeMode } from './game-system-prototype';
 import { startBoardSizePrototype, type BoardSizeMode } from './board-size-prototype';
+import garage16Bit from './assets/background-art/garage-16bit.png';
+import garage32Bit from './assets/background-art/garage-32bit.png';
+import garageUiFriendly from './assets/background-art/garage-ui-friendly.png';
 
 type Status = '체험 가능' | '준비 중';
 type Variant = {
@@ -42,6 +45,7 @@ type Track = {
   group: 'GAME CORE' | 'ART & AUDIO' | 'PLATFORM & TECHNOLOGY';
   title: string;
   description: string;
+  issueNumber?: number;
   variants: Variant[];
 };
 
@@ -85,12 +89,18 @@ const tracks: Track[] = [
   {
     id: 'background-art', group: 'ART & AUDIO', title: '배경 디자인·Garage 공간 연출',
     description: '동일한 자전거 작업실을 서로 다른 픽셀 밀도와 UI 여백으로 표현해 감성·가독성·제작 비용을 비교합니다.',
+    issueNumber: 119,
     variants: [
-      { id: 'pixel-16bit', label: 'A안', title: '정통 16비트 픽셀 공방', description: '굵은 실루엣과 제한된 색상으로 복고적인 작업실 감성을 강조합니다.', status: '체험 가능', question: '강한 픽셀 정체성이 모바일 가독성과 따뜻한 작업실 감성을 함께 전달하는가?', controls: '390×810 기준으로 중앙 자전거, 주문 게시판, 상·하단 UI 여백과 반복 노출 피로도를 확인합니다.', imageDemo: `${import.meta.env.BASE_URL}assets/prototypes/background-art/garage-16bit.png`, issueNumber: 120, documentId: 'background-16bit' },
-      { id: 'pixel-32bit', label: 'B안', title: '고밀도 32비트 생활형 픽셀', description: '풍부한 공구·부품·질감과 섬세한 조명으로 생활감과 수집 공간의 디테일을 강화합니다.', status: '체험 가능', question: '풍부한 공간 디테일이 애착을 높이면서 플레이 UI와 경쟁하지 않는가?', controls: '작은 화면에서 디테일이 뭉치지 않는지, 중앙 자전거의 주목도와 완성차 전시 확장성을 확인합니다.', imageDemo: `${import.meta.env.BASE_URL}assets/prototypes/background-art/garage-32bit.png`, issueNumber: 121, documentId: 'background-32bit' },
-      { id: 'ui-friendly', label: 'C안', title: '픽셀 배경 + 캐주얼 UI 친화형', description: '중간 수준의 픽셀 디테일과 넓은 저밀도 영역으로 모바일 UI가 올라갈 공간을 확보합니다.', status: '체험 가능', question: '픽셀 생활감은 유지하면서 주문·PLAY·성장 UI를 가장 명확하게 수용하는가?', controls: '상·하단 UI 안전 영역, 배경 대비, 중앙 자전거 식별성과 Garage 성장 표현의 확장성을 확인합니다.', imageDemo: `${import.meta.env.BASE_URL}assets/prototypes/background-art/garage-ui-friendly.png`, issueNumber: 122, documentId: 'background-ui-friendly' },
+      { id: 'pixel-16bit', label: 'A안', title: '정통 16비트 픽셀 공방', description: '굵은 실루엣과 제한된 색상으로 복고적인 작업실 감성을 강조합니다.', status: '체험 가능', question: '강한 픽셀 정체성이 모바일 가독성과 따뜻한 작업실 감성을 함께 전달하는가?', controls: '390×810 기준으로 중앙 자전거, 주문 게시판, 상·하단 UI 여백과 반복 노출 피로도를 확인합니다.', imageDemo: garage16Bit, issueNumber: 120, documentId: 'background-16bit' },
+      { id: 'pixel-32bit', label: 'B안', title: '고밀도 32비트 생활형 픽셀', description: '풍부한 공구·부품·질감과 섬세한 조명으로 생활감과 수집 공간의 디테일을 강화합니다.', status: '체험 가능', question: '풍부한 공간 디테일이 애착을 높이면서 플레이 UI와 경쟁하지 않는가?', controls: '작은 화면에서 디테일이 뭉치지 않는지, 중앙 자전거의 주목도와 완성차 전시 확장성을 확인합니다.', imageDemo: garage32Bit, issueNumber: 121, documentId: 'background-32bit' },
+      { id: 'ui-friendly', label: 'C안', title: '픽셀 배경 + 캐주얼 UI 친화형', description: '중간 수준의 픽셀 디테일과 넓은 저밀도 영역으로 모바일 UI가 올라갈 공간을 확보합니다.', status: '체험 가능', question: '픽셀 생활감은 유지하면서 주문·PLAY·성장 UI를 가장 명확하게 수용하는가?', controls: '상·하단 UI 안전 영역, 배경 대비, 중앙 자전거 식별성과 Garage 성장 표현의 확장성을 확인합니다.', imageDemo: garageUiFriendly, issueNumber: 122, documentId: 'background-ui-friendly' },
     ],
   },
+  { id: 'character-art', group: 'ART & AUDIO', title: '캐릭터 디자인·표현 방향', description: '플레이어·점장·고객 NPC의 비율, 실루엣, 초상화와 감정 표현 방향을 비교합니다.', issueNumber: 125, variants: [] },
+  { id: 'ui-icon-art', group: 'ART & AUDIO', title: 'UI·아이콘 아트 방향', description: '픽셀 배경 위에서 주문·부품·재화·상태 정보를 명확하게 전달하는 시각 체계를 비교합니다.', issueNumber: 126, variants: [] },
+  { id: 'animation-motion', group: 'ART & AUDIO', title: '애니메이션·모션 표현 방향', description: '캐릭터 행동, 부품 머지, 자전거 조립과 화면 전환의 움직임과 제작 범위를 비교합니다.', issueNumber: 127, variants: [] },
+  { id: 'background-music', group: 'ART & AUDIO', title: '배경음악·공간 분위기', description: 'Garage 홈과 플레이 상태에 어울리는 음악 방향, 반복 피로와 전환 규칙을 비교합니다.', issueNumber: 128, variants: [] },
+  { id: 'sound-effects', group: 'ART & AUDIO', title: '효과음·조작 피드백', description: '탭·생성·머지·장착·납품·보상의 소리와 기계적 조립감의 균형을 비교합니다.', issueNumber: 129, variants: [] },
   {
     id: 'home-screen-design', group: 'ART & AUDIO', title: '홈 화면 디자인',
     description: '회의안 기반 Garage 홈의 정보 구조를 유지하고, 실제 게임 화면의 픽셀 아트·UI·공간 연출을 비교합니다.',
@@ -289,15 +299,16 @@ function renderHome() {
 
 function renderTrack(track: Track) {
   destroyGame();
+  const trackIssue = track.issueNumber ? `<a class="track-issue" href="https://github.com/aigemro/dream-bike-garage-lab/issues/${track.issueNumber}" target="_blank" rel="noreferrer">Track Issue #${track.issueNumber} ↗</a>` : '';
   shell(`<main class="track-page">
     <section class="experiment-title"><p class="eyebrow">${track.group} · EXPERIMENT TRACK</p><h1>${track.title}</h1><p>${track.description}</p></section>
-    <section class="comparison-note"><strong>비교 원칙</strong><span>각 방안은 독립 URL과 실행 화면을 가지며, 같은 질문과 조건으로 비교합니다.</span></section>
-    <div class="variant-grid">${track.variants.map((item) => `
+    <section class="comparison-note"><strong>${track.variants.length ? '비교 원칙' : '트랙 준비 완료'}</strong><span>${track.variants.length ? '각 방안은 독립 URL과 실행 화면을 가지며, 같은 질문과 조건으로 비교합니다.' : '상위 범위와 이슈만 먼저 등록했습니다. Prototype 방안은 추후 이 트랙 아래에 추가합니다.'}</span>${trackIssue}</section>
+    ${track.variants.length ? `<div class="variant-grid">${track.variants.map((item) => `
       <a class="variant-card ${item.status === '체험 가능' ? 'ready' : ''}" href="#/track/${track.id}/${item.id}">
         <div class="variant-top"><span class="variant-label">${item.label}</span><span class="status">${item.status}</span></div>
         <h2>${item.title}</h2><p>${item.description}</p>
         <dl><dt>검증 질문</dt><dd>${item.question}</dd></dl><span class="open">방안 확인 →</span>
-      </a>`).join('')}</div>
+      </a>`).join('')}</div>` : '<section class="empty-panel"><span>VARIANTS TO BE DEFINED</span><h2>방안은 추후 추가합니다.</h2><p>트랙 이슈에서 범위와 평가 기준을 먼저 정리한 뒤 Prototype A/B/C를 독립 이슈로 연결합니다.</p></section>'}
   </main>`, { href: '#', label: '전체 트랙' });
 }
 
