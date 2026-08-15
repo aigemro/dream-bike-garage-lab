@@ -13,6 +13,7 @@ import { startInputPrototype, type InputPrototypeMode } from './input-prototype'
 import { startStoragePrototype, type StoragePrototypeMode } from './storage-prototype';
 import { startGameSystemPrototype, type GameSystemPrototypeMode } from './game-system-prototype';
 import { startBoardSizePrototype, type BoardSizeMode } from './board-size-prototype';
+import { startCoreLoopPrototype, type CoreLoopPrototypeMode } from './core-loop-prototype';
 import garage16Bit from './assets/background-art/garage-16bit.png';
 import garage32Bit from './assets/background-art/garage-32bit.png';
 import garageUiFriendly from './assets/background-art/garage-ui-friendly.png';
@@ -38,6 +39,7 @@ type Variant = {
   storageDemo?: StoragePrototypeMode;
   systemDemo?: GameSystemPrototypeMode;
   boardSizeDemo?: BoardSizeMode;
+  coreLoopDemo?: CoreLoopPrototypeMode;
   imageDemo?: string;
   issueNumber: number;
   documentId: string;
@@ -52,6 +54,20 @@ type Track = {
 };
 
 const tracks: Track[] = [
+  {
+    id: 'order-repeat', group: 'GAME CORE', title: '주문 세트·반복 플레이', issueNumber: 144,
+    description: '초기 주문 3종의 학습 흐름과 이후 변형 주문이 계속 플레이할 목표를 만드는지 검증합니다.',
+    variants: [
+      { id: 'cycle-set', label: 'A안', title: '순환 주문 세트', description: '어반 로드·MTB·그래블을 순서대로 학습한 뒤 요구 레벨과 보상이 오른 변형 주문을 반복합니다.', status: '체험 가능', question: '초기 3종 이후에도 다음 변형 주문이 분명한 재플레이 목표를 만드는가?', controls: '현재 주문 완료를 눌러 주문 3종을 진행하고, 2회차에서 요구 레벨·보상과 다음 목표가 어떻게 바뀌는지 확인합니다.', coreLoopDemo: 'order-cycle', issueNumber: 144, documentId: 'order-cycle' },
+    ],
+  },
+  {
+    id: 'board-recovery', group: 'GAME CORE', title: '보드 막힘·복구', issueNumber: 145,
+    description: '빈 칸과 유효 머지가 없는 상태를 감지하고 핵심 플레이로 되돌리는 구제 규칙을 비교합니다.',
+    variants: [
+      { id: 'free-cleanup', label: 'A안', title: '1회 무료 정리', description: '낮은 레벨의 불필요 부품 한 개를 무료로 정리하고 주문 부품을 보급해 유효 머지로 복귀합니다.', status: '체험 가능', question: '무료 정리 1회가 실패감을 줄이면서 막힘 관리의 의미를 유지하는가?', controls: '막힘 진단 → 무료 정리 → 주문 부품 보급 → 유효 머지 순서로 복구하고 행동 수와 상태 변화를 확인합니다.', coreLoopDemo: 'free-cleanup', issueNumber: 145, documentId: 'board-free-cleanup' },
+    ],
+  },
   {
     id: 'level-design', group: 'GAME CORE', title: '레벨 디자인·콘텐츠 해금',
     description: '초반 10레벨에서 규칙을 공개하는 순서와 큰 콘텐츠 해금 기준을 비교합니다.',
@@ -378,10 +394,10 @@ function renderVariant(track: Track, variant: Variant) {
 function renderDemo(track: Track, variant: Variant) {
   destroyGame();
   shell(`<main class="experiment-page demo-page">
-    ${variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.homeDesignDemo || variant.artAudioDemo || variant.inputDemo || variant.systemDemo || variant.storageDemo || variant.boardSizeDemo || variant.imageDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${variant.imageDemo ? '동일 Garage 장면 · 390×810 세로 화면' : variant.artAudioDemo ? '홈 화면 A안 공통 스타일 · 390×810 체험' : variant.homeDesignDemo ? '회의안 기반 정보 구조 · 동일 데이터 · 시각 언어만 비교' : variant.boardSizeDemo ? '동일 주문·초기 부품 · 보드 조건만 변경' : variant.storageDemo ? '동일 상태 · 보드·재화·주문' : variant.systemDemo ? '동일 초반 레벨·주문·직급 데이터' : variant.inputDemo ? '동일 6×5 보드 · 동일 초기 부품 · 입력 규칙만 비교' : variant.homePlayDemo ? '390×810 · 동일 주문·메뉴·보드 데이터' : variant.assemblyDemo ? '동일 주문 · 동일 부품 4종' : variant.rewardDemo ? '동일 시작 급여 1,000 · 기본 보상 500' : variant.supplyDemo ? '동일 5×4 보드 · 목표 Lv.3 ×2' : variant.collectionDemo ? '동일 데이터 · 3,000코인' : variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div>${variant.imageDemo ? '' : '<button id="reset-demo">초기화</button>'}</div>${variant.imageDemo ? `<figure class="background-art-preview"><img src="${variant.imageDemo}" alt="${variant.title} Garage 배경 시안" /></figure>` : `<div id="game-root" class="demo-${variant.boardSizeDemo ?? variant.storageDemo ?? variant.systemDemo ?? variant.inputDemo ?? variant.artAudioDemo ?? variant.homeDesignDemo ?? variant.homePlayDemo ?? variant.assemblyDemo ?? variant.rewardDemo ?? variant.supplyDemo ?? variant.collectionDemo ?? variant.demo}"></div>`}<p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
+    ${variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.homeDesignDemo || variant.artAudioDemo || variant.inputDemo || variant.systemDemo || variant.storageDemo || variant.boardSizeDemo || variant.coreLoopDemo || variant.imageDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${variant.imageDemo ? '동일 Garage 장면 · 390×810 세로 화면' : variant.coreLoopDemo ? 'MVP GAME CORE · 간단 상호작용 검증' : variant.artAudioDemo ? '홈 화면 A안 공통 스타일 · 390×810 체험' : variant.homeDesignDemo ? '회의안 기반 정보 구조 · 동일 데이터 · 시각 언어만 비교' : variant.boardSizeDemo ? '동일 주문·초기 부품 · 보드 조건만 변경' : variant.storageDemo ? '동일 상태 · 보드·재화·주문' : variant.systemDemo ? '동일 초반 레벨·주문·직급 데이터' : variant.inputDemo ? '동일 6×5 보드 · 동일 초기 부품 · 입력 규칙만 비교' : variant.homePlayDemo ? '390×810 · 동일 주문·메뉴·보드 데이터' : variant.assemblyDemo ? '동일 주문 · 동일 부품 4종' : variant.rewardDemo ? '동일 시작 급여 1,000 · 기본 보상 500' : variant.supplyDemo ? '동일 5×4 보드 · 목표 Lv.3 ×2' : variant.collectionDemo ? '동일 데이터 · 3,000코인' : variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div>${variant.imageDemo ? '' : '<button id="reset-demo">초기화</button>'}</div>${variant.imageDemo ? `<figure class="background-art-preview"><img src="${variant.imageDemo}" alt="${variant.title} Garage 배경 시안" /></figure>` : `<div id="game-root" class="demo-${variant.coreLoopDemo ?? variant.boardSizeDemo ?? variant.storageDemo ?? variant.systemDemo ?? variant.inputDemo ?? variant.artAudioDemo ?? variant.homeDesignDemo ?? variant.homePlayDemo ?? variant.assemblyDemo ?? variant.rewardDemo ?? variant.supplyDemo ?? variant.collectionDemo ?? variant.demo}"></div>`}<p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
   </main>`, { href: `#/track/${track.id}/${variant.id}`, label: `${variant.title} 상세` });
-  if (variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.homeDesignDemo || variant.artAudioDemo || variant.inputDemo || variant.systemDemo || variant.storageDemo || variant.boardSizeDemo) {
-    const start = () => { destroyGame(); if (variant.boardSizeDemo) { game = startBoardSizePrototype('game-root', variant.boardSizeDemo) as unknown as Phaser.Game; return; } if (variant.storageDemo) { startStoragePrototype('game-root', variant.storageDemo); return; } game = variant.systemDemo ? startGameSystemPrototype('game-root', variant.systemDemo) : variant.inputDemo ? startInputPrototype('game-root', variant.inputDemo) : variant.artAudioDemo ? startArtAudioPrototype('game-root', variant.artAudioDemo) : variant.homeDesignDemo ? startHomeDesignPrototype('game-root', variant.homeDesignDemo) : variant.homePlayDemo ? startHomePlayPrototype('game-root', variant.homePlayDemo) : variant.assemblyDemo ? startAssemblyPrototype('game-root', variant.assemblyDemo) : variant.rewardDemo ? startRewardPrototype('game-root', variant.rewardDemo) : variant.supplyDemo ? startSupplyPrototype('game-root', variant.supplyDemo) : variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
+  if (variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.homeDesignDemo || variant.artAudioDemo || variant.inputDemo || variant.systemDemo || variant.storageDemo || variant.boardSizeDemo || variant.coreLoopDemo) {
+    const start = () => { destroyGame(); if (variant.coreLoopDemo) { game = startCoreLoopPrototype('game-root', variant.coreLoopDemo) as unknown as Phaser.Game; return; } if (variant.boardSizeDemo) { game = startBoardSizePrototype('game-root', variant.boardSizeDemo) as unknown as Phaser.Game; return; } if (variant.storageDemo) { startStoragePrototype('game-root', variant.storageDemo); return; } game = variant.systemDemo ? startGameSystemPrototype('game-root', variant.systemDemo) : variant.inputDemo ? startInputPrototype('game-root', variant.inputDemo) : variant.artAudioDemo ? startArtAudioPrototype('game-root', variant.artAudioDemo) : variant.homeDesignDemo ? startHomeDesignPrototype('game-root', variant.homeDesignDemo) : variant.homePlayDemo ? startHomePlayPrototype('game-root', variant.homePlayDemo) : variant.assemblyDemo ? startAssemblyPrototype('game-root', variant.assemblyDemo) : variant.rewardDemo ? startRewardPrototype('game-root', variant.rewardDemo) : variant.supplyDemo ? startSupplyPrototype('game-root', variant.supplyDemo) : variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
     start();
     document.querySelector('#reset-demo')?.addEventListener('click', start);
   }
