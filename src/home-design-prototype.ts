@@ -1,6 +1,13 @@
 import Phaser from 'phaser';
+import { DuskWorkshopGarageScene } from './home-design-dusk-workshop';
+import { RetroPixelGarageScene } from './home-design-retro-pixel';
+import { ModernCasualGarageScene } from './home-design-modern-casual';
 
-export type HomeDesignPrototypeMode = 'warm-pixel-garage';
+export type HomeDesignPrototypeMode =
+  | 'warm-pixel-garage'
+  | 'dusk-workshop-garage'
+  | 'retro-pixel-garage'
+  | 'modern-casual-garage';
 
 const P = {
   ink: 0x3b2531, cream: 0xfff1c6, paper: 0xf6d995, wood: 0x8e5136,
@@ -174,10 +181,22 @@ class WarmPixelGarageScene extends Phaser.Scene {
   }
 }
 
-export function startHomeDesignPrototype(parent: string, _mode: HomeDesignPrototypeMode) {
+export function startHomeDesignPrototype(parent: string, mode: HomeDesignPrototypeMode) {
+  // 방안별 씬과 기본 배경색·렌더 설정을 분기합니다. (D안만 부드러운 벡터 렌더링)
+  const scene =
+    mode === 'dusk-workshop-garage' ? new DuskWorkshopGarageScene()
+    : mode === 'retro-pixel-garage' ? new RetroPixelGarageScene()
+    : mode === 'modern-casual-garage' ? new ModernCasualGarageScene()
+    : new WarmPixelGarageScene();
+  const backgroundColor =
+    mode === 'dusk-workshop-garage' ? '#141a2e'
+    : mode === 'retro-pixel-garage' ? '#101026'
+    : mode === 'modern-casual-garage' ? '#bfe9f2'
+    : '#fff1c6';
+  const smooth = mode === 'modern-casual-garage';
   return new Phaser.Game({
-    type: Phaser.AUTO, parent, width: 390, height: 810, backgroundColor: '#fff1c6',
+    type: Phaser.AUTO, parent, width: 390, height: 810, backgroundColor,
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    scene: new WarmPixelGarageScene(), render: { antialias: false, pixelArt: true, roundPixels: true },
+    scene, render: { antialias: smooth, pixelArt: !smooth, roundPixels: !smooth },
   });
 }

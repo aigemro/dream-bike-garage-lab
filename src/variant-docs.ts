@@ -44,11 +44,14 @@ import doc42 from '../docs/variants/background-16bit.md?raw';
 import doc43 from '../docs/variants/background-32bit.md?raw';
 import doc44 from '../docs/variants/background-ui-friendly.md?raw';
 import doc45 from '../docs/variants/home-design-warm-pixel.md?raw';
-import doc46 from '../docs/variants/character-warm-pixel.md?raw';
-import doc47 from '../docs/variants/ui-warm-pixel.md?raw';
-import doc48 from '../docs/variants/motion-warm-pixel.md?raw';
-import doc49 from '../docs/variants/music-warm-pixel.md?raw';
-import doc50 from '../docs/variants/sfx-warm-pixel.md?raw';
+import doc46 from '../docs/variants/home-design-dusk-workshop.md?raw';
+import doc47 from '../docs/variants/home-design-retro-pixel.md?raw';
+import doc48 from '../docs/variants/home-design-modern-casual.md?raw';
+import doc49 from '../docs/variants/character-warm-pixel.md?raw';
+import doc50 from '../docs/variants/ui-warm-pixel.md?raw';
+import doc51 from '../docs/variants/motion-warm-pixel.md?raw';
+import doc52 from '../docs/variants/music-warm-pixel.md?raw';
+import doc53 from '../docs/variants/sfx-warm-pixel.md?raw';
 
 const variantDocs: Record<string, string> = {
   'merge-free-board': doc0,
@@ -97,11 +100,14 @@ const variantDocs: Record<string, string> = {
   'background-32bit': doc43,
   'background-ui-friendly': doc44,
   'home-design-warm-pixel': doc45,
-  'character-warm-pixel': doc46,
-  'ui-warm-pixel': doc47,
-  'motion-warm-pixel': doc48,
-  'music-warm-pixel': doc49,
-  'sfx-warm-pixel': doc50,
+  'home-design-dusk-workshop': doc46,
+  'home-design-retro-pixel': doc47,
+  'home-design-modern-casual': doc48,
+  'character-warm-pixel': doc49,
+  'ui-warm-pixel': doc50,
+  'motion-warm-pixel': doc51,
+  'music-warm-pixel': doc52,
+  'sfx-warm-pixel': doc53,
 };
 
 export default variantDocs;
