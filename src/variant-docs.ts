@@ -61,6 +61,9 @@ import doc59 from '../docs/variants/collection-design-catalog.md?raw';
 import doc60 from '../docs/variants/collection-design-showcase.md?raw';
 import doc61 from '../docs/variants/collection-design-dream.md?raw';
 import doc62 from '../docs/variants/game-screen-design-warm-pixel.md?raw';
+import doc63 from '../docs/variants/profile-design-id-card.md?raw';
+import doc64 from '../docs/variants/profile-design-career-board.md?raw';
+import doc65 from '../docs/variants/profile-design-stats-dashboard.md?raw';
 
 const variantDocs: Record<string, string> = {
   'merge-free-board': doc0,
@@ -126,6 +129,9 @@ const variantDocs: Record<string, string> = {
   'collection-design-showcase': doc60,
   'collection-design-dream': doc61,
   'game-screen-design-warm-pixel': doc62,
+  'profile-design-id-card': doc63,
+  'profile-design-career-board': doc64,
+  'profile-design-stats-dashboard': doc65,
 };
 
 export default variantDocs;
