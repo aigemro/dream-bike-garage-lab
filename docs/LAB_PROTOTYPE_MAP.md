@@ -219,6 +219,8 @@ mindmap
 | Game Core | 직급·커리어 | A/B/C | 개발 중 | 자동·과제·복합 승진 조건 비교 | [#107](https://github.com/aigemro/dream-bike-garage-lab/issues/107) |
 | Game Core | 난이도·경제 | A/B/C | 개발 중 | 주문 시간·행동·수입·소비 측정 | [#108](https://github.com/aigemro/dream-bike-garage-lab/issues/108) |
 | Game Core | 피드백·연출 | A/B/C | 개발 중 | 동일 이벤트의 길이·강도·피로 비교 | [#109](https://github.com/aigemro/dream-bike-garage-lab/issues/109) |
+| Game Core | 주문 세트·반복 플레이 | A: 순환 주문 세트 | 개발 중 (1차 데모) | 초기 3종 이후 변형 주문의 재플레이 동기 검증 | [#144](https://github.com/aigemro/dream-bike-garage-lab/issues/144) |
+| Game Core | 보드 막힘·복구 | A: 1회 무료 정리 | 개발 중 (1차 데모) | 막힘 감지 후 손실감·복구 행동 수·정상 플레이 복귀 검증 | [#145](https://github.com/aigemro/dream-bike-garage-lab/issues/145) |
 | Art & Audio | 배경 디자인·Garage 공간 | A/B/C | 검토 준비 (시안·허브 등록) | 390×810 주문·PLAY UI 오버레이 후 감성·가독성·제작 비용 비교 | [#119](https://github.com/aigemro/dream-bike-garage-lab/issues/119), [#120](https://github.com/aigemro/dream-bike-garage-lab/issues/120), [#121](https://github.com/aigemro/dream-bike-garage-lab/issues/121), [#122](https://github.com/aigemro/dream-bike-garage-lab/issues/122) |
 | Art & Audio | 홈 화면 디자인 | A: 따뜻한 생활형 픽셀 Garage | 개발 중 (1차 데모) | 회의안 E 구조 기준 3초 인지·UI 가독성·Garage 소유감 검토 후 B/C안 추가 | [#130](https://github.com/aigemro/dream-bike-garage-lab/issues/130) |
 | Art & Audio | 캐릭터 디자인·표현 방향 | A: 따뜻한 생활형 픽셀 정비사·고객 | 개발 중 (1차 데모) | 역할 실루엣·필드/초상화 연결·3단계 감정 비교 | [#125](https://github.com/aigemro/dream-bike-garage-lab/issues/125), [#133](https://github.com/aigemro/dream-bike-garage-lab/issues/133) |
