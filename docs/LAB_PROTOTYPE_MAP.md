@@ -50,7 +50,7 @@ flowchart TB
     PLATFORM --> RESPONSIVE["반응형 화면"]
     PLATFORM --> SAVE["저장 · 상태 복구"]
     PLATFORM --> TOSS["앱인토스 · 운영"]
-    INTEGRATION --> MVP["MVP 핵심 루프 통합"]
+    INTEGRATION --> MVP["MVP 핵심 기능 통합"]
 ```
 
 세부 분류 기준과 현재 통합 선택안은 [트랙 분류 운영안](TRACK_CLASSIFICATION.md)을 따릅니다.
@@ -241,7 +241,7 @@ mindmap
 | Art & Audio | 애니메이션·모션 표현 방향 | A: 짧고 포근한 픽셀 모션 | 개발 중 (1차 데모) | 0.4초 이하 머지·장착·완성 인지와 반복 피로 비교 | [#127](https://github.com/aigemro/dream-bike-garage-lab/issues/127), [#135](https://github.com/aigemro/dream-bike-garage-lab/issues/135) |
 | Art & Audio | 배경음악·공간 분위기 | A: 포근한 Garage 칩튠 루프 | 개발 중 (1차 데모) | HOME/WORK 변주·전환·반복 피로·오디오 생명주기 검증 | [#128](https://github.com/aigemro/dream-bike-garage-lab/issues/128), [#136](https://github.com/aigemro/dream-bike-garage-lab/issues/136) |
 | Art & Audio | 효과음·조작 피드백 | A: 부드러운 공방 조작 피드백 | 개발 중 (1차 데모) | 핵심 행동 6종 구분감·조립감·연속 입력 피로 검증 | [#129](https://github.com/aigemro/dream-bike-garage-lab/issues/129), [#137](https://github.com/aigemro/dream-bike-garage-lab/issues/137) |
-| Release Integration | MVP 핵심 루프 통합 | 선택안 기능 수직 슬라이스 | 개발 중 (1차 데모) | 주문 3종 완주·상태 복구·진행 막힘 여부 검증 | [#113](https://github.com/aigemro/dream-bike-garage-lab/issues/113), [#114](https://github.com/aigemro/dream-bike-garage-lab/issues/114), [통합 검토](MVP_CORE_LOOP_INTEGRATION_REVIEW.md) |
+| Release Integration | MVP 핵심 기능 통합 | 머지 코어 C안 + 택배 수급 + 장착·조립 | 개발 중 (1차 데모) | C안 실제 화면 기반 택배 수급·단계별 자동 장착·주문 완료 전이 검증 | [#113](https://github.com/aigemro/dream-bike-garage-lab/issues/113), [#114](https://github.com/aigemro/dream-bike-garage-lab/issues/114), [통합 검토](MVP_CORE_LOOP_INTEGRATION_REVIEW.md) |
 | Platform | 입력 방식 | A/B/C | 허브 반영 중 | 탭·드래그·하이브리드를 같은 보드에서 비교 | [#33](https://github.com/aigemro/dream-bike-garage-lab/issues/33), [PR #39](https://github.com/aigemro/dream-bike-garage-lab/pull/39) |
 | Platform | 반응형 화면 | A/B/C | 허브 반영 중 | 모바일·태블릿·웹브라우저 조건별 비교 | [#4](https://github.com/aigemro/dream-bike-garage-lab/issues/4), [PR #39](https://github.com/aigemro/dream-bike-garage-lab/pull/39) |
 | Platform | 저장·복구 | 방식 후보 | 준비 | MVP 저장 범위와 WebView 복구 조건 정의 | [#3](https://github.com/aigemro/dream-bike-garage-lab/issues/3), [#5](https://github.com/aigemro/dream-bike-garage-lab/issues/5) |

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 
-export type MergePrototypeMode = 'free' | 'order' | 'guided';
+export type MergePrototypeMode = 'free' | 'order' | 'guided' | 'integrated';
 
 type PartType = 'frame' | 'wheel' | 'drivetrain' | 'handlebar';
 type Point = { x: number; y: number };
@@ -13,7 +13,11 @@ type Piece = {
   rotation: number;
   item: Phaser.GameObjects.Container;
 };
-type Goal = { type: PartType; level: number; delivered: boolean };
+type Goal = { type: PartType; level: number; delivered: boolean; installing?: boolean };
+// 통합 모드 택배 상태: 주문 전(idle) → 배송 중(delivering) → 개봉 대기(arrived)
+type ParcelState = { state: 'idle' | 'delivering' | 'arrived'; readyAt: number };
+
+const PARCEL_DELIVERY_MS = 1500;
 
 const PARTS: Array<{ type: PartType; name: string; short: string; color: number; shape: Point[] }> = [
   { type: 'frame', name: '프레임', short: 'F', color: 0x55d6be, shape: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }] },
@@ -77,6 +81,12 @@ class MergePrototypeScene extends Phaser.Scene {
   private orderPartDisplays = new Map<PartType, Phaser.GameObjects.Container>();
   private guidedGoalDisplays = new Map<PartType, { panel: Phaser.GameObjects.Rectangle; status: Phaser.GameObjects.Text }>();
   private guidedOrderProgress?: Phaser.GameObjects.Text;
+  private parcels = new Map<PartType, ParcelState>();
+  private parcelDisplays = new Map<PartType, { button: Phaser.GameObjects.Rectangle; status: Phaser.GameObjects.Text; need: Phaser.GameObjects.Text }>();
+  private pendingParcel?: PartType;
+  private installQueue: Array<{ goal: Goal; from: Point; level: number }> = [];
+  private installingPart = false;
+  private orderCompleting = false;
 
   create() {
     this.cameras.main.setBackgroundColor('#0b1727');
@@ -89,19 +99,24 @@ class MergePrototypeScene extends Phaser.Scene {
       this.refreshUi('오른쪽 부품을 클릭해 커스텀 주문을 완성하세요. 같은 레벨 부품 2개는 자동으로 머지됩니다.');
       return;
     }
-    if (this.mode === 'guided') {
+    if (this.mode === 'guided' || this.mode === 'integrated') {
       this.drawGuidedOrder();
-      this.rebuildBoard('왼쪽 주문 목표를 확인하고 오른쪽에서 필요한 부품을 선택하세요. 자유롭게 배치·회전·머지할 수 있습니다.');
+      this.rebuildBoard(this.mode === 'integrated'
+        ? '주문에 필요한 카테고리의 택배를 주문하고, 도착한 상자를 개봉해 부품을 보드에 배치하세요.'
+        : '왼쪽 주문 목표를 확인하고 오른쪽에서 필요한 부품을 선택하세요. 자유롭게 배치·회전·머지할 수 있습니다.');
     } else {
       this.drawSizeControls();
       this.rebuildBoard('열·행의 − / + 버튼을 누르면 보드 크기가 바로 변경됩니다.');
     }
   }
 
-  update() { this.refreshMetrics(); }
+  update() {
+    this.refreshMetrics();
+    if (this.mode === 'integrated') this.tickParcels();
+  }
 
   private drawHeader() {
-    const names = { free: 'A · 자유 보드 · 2차 구현', order: 'B · 주문 중심 · 2차 구현', guided: 'C · 자유 + 가이드' };
+    const names = { free: 'A · 자유 보드 · 2차 구현', order: 'B · 주문 중심 · 2차 구현', guided: 'C · 자유 + 가이드', integrated: 'MVP 핵심 기능 통합 · 머지 코어 C안 기반' };
     this.add.text(24, 18, names[this.mode], { fontFamily: 'Arial', fontSize: '19px', color: '#55d6be', fontStyle: 'bold' });
     this.info = this.add.text(24, 47, '', { fontFamily: 'Arial', fontSize: '12px', color: '#bfd0dc', wordWrap: { width: 1040 } });
     this.metrics = this.add.text(1096, 20, '', { fontFamily: 'Arial', fontSize: '11px', color: '#758da1' }).setOrigin(1, 0);
@@ -131,8 +146,10 @@ class MergePrototypeScene extends Phaser.Scene {
       this.guidedGoalDisplays.set(goal.type, { panel, status });
     });
 
-    this.add.text(30, 574, 'C안 가이드', { fontFamily: 'Arial', fontSize: '11px', color: '#55d6be', fontStyle: 'bold' });
-    this.add.text(30, 598, '필요한 부품만 알려주며\n배치 위치와 제작 순서는\n플레이어가 자유롭게 정합니다.', {
+    this.add.text(30, 574, this.mode === 'integrated' ? '통합 검증' : 'C안 가이드', { fontFamily: 'Arial', fontSize: '11px', color: '#55d6be', fontStyle: 'bold' });
+    this.add.text(30, 598, this.mode === 'integrated'
+      ? '부품은 택배로만 수급되며\n목표 레벨 완성 시 자전거에\n부품별로 자동 장착됩니다.'
+      : '필요한 부품만 알려주며\n배치 위치와 제작 순서는\n플레이어가 자유롭게 정합니다.', {
       fontFamily: 'Arial', fontSize: '10px', color: '#71899c', lineSpacing: 6,
     });
     this.drawOrderBike();
@@ -272,13 +289,14 @@ class MergePrototypeScene extends Phaser.Scene {
     this.boardObjects = [];
     this.controls = [];
     this.zones = [];
-    const boardWidth = this.mode === 'guided' ? 460 : 680;
-    const boardHeight = this.mode === 'guided' ? 402 : 520;
+    const guidedLayout = this.mode === 'guided' || this.mode === 'integrated';
+    const boardWidth = guidedLayout ? 460 : 680;
+    const boardHeight = guidedLayout ? 402 : 520;
     this.cellSize = Math.floor(Math.min(boardWidth / this.columns, boardHeight / this.rows, 76));
     this.gap = Math.max(2, Math.min(5, Math.floor(this.cellSize * 0.08)));
     const width = this.columns * this.cellSize;
-    this.boardLeft = this.mode === 'guided' ? 250 + (500 - width) / 2 : 32 + (704 - width) / 2;
-    this.boardTop = this.mode === 'guided'
+    this.boardLeft = guidedLayout ? 250 + (500 - width) / 2 : 32 + (704 - width) / 2;
+    this.boardTop = guidedLayout
       ? 256 + (410 - this.rows * this.cellSize) / 2
       : 142 + (536 - this.rows * this.cellSize) / 2;
     this.drawBoard();
@@ -303,6 +321,10 @@ class MergePrototypeScene extends Phaser.Scene {
   }
 
   private drawPartControls() {
+    if (this.mode === 'integrated') {
+      this.drawParcelControls();
+      return;
+    }
     this.drawDesktopPartControls();
   }
 
@@ -336,8 +358,12 @@ class MergePrototypeScene extends Phaser.Scene {
     const guide = this.add.text(controlsLeft, controlsTop + 210, modeGuide, { fontFamily: 'Arial', fontSize: '11px', color: '#71899c', lineSpacing: 6, wordWrap: { width: panelWidth - panelPadding * 2 } });
     this.controls.push(guide);
 
-    const previewTop = controlsTop + 340;
-    const previewLabel = this.add.text(controlsLeft, previewTop, '선택 부품 미리보기', { fontFamily: 'Arial', fontSize: '12px', color: '#8fa8ba', fontStyle: 'bold' });
+    this.drawPartPreviews(panelLeft, panelWidth, panelPadding, controlsTop + 340);
+    this.refreshControls();
+  }
+
+  private drawPartPreviews(panelLeft: number, panelWidth: number, panelPadding: number, previewTop: number) {
+    const previewLabel = this.add.text(panelLeft + panelPadding, previewTop, '선택 부품 미리보기', { fontFamily: 'Arial', fontSize: '12px', color: '#8fa8ba', fontStyle: 'bold' });
     const previewPanel = this.add.rectangle(panelLeft + panelWidth / 2, previewTop + 76, panelWidth - panelPadding * 2, 118, 0x0b1929).setStrokeStyle(1, 0x29465e);
     this.controls.push(previewLabel, previewPanel);
 
@@ -367,7 +393,113 @@ class MergePrototypeScene extends Phaser.Scene {
         this.controls.push(preview);
       });
     });
+  }
+
+  // 통합 모드 전용: 즉시 생성 버튼 대신 카테고리별 택배 주문·개봉으로 부품을 수급한다.
+  private drawParcelControls() {
+    const panelLeft = 770;
+    const panelWidth = 340;
+    const panelPadding = 24;
+    const controlsLeft = panelLeft + panelPadding;
+    const controlsTop = 150;
+    const panel = this.add.rectangle(panelLeft + panelWidth / 2, 404, panelWidth, 520, 0x0e1d2e).setStrokeStyle(1, 0x29465e).setDepth(0);
+    const label = this.add.text(controlsLeft, controlsTop, '부품 택배 수급', { fontFamily: 'Arial', fontSize: '12px', color: '#8fa8ba' });
+    this.controls.push(panel, label);
+    this.parcelDisplays.clear();
+
+    PARTS.forEach((part, index) => {
+      const y = controlsTop + 54 + index * 64;
+      const button = this.add.rectangle(panelLeft + panelWidth / 2, y, panelWidth - panelPadding * 2, 56, 0x13263b)
+        .setStrokeStyle(2, part.color).setInteractive({ useHandCursor: true });
+      button.on('pointerdown', () => this.handleParcelButton(part.type));
+      const name = this.add.text(controlsLeft + 14, y - 20, `${part.name} · ${part.short} · ${part.shape.length}칸`, { fontFamily: 'Arial', fontSize: '12px', color: '#e8f1f7', fontStyle: 'bold' });
+      const status = this.add.text(controlsLeft + 14, y + 2, '', { fontFamily: 'Arial', fontSize: '10px', color: '#8fa8ba' });
+      const need = this.add.text(panelLeft + panelWidth - panelPadding - 14, y - 20, '주문 필요', { fontFamily: 'Arial', fontSize: '9px', color: '#ffd37a', fontStyle: 'bold' }).setOrigin(1, 0);
+      this.parcelDisplays.set(part.type, { button, status, need });
+      this.controls.push(button, name, status, need);
+    });
+
+    const guide = this.add.text(controlsLeft, controlsTop + 316, '택배 주문 → 배송 → 상자 개봉 → 보드 배치 순서로\n부품을 수급합니다. 개봉 후 같은 버튼을 다시 누르면\n부품이 90° 회전합니다.', {
+      fontFamily: 'Arial', fontSize: '10px', color: '#71899c', lineSpacing: 5, wordWrap: { width: panelWidth - panelPadding * 2 },
+    });
+    this.controls.push(guide);
+    this.drawPartPreviews(panelLeft, panelWidth, panelPadding, controlsTop + 372);
     this.refreshControls();
+  }
+
+  private handleParcelButton(type: PartType) {
+    const parcel = this.parcels.get(type) ?? { state: 'idle' as const, readyAt: 0 };
+    if (parcel.state === 'delivering') {
+      this.refreshUi(`${this.partName(type)} 택배가 배송 중입니다. 도착하면 같은 버튼으로 개봉하세요.`);
+      return;
+    }
+    if (parcel.state === 'arrived') {
+      if (this.pendingParcel && this.pendingParcel !== type && this.generatorPlacementActive) {
+        this.refreshUi(`먼저 개봉한 ${this.partName(this.pendingParcel)} 부품을 보드에 배치하세요.`);
+        return;
+      }
+      const repeated = this.pendingParcel === type && this.generatorPlacementActive;
+      this.pendingParcel = type;
+      this.selectedGenerator = type;
+      this.selectedPiece = undefined;
+      this.generatorPlacementActive = true;
+      this.generatorRotation = repeated ? (this.generatorRotation + 1) % 4 : 0;
+      this.clearPlacementGhost();
+      this.refreshControls();
+      this.refreshUi(repeated
+        ? `${this.partName(type)}을 ${this.generatorRotation * 90}°로 회전했습니다. 보드에서 배치 위치를 선택하세요.`
+        : `${this.partName(type)} 상자를 개봉했습니다. 보드에서 Lv.1 부품의 배치 위치를 선택하세요. 같은 Lv.1 부품 위에 놓으면 바로 머지됩니다.`);
+      return;
+    }
+    this.actions += 1;
+    this.parcels.set(type, { state: 'delivering', readyAt: this.time.now + PARCEL_DELIVERY_MS });
+    this.refreshUi(`${this.partName(type)} 택배를 주문했습니다. ${(PARCEL_DELIVERY_MS / 1000).toFixed(1)}초 뒤 도착합니다.`);
+  }
+
+  private tickParcels() {
+    let arrivedNow: PartType | undefined;
+    this.parcels.forEach((parcel, type) => {
+      if (parcel.state === 'delivering' && this.time.now >= parcel.readyAt) {
+        parcel.state = 'arrived';
+        arrivedNow = type;
+      }
+    });
+    if (arrivedNow) this.info.setText(`${this.partName(arrivedNow)} 택배가 도착했습니다. 오른쪽 버튼을 눌러 상자를 개봉하세요.`);
+    this.refreshParcelDisplays();
+  }
+
+  private refreshParcelDisplays() {
+    this.parcelDisplays.forEach((display, type) => {
+      if (!display.button.active) return;
+      const part = PARTS.find((item) => item.type === type)!;
+      const parcel = this.parcels.get(type);
+      const needed = this.goals.some((goal) => goal.type === type && !goal.delivered && !goal.installing);
+      const placing = this.pendingParcel === type && this.generatorPlacementActive;
+      display.need.setVisible(needed);
+      let statusText = '탭하면 택배를 주문합니다';
+      let statusColor = '#8fa8ba';
+      if (parcel?.state === 'delivering') {
+        statusText = `배송 중… ${Math.max(0, (parcel.readyAt - this.time.now) / 1000).toFixed(1)}초`;
+        statusColor = '#ffd37a';
+      } else if (placing) {
+        statusText = `배치 중 · ${this.generatorRotation * 90}° · 다시 누르면 회전`;
+        statusColor = '#9ff3e3';
+      } else if (parcel?.state === 'arrived') {
+        statusText = '📦 도착 · 탭해서 개봉';
+        statusColor = '#ffd37a';
+      }
+      display.status.setText(statusText).setColor(statusColor);
+      display.button.setFillStyle(placing ? 0x21445a : parcel?.state === 'arrived' ? 0x1a3a50 : 0x13263b);
+      display.button.setStrokeStyle(needed ? 3 : 1.5, part.color, needed ? 1 : 0.4);
+    });
+  }
+
+  // 배치가 끝난 시점에만 택배가 소비된다. 배치를 취소하면 상자는 개봉 대기 상태로 남는다.
+  private consumePendingParcel() {
+    if (this.mode !== 'integrated' || !this.pendingParcel) return;
+    this.parcels.set(this.pendingParcel, { state: 'idle', readyAt: 0 });
+    this.pendingParcel = undefined;
+    this.refreshParcelDisplays();
   }
 
   private handleCell(row: number, column: number) {
@@ -382,6 +514,7 @@ class MergePrototypeScene extends Phaser.Scene {
       if (!this.selectedPiece) {
         this.selectedPiece = clicked;
         this.generatorPlacementActive = false;
+        this.pendingParcel = undefined;
         this.refreshControls();
         this.refreshUi(`${this.partName(clicked.type)} Lv.${clicked.level} 선택 · 빈 칸으로 이동하거나 같은 부품에 머지하세요.`);
         return;
@@ -409,7 +542,9 @@ class MergePrototypeScene extends Phaser.Scene {
     }
 
     if (this.mode !== 'order' && !this.generatorPlacementActive) {
-      this.refreshUi('먼저 오른쪽에서 추가할 부품을 선택하세요.');
+      this.refreshUi(this.mode === 'integrated'
+        ? '먼저 오른쪽에서 택배를 주문하고, 도착한 상자를 개봉해 부품을 수급하세요.'
+        : '먼저 오른쪽에서 추가할 부품을 선택하세요.');
       return;
     }
     const type = this.mode === 'order' ? this.recommendedPart() : this.selectedGenerator;
@@ -422,6 +557,7 @@ class MergePrototypeScene extends Phaser.Scene {
     const piece = this.makePiece(type, row, column, placementRotation, 1);
     this.pieces.push(piece);
     this.generatorPlacementActive = false;
+    this.consumePendingParcel();
     const rotationMessage = placementRotation === 0 ? '' : ` · ${placementRotation * 90}° 회전`;
     this.refreshUi(`${this.partName(type)} Lv.1을 ${this.shape(type, placementRotation).length}칸 크기로 배치했습니다${rotationMessage}.`);
   }
@@ -473,6 +609,7 @@ class MergePrototypeScene extends Phaser.Scene {
     const merged = this.makePiece(target.type, target.row, target.column, target.rotation, 2);
     this.pieces.push(merged);
     this.generatorPlacementActive = false;
+    this.consumePendingParcel();
     this.merges += 1;
     this.refreshControls();
     this.refreshUi(`${this.partName(target.type)} Lv.1을 같은 위치에 놓아 Lv.2로 머지했습니다.`);
@@ -571,15 +708,97 @@ class MergePrototypeScene extends Phaser.Scene {
     this.controls.filter((object): object is Phaser.GameObjects.Rectangle => object instanceof Phaser.GameObjects.Rectangle && Boolean(object.getData('part')))
       .forEach((button) => button.setFillStyle(button.getData('part') === this.selectedGenerator && !this.selectedPiece && this.generatorPlacementActive ? 0x21445a : 0x13263b));
     this.controls.filter((object): object is Phaser.GameObjects.Container => object instanceof Phaser.GameObjects.Container && Boolean(object.getData('previewPart')))
-      .forEach((preview) => preview.setVisible(preview.getData('previewPart') === this.selectedGenerator && preview.getData('previewRotation') === this.generatorRotation));
+      .forEach((preview) => preview.setVisible(preview.getData('previewPart') === this.selectedGenerator && preview.getData('previewRotation') === this.generatorRotation
+        && (this.mode !== 'integrated' || this.generatorPlacementActive)));
     this.pieces.forEach((piece) => piece.item.setScale(piece.id === this.selectedPiece?.id ? 1.06 : 1));
+    if (this.mode === 'integrated') this.refreshParcelDisplays();
   }
 
   private refreshUi(message: string) {
     this.info.setText(message);
     if (this.mode === 'guided') this.checkDelivery();
+    if (this.mode === 'integrated') this.checkIntegratedDelivery();
     this.refreshOrder();
     this.refreshMetrics();
+  }
+
+  // 통합 모드: 목표 레벨 부품을 보드에서 소비하고 부품별 장착 연출을 거쳐 주문에 반영한다.
+  private checkIntegratedDelivery() {
+    this.goals.forEach((goal) => {
+      if (goal.delivered || goal.installing) return;
+      const match = this.pieces.find((piece) => piece.type === goal.type && piece.level >= goal.level);
+      if (!match) return;
+      goal.installing = true;
+      const from = this.cellCenter(match.row, match.column);
+      match.item.destroy(true);
+      this.pieces = this.pieces.filter((piece) => piece.id !== match.id);
+      if (this.selectedPiece?.id === match.id) this.selectedPiece = undefined;
+      this.installQueue.push({ goal, from, level: match.level });
+    });
+    this.processInstallQueue();
+  }
+
+  // 장착 연출은 한 번에 한 부품씩 순차 진행한다 (#151 자동 순차 장착 기준).
+  private processInstallQueue() {
+    if (this.installingPart) return;
+    const next = this.installQueue.shift();
+    if (!next) {
+      if (this.goals.length > 0 && this.goals.every((goal) => goal.delivered)) this.completeIntegratedOrder();
+      return;
+    }
+    this.installingPart = true;
+    const part = PARTS.find((item) => item.type === next.goal.type)!;
+    const target = this.bikeAnchor(next.goal.type);
+    this.info.setText(`${part.name} Lv.${next.level} 완성 · 고객 자전거로 이동해 장착합니다.`);
+    this.refreshOrder();
+    const marker = this.add.circle(next.from.x, next.from.y, 15, part.color).setDepth(30).setStrokeStyle(2, 0xffffff, 0.85);
+    this.tweens.add({
+      targets: marker,
+      x: target.x,
+      y: target.y,
+      scale: { from: 0.9, to: 1.5 },
+      alpha: { from: 1, to: 0.3 },
+      duration: 520,
+      ease: 'Cubic.easeInOut',
+      onComplete: () => {
+        marker.destroy();
+        next.goal.installing = false;
+        next.goal.delivered = true;
+        this.installingPart = false;
+        const installed = this.goals.filter((goal) => goal.delivered).length;
+        this.info.setText(`${part.name} 장착 완료 · 조립 ${installed}/${this.goals.length}`);
+        this.drawOrderBike();
+        this.refreshOrder();
+        this.refreshParcelDisplays();
+        this.processInstallQueue();
+      },
+    });
+  }
+
+  // 주문 패널 자전거의 부품별 장착 위치. drawGuidedOrder의 orderBike는 (445, 6)에 0.46 배율로 놓인다.
+  private bikeAnchor(type: PartType): Point {
+    const local: Record<PartType, Point> = {
+      frame: { x: 380, y: 275 },
+      wheel: { x: 546, y: 350 },
+      drivetrain: { x: 356, y: 364 },
+      handlebar: { x: 500, y: 212 },
+    };
+    return { x: 445 + local[type].x * 0.46, y: 6 + local[type].y * 0.46 };
+  }
+
+  private completeIntegratedOrder() {
+    if (this.orderCompleting) return;
+    this.orderCompleting = true;
+    this.info.setText(`주문 완료! 모든 부품이 장착되어 자전거를 납품했습니다. 잠시 후 다음 주문이 도착합니다.`);
+    this.time.delayedCall(1600, () => {
+      this.orderCompleting = false;
+      this.orderIndex = (this.orderIndex + 1) % 2;
+      this.goals = ORDERS[this.orderIndex].map((goal) => ({ ...goal }));
+      this.startedAt = this.time.now;
+      this.drawOrderBike();
+      this.refreshControls();
+      this.refreshUi('새 주문이 도착했습니다. 보드에 남은 부품은 그대로 사용할 수 있으며, 필요한 카테고리 택배를 주문하세요.');
+    });
   }
 
   private checkDelivery() {
@@ -645,17 +864,22 @@ class MergePrototypeScene extends Phaser.Scene {
     const completed = this.goals.filter((goal) => goal.delivered).length;
     const bikeName = this.orderIndex === 1 ? '트레일 MTB' : '에어로 로드';
     this.orderText.setText(`${bikeName} #${this.orderIndex + 1}`);
-    this.guidedOrderProgress?.setText(`완성 ${completed}/4 · 목표 부품 가이드`);
+    this.guidedOrderProgress?.setText(this.mode === 'integrated' ? `장착 ${completed}/4 · 부품별 자동 장착` : `완성 ${completed}/4 · 목표 부품 가이드`);
     this.drawOrderBike();
     this.goals.forEach((goal) => {
       const display = this.guidedGoalDisplays.get(goal.type);
       if (!display) return;
       const part = PARTS.find((item) => item.type === goal.type)!;
       const current = this.pieces.filter((piece) => piece.type === goal.type).reduce((max, piece) => Math.max(max, piece.level), 0);
-      display.panel.setFillStyle(goal.delivered ? part.color : 0x0b1929, goal.delivered ? 0.22 : 1);
-      display.panel.setStrokeStyle(goal.delivered ? 2 : 1, part.color, goal.delivered ? 1 : 0.55);
-      display.status.setText(goal.delivered ? `✓ Lv.${goal.level} 납품 완료` : `현재 Lv.${current || '-'}  →  목표 Lv.${goal.level}`)
-        .setColor(goal.delivered ? '#ffffff' : current > 0 ? '#ffd37a' : '#71899c');
+      const active = goal.delivered || Boolean(goal.installing);
+      display.panel.setFillStyle(active ? part.color : 0x0b1929, goal.delivered ? 0.22 : goal.installing ? 0.12 : 1);
+      display.panel.setStrokeStyle(active ? 2 : 1, part.color, active ? 1 : 0.55);
+      display.status.setText(goal.delivered
+        ? `✓ Lv.${goal.level} ${this.mode === 'integrated' ? '장착 완료' : '납품 완료'}`
+        : goal.installing
+          ? `Lv.${goal.level} 장착 중…`
+          : `현재 Lv.${current || '-'}  →  목표 Lv.${goal.level}`)
+        .setColor(goal.delivered ? '#ffffff' : goal.installing ? '#9ff3e3' : current > 0 ? '#ffd37a' : '#71899c');
     });
   }
 
