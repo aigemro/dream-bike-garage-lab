@@ -52,6 +52,9 @@ import doc50 from '../docs/variants/ui-warm-pixel.md?raw';
 import doc51 from '../docs/variants/motion-warm-pixel.md?raw';
 import doc52 from '../docs/variants/music-warm-pixel.md?raw';
 import doc53 from '../docs/variants/sfx-warm-pixel.md?raw';
+import doc54 from '../docs/variants/collection-design-catalog.md?raw';
+import doc55 from '../docs/variants/collection-design-showcase.md?raw';
+import doc56 from '../docs/variants/collection-design-dream.md?raw';
 
 const variantDocs: Record<string, string> = {
   'merge-free-board': doc0,
@@ -108,6 +111,9 @@ const variantDocs: Record<string, string> = {
   'motion-warm-pixel': doc51,
   'music-warm-pixel': doc52,
   'sfx-warm-pixel': doc53,
+  'collection-design-catalog': doc54,
+  'collection-design-showcase': doc55,
+  'collection-design-dream': doc56,
 };
 
 export default variantDocs;
