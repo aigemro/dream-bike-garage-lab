@@ -56,7 +56,7 @@ import doc54 from '../docs/variants/order-cycle.md?raw';
 import doc55 from '../docs/variants/board-free-cleanup.md?raw';
 import doc56 from '../docs/variants/assembly-presentation-auto.md?raw';
 import doc57 from '../docs/variants/assembly-presentation-confirm.md?raw';
-import doc58 from '../docs/variants/mvp-integration-selected-flow.md?raw';
+import doc58 from '../docs/variants/mvp-integration-core-features.md?raw';
 
 const variantDocs: Record<string, string> = {
   'merge-free-board': doc0,
@@ -117,7 +117,7 @@ const variantDocs: Record<string, string> = {
   'board-free-cleanup': doc55,
   'assembly-presentation-auto': doc56,
   'assembly-presentation-confirm': doc57,
-  'mvp-integration-selected-flow': doc58,
+  'mvp-integration-core-features': doc58,
 };
 
 export default variantDocs;
