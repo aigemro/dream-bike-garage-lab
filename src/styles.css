@@ -47,7 +47,8 @@ button { position: relative; z-index: 1; flex: 0 0 auto; white-space: nowrap; co
 #game-root { width: min(100%, 640px, calc((100dvh - 310px) * 8 / 9)); min-width: 280px; aspect-ratio: 8 / 9; margin: 0 auto; background: #07111f; overflow: hidden; }
 #game-root.demo-free, #game-root.demo-order, #game-root.demo-guided, #game-root.demo-catalog, #game-root.demo-garage, #game-root.demo-dream-bike, #game-root.demo-instant, #game-root.demo-parcel, #game-root.demo-generator, #game-root.demo-fixed, #game-root.demo-performance, #game-root.demo-soft-timer, #game-root.demo-auto, #game-root.demo-slots,
 #game-root[class*="demo-level-"], #game-root[class*="demo-career-"], #game-root[class*="demo-economy-"], #game-root[class*="demo-feedback-"] { width: 100%; height: 100%; min-width: 0; min-height: 0; aspect-ratio: auto; }
-#game-root.demo-play-focus, #game-root.demo-order-focus, #game-root.demo-hub-focus, #game-root.demo-garage-lobby { width: min(100%, 390px); height: 100%; min-width: 0; min-height: 0; aspect-ratio: 390 / 810; }
+#game-root.demo-play-focus, #game-root.demo-order-focus, #game-root.demo-hub-focus, #game-root.demo-garage-lobby, #game-root.demo-garage-agreement,
+#game-root.demo-warm-pixel-garage, #game-root.demo-character-warm-pixel, #game-root.demo-ui-warm-pixel, #game-root.demo-motion-warm-pixel, #game-root.demo-music-warm-pixel, #game-root.demo-sfx-warm-pixel { width: min(100%, 390px); height: 100%; min-width: 0; min-height: 0; aspect-ratio: 390 / 810; }
 #game-root.demo-local, #game-root.demo-indexed-db { width: min(100%, 960px); height: 100%; min-width: 0; min-height: 0; aspect-ratio: auto; overflow: auto; }
 #game-root.demo-board-size { width: 100%; height: 100%; min-width: 0; min-height: 0; aspect-ratio: auto; overflow: auto; }
 .board-size-lab { min-height: 100%; padding: clamp(12px, 2vw, 24px); background: radial-gradient(circle at 80% 0, #143650, transparent 48%), #07111f; }
