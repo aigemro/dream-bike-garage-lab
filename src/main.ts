@@ -14,6 +14,8 @@ import { startInputPrototype, type InputPrototypeMode } from './input-prototype'
 import { startStoragePrototype, type StoragePrototypeMode } from './storage-prototype';
 import { startGameSystemPrototype, type GameSystemPrototypeMode } from './game-system-prototype';
 import { startBoardSizePrototype, type BoardSizeMode } from './board-size-prototype';
+import { startCoreLoopPrototype, type CoreLoopPrototypeMode } from './core-loop-prototype';
+import { startMvpIntegrationPrototype, type MvpIntegrationMode } from './mvp-integration-prototype';
 import garage16Bit from './assets/background-art/garage-16bit.png';
 import garage32Bit from './assets/background-art/garage-32bit.png';
 import garageUiFriendly from './assets/background-art/garage-ui-friendly.png';
@@ -40,13 +42,15 @@ type Variant = {
   storageDemo?: StoragePrototypeMode;
   systemDemo?: GameSystemPrototypeMode;
   boardSizeDemo?: BoardSizeMode;
+  coreLoopDemo?: CoreLoopPrototypeMode;
+  integrationDemo?: MvpIntegrationMode;
   imageDemo?: string;
   issueNumber: number;
   documentId: string;
 };
 type Track = {
   id: string;
-  group: 'GAME CORE' | 'ART & AUDIO' | 'PLATFORM & TECHNOLOGY';
+  group: 'MVP CORE PLAY' | 'META PROGRESSION' | 'ART & AUDIO' | 'PLATFORM & TECHNOLOGY' | 'RELEASE INTEGRATION';
   title: string;
   description: string;
   issueNumber?: number;
@@ -55,7 +59,21 @@ type Track = {
 
 const tracks: Track[] = [
   {
-    id: 'level-design', group: 'GAME CORE', title: '레벨 디자인·콘텐츠 해금',
+    id: 'order-repeat', group: 'MVP CORE PLAY', title: '주문 목표·반복 플레이', issueNumber: 144,
+    description: '초기 주문 3종의 학습 흐름과 이후 변형 주문이 계속 플레이할 목표를 만드는지 검증합니다.',
+    variants: [
+      { id: 'cycle-set', label: 'A안', title: '순환 주문 세트', description: '어반 로드·MTB·그래블을 순서대로 학습한 뒤 요구 레벨과 보상이 오른 변형 주문을 반복합니다.', status: '체험 가능', question: '초기 3종 이후에도 다음 변형 주문이 분명한 재플레이 목표를 만드는가?', controls: '현재 주문 완료를 눌러 주문 3종을 진행하고, 2회차에서 요구 레벨·보상과 다음 목표가 어떻게 바뀌는지 확인합니다.', coreLoopDemo: 'order-cycle', issueNumber: 144, documentId: 'order-cycle' },
+    ],
+  },
+  {
+    id: 'board-recovery', group: 'MVP CORE PLAY', title: '보드 막힘·복구', issueNumber: 145,
+    description: '빈 칸과 유효 머지가 없는 상태를 감지하고 핵심 플레이로 되돌리는 구제 규칙을 비교합니다.',
+    variants: [
+      { id: 'free-cleanup', label: 'A안', title: '1회 무료 정리', description: '낮은 레벨의 불필요 부품 한 개를 무료로 정리하고 주문 부품을 보급해 유효 머지로 복귀합니다.', status: '체험 가능', question: '무료 정리 1회가 실패감을 줄이면서 막힘 관리의 의미를 유지하는가?', controls: '막힘 진단 → 무료 정리 → 주문 부품 보급 → 유효 머지 순서로 복구하고 행동 수와 상태 변화를 확인합니다.', coreLoopDemo: 'free-cleanup', issueNumber: 145, documentId: 'board-free-cleanup' },
+    ],
+  },
+  {
+    id: 'level-design', group: 'META PROGRESSION', title: '레벨 디자인·콘텐츠 해금',
     description: '초반 10레벨에서 규칙을 공개하는 순서와 큰 콘텐츠 해금 기준을 비교합니다.',
     variants: [
       { id: 'linear', label: 'A안', title: '레벨 선형 해금', description: '레벨마다 새 규칙과 콘텐츠를 한 단계씩 공개합니다.', status: '체험 가능', question: '가장 예측 가능하고 이해하기 쉬운 초반 진행인가?', controls: '현재 레벨 주문을 반복 완료하며 Lv.1~10 공개 순서와 성장 속도를 확인합니다.', systemDemo: 'level-linear', issueNumber: 106, documentId: 'level-linear' },
@@ -64,7 +82,7 @@ const tracks: Track[] = [
     ],
   },
   {
-    id: 'career-rank', group: 'GAME CORE', title: '직급·커리어 성장',
+    id: 'career-rank', group: 'META PROGRESSION', title: '직급·커리어 성장',
     description: '견습 알바에서 샵 오너까지 승진하는 조건과 기능 해금 체감을 비교합니다.',
     variants: [
       { id: 'auto', label: 'A안', title: '레벨 자동 승진', description: '기준 레벨에 도달하면 자동으로 다음 직급이 됩니다.', status: '체험 가능', question: '추가 조건 없는 승진이 캐주얼 성장에 가장 적합한가?', controls: '주문으로 경험치를 얻어 자동 승진 속도와 기능 해금을 확인합니다.', systemDemo: 'career-auto', issueNumber: 107, documentId: 'career-auto' },
@@ -73,7 +91,7 @@ const tracks: Track[] = [
     ],
   },
   {
-    id: 'difficulty-economy', group: 'GAME CORE', title: '주문 난이도·게임 경제',
+    id: 'difficulty-economy', group: 'META PROGRESSION', title: '주문 난이도·게임 경제',
     description: '주문 시간·행동 수·수입·소비를 같은 형식으로 측정해 성장 곡선을 비교합니다.',
     variants: [
       { id: 'fixed', label: 'A안', title: '고정 난이도·보상 곡선', description: '주문 순서에 따라 요구량과 보상이 예측 가능하게 증가합니다.', status: '체험 가능', question: '예측 가능한 곡선이 정체 없이 안정적으로 성장시키는가?', controls: '주문을 반복 완료하고 평균 시간·행동·수입과 Garage 비용을 비교합니다.', systemDemo: 'economy-fixed', issueNumber: 108, documentId: 'economy-fixed' },
@@ -82,7 +100,7 @@ const tracks: Track[] = [
     ],
   },
   {
-    id: 'feedback-presentation', group: 'GAME CORE', title: '게임 피드백·연출',
+    id: 'feedback-presentation', group: 'ART & AUDIO', title: '게임 피드백·연출',
     description: '동일 이벤트에서 연출의 길이와 강도를 바꿔 결과 인지·손맛·반복 피로를 비교합니다.',
     variants: [
       { id: 'casual', label: 'A안', title: '빠른 캐주얼 연출', description: '짧은 확대와 색상 피드백으로 플레이 템포를 유지합니다.', status: '체험 가능', question: '최소 연출만으로 결과가 충분히 명확한가?', controls: '여섯 이벤트를 반복 실행해 짧은 연출의 인지성과 피로도를 확인합니다.', systemDemo: 'feedback-casual', issueNumber: 109, documentId: 'feedback-casual' },
@@ -157,7 +175,7 @@ const tracks: Track[] = [
   },
   {
     id: 'main-home-play',
-    group: 'GAME CORE',
+    group: 'META PROGRESSION',
     title: '메인 홈·플레이 화면',
     description: '게임 접속 후 계속 머무는 메인 화면에서 플레이와 주요 기능을 어떤 우선순위로 보여줄지 비교합니다.',
     variants: [
@@ -170,7 +188,7 @@ const tracks: Track[] = [
   },
   {
     id: 'merge-core',
-    group: 'GAME CORE',
+    group: 'MVP CORE PLAY',
     title: '머지 코어',
     description: '머지를 만드는 조작과 진행 규칙을 여러 방안으로 구현해 재미와 이해도를 비교합니다.',
     variants: [
@@ -219,7 +237,7 @@ const tracks: Track[] = [
   },
   {
     id: 'parts-supply',
-    group: 'GAME CORE',
+    group: 'MVP CORE PLAY',
     title: '부품 수급',
     description: '머지 재료인 부품이 보드에 공급되는 방식을 비교해 플레이 템포와 기대감을 검증합니다.',
     variants: [
@@ -230,7 +248,7 @@ const tracks: Track[] = [
   },
   {
     id: 'reward-progression',
-    group: 'GAME CORE',
+    group: 'META PROGRESSION',
     title: '보상과 성장',
     description: '납품 보상과 성장 구조가 다음 플레이 동기를 만드는 방식을 비교합니다.',
     variants: [
@@ -241,7 +259,7 @@ const tracks: Track[] = [
   },
   {
     id: 'collection',
-    group: 'GAME CORE',
+    group: 'META PROGRESSION',
     title: '자전거 수집',
     description: '완성한 자전거를 어떻게 보여주고 성장 동기로 연결할지 비교합니다.',
     variants: [
@@ -252,9 +270,9 @@ const tracks: Track[] = [
   },
   {
     id: 'order-assembly',
-    group: 'GAME CORE',
-    title: '주문과 조립',
-    description: '머지한 부품이 고객 주문과 자전거 조립으로 이어지는 방식을 검증합니다.',
+    group: 'MVP CORE PLAY',
+    title: '조립·완성 연출',
+    description: '완성 부품을 고객 자전거에 장착하고 단계별 완성과 납품 가능 상태를 전달하는 방식을 검증합니다.',
     variants: [
       { id: 'parts-delivery', label: 'A안', title: '조건 충족 자동 조립', description: '요구 부품을 완성하면 즉시 자전거를 조립합니다.', status: '체험 가능', question: '주문 목표를 가장 빠르게 이해할 수 있는가?', controls: '네 가지 필요 부품을 준비하면 별도 조작 없이 자전거가 자동으로 완성됩니다.', assemblyDemo: 'auto', issueNumber: 17, documentId: 'assembly-auto' },
       { id: 'assembly-slots', label: 'B안', title: '슬롯 조립형', description: '프레임·휠·구동계 슬롯을 모두 채워 자전거를 완성합니다.', status: '체험 가능', question: '자전거를 조립한다는 느낌이 충분히 전달되는가?', controls: '부품을 준비한 뒤 작업대의 해당 슬롯을 눌러 하나씩 직접 장착합니다.', assemblyDemo: 'slots', issueNumber: 18, documentId: 'assembly-slots' },
@@ -302,6 +320,16 @@ const tracks: Track[] = [
       { id: 'sdk-bridge', label: 'B안', title: 'SDK 연결', description: '앱인토스 기능을 어댑터를 통해 호출합니다.', status: '준비 중', question: '웹 게임 코드와 플랫폼 기능을 분리할 수 있는가?', controls: '지원 기능 호출과 실패 처리를 확인합니다.', issueNumber: 6, documentId: 'toss-sdk' },
     ],
   },
+  {
+    id: 'mvp-release-integration',
+    group: 'RELEASE INTEGRATION',
+    title: 'MVP 핵심 루프 통합',
+    description: '선택된 주문·택배 수급·C안 머지·자동 조립을 납품·급여·드림 바이크 성장·저장까지 하나의 수직 슬라이스로 연결합니다.',
+    issueNumber: 113,
+    variants: [
+      { id: 'selected-flow', label: '통합안', title: '선택안 기능 수직 슬라이스', description: '카테고리 택배, 자유 보드 2-to-1 머지, 목표 판정 자동 장착, 납품·급여·다음 주문과 로컬 저장을 연결합니다.', status: '체험 가능', question: '선택된 기능들이 상태 유실이나 진행 막힘 없이 한 주문부터 다음 주문까지 이어지는가?', controls: '필요 부품 택배 주문 → 상자 개봉 → 동일 부품 머지 → 자동 장착 → 납품 순서로 진행합니다. 상태는 행동마다 자동 저장됩니다.', integrationDemo: 'selected-flow', issueNumber: 114, documentId: 'mvp-integration-selected-flow' },
+    ],
+  },
 ];
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
@@ -325,7 +353,14 @@ function shell(content: string, back?: { href: string; label: string }) {
 
 function renderHome() {
   destroyGame();
-  const groups = ['GAME CORE', 'ART & AUDIO', 'PLATFORM & TECHNOLOGY'] as const;
+  const groups: Track['group'][] = ['MVP CORE PLAY', 'META PROGRESSION', 'ART & AUDIO', 'PLATFORM & TECHNOLOGY', 'RELEASE INTEGRATION'];
+  const groupCopy: Record<Track['group'], { title: string; description: string }> = {
+    'MVP CORE PLAY': { title: 'MVP 핵심 플레이', description: '주문 목표 → 부품 수급 → 머지 → 조립·완성으로 이어지는 한 판의 직접 플레이를 비교합니다.' },
+    'META PROGRESSION': { title: '메타 성장', description: '납품 이후의 보상·수집·레벨·커리어가 다음 플레이 목표를 만드는지 검증합니다.' },
+    'ART & AUDIO': { title: '아트·오디오', description: '배경·캐릭터·UI·애니메이션·피드백·음악·효과음의 표현 방안을 비교합니다.' },
+    'PLATFORM & TECHNOLOGY': { title: '플레이 기반', description: '입력·반응형 화면·저장·앱인토스처럼 전체 플레이를 지탱하는 기술을 검증합니다.' },
+    'RELEASE INTEGRATION': { title: '릴리스 통합', description: '개별 트랙의 선택안을 다시 구현하지 않고 출시 가능한 하나의 MVP 흐름으로 연결해 검증합니다.' },
+  };
   shell(`<main>
     <section class="hero">
       <p class="eyebrow">TRACK · VARIANT · COMPARE</p>
@@ -334,7 +369,7 @@ function renderHome() {
       <div class="summary"><span><strong>${tracks.length}</strong> 실험 트랙</span><span><strong>${allVariants.length}</strong> 전체 방안</span><span><strong>${allVariants.filter((item) => item.status === '체험 가능').length}</strong> 체험 가능</span></div>
     </section>
     ${groups.map((group) => `<section class="catalog">
-      <div class="section-heading"><div><p class="eyebrow">${group}</p><h2>${group === 'GAME CORE' ? '게임 코어 트랙' : group === 'ART & AUDIO' ? '아트·오디오 트랙' : '플랫폼 기술 트랙'}</h2></div><p>${group === 'ART & AUDIO' ? '배경·캐릭터·UI·애니메이션·음악·효과음의 표현 방안을 비교합니다.' : '트랙을 선택하면 내부의 여러 실험안을 확인할 수 있습니다.'}</p></div>
+      <div class="section-heading"><div><p class="eyebrow">${group}</p><h2>${groupCopy[group].title}</h2></div><p>${groupCopy[group].description}</p></div>
       <div class="grid">${tracks.filter((track) => track.group === group).map((track, index) => `
         <a class="card ${track.variants.some((item) => item.status === '체험 가능') ? 'ready' : ''}" href="#/track/${track.id}">
           <div class="card-index">${String(index + 1).padStart(2, '0')}</div><p class="category">${track.group}</p><h3>${track.title}</h3><p>${track.description}</p>
@@ -390,10 +425,10 @@ function renderVariant(track: Track, variant: Variant) {
 function renderDemo(track: Track, variant: Variant) {
   destroyGame();
   shell(`<main class="experiment-page demo-page">
-    ${variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.homeDesignDemo || variant.collectionDesignDemo || variant.artAudioDemo || variant.inputDemo || variant.systemDemo || variant.storageDemo || variant.boardSizeDemo || variant.imageDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${variant.imageDemo ? '동일 Garage 장면 · 390×810 세로 화면' : variant.collectionDesignDemo ? '홈 A안 시각 언어 · 자전거 탭 진입 · 동일 수집 데이터 8/24' : variant.artAudioDemo ? '홈 화면 A안 공통 스타일 · 390×810 체험' : variant.homeDesignDemo ? '회의안 기반 정보 구조 · 동일 데이터 · 시각 언어만 비교' : variant.boardSizeDemo ? '동일 주문·초기 부품 · 보드 조건만 변경' : variant.storageDemo ? '동일 상태 · 보드·재화·주문' : variant.systemDemo ? '동일 초반 레벨·주문·직급 데이터' : variant.inputDemo ? '동일 6×5 보드 · 동일 초기 부품 · 입력 규칙만 비교' : variant.homePlayDemo ? '390×810 · 동일 주문·메뉴·보드 데이터' : variant.assemblyDemo ? '동일 주문 · 동일 부품 4종' : variant.rewardDemo ? '동일 시작 급여 1,000 · 기본 보상 500' : variant.supplyDemo ? '동일 5×4 보드 · 목표 Lv.3 ×2' : variant.collectionDemo ? '동일 데이터 · 3,000코인' : variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div>${variant.imageDemo ? '' : '<button id="reset-demo">초기화</button>'}</div>${variant.imageDemo ? `<figure class="background-art-preview"><img src="${variant.imageDemo}" alt="${variant.title} Garage 배경 시안" /></figure>` : `<div id="game-root" class="demo-${variant.boardSizeDemo ?? variant.storageDemo ?? variant.systemDemo ?? variant.inputDemo ?? variant.artAudioDemo ?? variant.homeDesignDemo ?? variant.collectionDesignDemo ?? variant.homePlayDemo ?? variant.assemblyDemo ?? variant.rewardDemo ?? variant.supplyDemo ?? variant.collectionDemo ?? variant.demo}"></div>`}<p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
+    ${variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.homeDesignDemo || variant.collectionDesignDemo || variant.artAudioDemo || variant.inputDemo || variant.systemDemo || variant.storageDemo || variant.boardSizeDemo || variant.coreLoopDemo || variant.integrationDemo || variant.imageDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${variant.imageDemo ? '동일 Garage 장면 · 390×810 세로 화면' : variant.integrationDemo ? '선택안 기능 연결 · 디자인 검토 제외' : variant.coreLoopDemo ? 'MVP GAME CORE · 간단 상호작용 검증' : variant.collectionDesignDemo ? '홈 A안 시각 언어 · 자전거 탭 진입 · 동일 수집 데이터 8/24' : variant.artAudioDemo ? '홈 화면 A안 공통 스타일 · 390×810 체험' : variant.homeDesignDemo ? '회의안 기반 정보 구조 · 동일 데이터 · 시각 언어만 비교' : variant.boardSizeDemo ? '동일 주문·초기 부품 · 보드 조건만 변경' : variant.storageDemo ? '동일 상태 · 보드·재화·주문' : variant.systemDemo ? '동일 초반 레벨·주문·직급 데이터' : variant.inputDemo ? '동일 6×5 보드 · 동일 초기 부품 · 입력 규칙만 비교' : variant.homePlayDemo ? '390×810 · 동일 주문·메뉴·보드 데이터' : variant.assemblyDemo ? '동일 주문 · 동일 부품 4종' : variant.rewardDemo ? '동일 시작 급여 1,000 · 기본 보상 500' : variant.supplyDemo ? '동일 5×4 보드 · 목표 Lv.3 ×2' : variant.collectionDemo ? '동일 데이터 · 3,000코인' : variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div>${variant.imageDemo ? '' : '<button id="reset-demo">초기화</button>'}</div>${variant.imageDemo ? `<figure class="background-art-preview"><img src="${variant.imageDemo}" alt="${variant.title} Garage 배경 시안" /></figure>` : `<div id="game-root" class="demo-${variant.integrationDemo ?? variant.coreLoopDemo ?? variant.boardSizeDemo ?? variant.storageDemo ?? variant.systemDemo ?? variant.inputDemo ?? variant.artAudioDemo ?? variant.homeDesignDemo ?? variant.collectionDesignDemo ?? variant.homePlayDemo ?? variant.assemblyDemo ?? variant.rewardDemo ?? variant.supplyDemo ?? variant.collectionDemo ?? variant.demo}"></div>`}<p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
   </main>`, { href: `#/track/${track.id}/${variant.id}`, label: `${variant.title} 상세` });
-  if (variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.homeDesignDemo || variant.collectionDesignDemo || variant.artAudioDemo || variant.inputDemo || variant.systemDemo || variant.storageDemo || variant.boardSizeDemo) {
-    const start = () => { destroyGame(); if (variant.boardSizeDemo) { game = startBoardSizePrototype('game-root', variant.boardSizeDemo) as unknown as Phaser.Game; return; } if (variant.storageDemo) { startStoragePrototype('game-root', variant.storageDemo); return; } game = variant.systemDemo ? startGameSystemPrototype('game-root', variant.systemDemo) : variant.inputDemo ? startInputPrototype('game-root', variant.inputDemo) : variant.artAudioDemo ? startArtAudioPrototype('game-root', variant.artAudioDemo) : variant.collectionDesignDemo ? startBikeCollectionDesignPrototype('game-root', variant.collectionDesignDemo) : variant.homeDesignDemo ? startHomeDesignPrototype('game-root', variant.homeDesignDemo) : variant.homePlayDemo ? startHomePlayPrototype('game-root', variant.homePlayDemo) : variant.assemblyDemo ? startAssemblyPrototype('game-root', variant.assemblyDemo) : variant.rewardDemo ? startRewardPrototype('game-root', variant.rewardDemo) : variant.supplyDemo ? startSupplyPrototype('game-root', variant.supplyDemo) : variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
+  if (variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.homeDesignDemo || variant.collectionDesignDemo || variant.artAudioDemo || variant.inputDemo || variant.systemDemo || variant.storageDemo || variant.boardSizeDemo || variant.coreLoopDemo || variant.integrationDemo) {
+    const start = () => { destroyGame(); if (variant.integrationDemo) { game = startMvpIntegrationPrototype('game-root', variant.integrationDemo) as unknown as Phaser.Game; return; } if (variant.coreLoopDemo) { game = startCoreLoopPrototype('game-root', variant.coreLoopDemo) as unknown as Phaser.Game; return; } if (variant.boardSizeDemo) { game = startBoardSizePrototype('game-root', variant.boardSizeDemo) as unknown as Phaser.Game; return; } if (variant.storageDemo) { startStoragePrototype('game-root', variant.storageDemo); return; } game = variant.systemDemo ? startGameSystemPrototype('game-root', variant.systemDemo) : variant.inputDemo ? startInputPrototype('game-root', variant.inputDemo) : variant.artAudioDemo ? startArtAudioPrototype('game-root', variant.artAudioDemo) : variant.collectionDesignDemo ? startBikeCollectionDesignPrototype('game-root', variant.collectionDesignDemo) : variant.homeDesignDemo ? startHomeDesignPrototype('game-root', variant.homeDesignDemo) : variant.homePlayDemo ? startHomePlayPrototype('game-root', variant.homePlayDemo) : variant.assemblyDemo ? startAssemblyPrototype('game-root', variant.assemblyDemo) : variant.rewardDemo ? startRewardPrototype('game-root', variant.rewardDemo) : variant.supplyDemo ? startSupplyPrototype('game-root', variant.supplyDemo) : variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
     start();
     document.querySelector('#reset-demo')?.addEventListener('click', start);
   }

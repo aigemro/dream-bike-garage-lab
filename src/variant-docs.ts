@@ -52,9 +52,14 @@ import doc50 from '../docs/variants/ui-warm-pixel.md?raw';
 import doc51 from '../docs/variants/motion-warm-pixel.md?raw';
 import doc52 from '../docs/variants/music-warm-pixel.md?raw';
 import doc53 from '../docs/variants/sfx-warm-pixel.md?raw';
-import doc54 from '../docs/variants/collection-design-catalog.md?raw';
-import doc55 from '../docs/variants/collection-design-showcase.md?raw';
-import doc56 from '../docs/variants/collection-design-dream.md?raw';
+import doc54 from '../docs/variants/order-cycle.md?raw';
+import doc55 from '../docs/variants/board-free-cleanup.md?raw';
+import doc56 from '../docs/variants/assembly-presentation-auto.md?raw';
+import doc57 from '../docs/variants/assembly-presentation-confirm.md?raw';
+import doc58 from '../docs/variants/mvp-integration-selected-flow.md?raw';
+import doc59 from '../docs/variants/collection-design-catalog.md?raw';
+import doc60 from '../docs/variants/collection-design-showcase.md?raw';
+import doc61 from '../docs/variants/collection-design-dream.md?raw';
 
 const variantDocs: Record<string, string> = {
   'merge-free-board': doc0,
@@ -111,9 +116,14 @@ const variantDocs: Record<string, string> = {
   'motion-warm-pixel': doc51,
   'music-warm-pixel': doc52,
   'sfx-warm-pixel': doc53,
-  'collection-design-catalog': doc54,
-  'collection-design-showcase': doc55,
-  'collection-design-dream': doc56,
+  'order-cycle': doc54,
+  'board-free-cleanup': doc55,
+  'assembly-presentation-auto': doc56,
+  'assembly-presentation-confirm': doc57,
+  'mvp-integration-selected-flow': doc58,
+  'collection-design-catalog': doc59,
+  'collection-design-showcase': doc60,
+  'collection-design-dream': doc61,
 };
 
 export default variantDocs;
