@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { drawFieldCharacter, drawCharacterPortrait } from './art-character-pixel';
 
 export type ArtAudioPrototypeMode = 'character-warm-pixel' | 'ui-warm-pixel' | 'motion-warm-pixel' | 'music-warm-pixel' | 'sfx-warm-pixel';
 
@@ -113,50 +114,26 @@ class WarmPixelArtAudioScene extends Phaser.Scene {
     this.label(195, 255, 'ROLE SILHOUETTE', 9, '#795044', true).setOrigin(.5).setDepth(8);
     const roles: CharacterRole[] = ['정비사', '점장', '고객'];
     roles.forEach((role, index) => {
-      const x = 112 + index * 83;
-      this.drawCharacter(x, 350, role, role === this.role ? 1.08 : .88, 9, role === this.role);
-      this.button(x, 456, 72, 36, role, () => { this.role = role; this.render(); }, role === this.role);
+      const x = 104 + index * 91;
+      const selected = role === this.role;
+      if (selected) this.add.ellipse(x, 414, 78, 14, P.gold, .5).setDepth(8);
+      const sprite = drawFieldCharacter(this, x, 412, role, 3, selected ? 11 : 9)
+        .setScale(selected ? 1.06 : .88);
+      // 선택된 역할만 살짝 숨쉬는 2px 바운스로 생동감을 줍니다.
+      if (selected) this.tweens.add({ targets: sprite, y: sprite.y - 2, yoyo: true, repeat: -1, duration: 760, ease: 'Sine.easeInOut' });
+      this.button(x, 456, 72, 36, role, () => { this.role = role; this.render(); }, selected);
     });
 
     this.panel(195, 582, 326, 176, P.pale, 8);
-    this.drawPortrait(103, 575, this.role, this.emotion, 10);
-    this.label(170, 518, `${this.role} · ${this.emotion}`, 14, '#3b2531', true).setDepth(11);
-    const copy = this.role === '정비사' ? '앞치마와 공구 벨트로\n플레이 역할을 즉시 구분' : this.role === '점장' ? '짙은 조끼와 열쇠 배지로\nGarage 관리 역할을 표현' : '밝은 재킷과 주문 카드로\n요청을 들고 온 고객 표현';
-    this.label(170, 546, copy, 10, '#795044').setDepth(11);
-    (['기본', '기쁨', '고민'] as Emotion[]).forEach((emotion, index) => this.button(174 + index * 59, 638, 54, 34, emotion, () => { this.emotion = emotion; this.render(); }, emotion === this.emotion));
+    this.add.rectangle(103, 570, 132, 142, P.wood).setStrokeStyle(3, P.ink).setDepth(9);
+    drawCharacterPortrait(this, 103, 570, this.role, this.emotion, 5, 10);
+    this.label(174, 518, `${this.role} · ${this.emotion}`, 14, '#3b2531', true).setDepth(11);
+    const copy = this.role === '정비사' ? '반다나·앞치마·공구 벨트로\n플레이 역할을 즉시 구분' : this.role === '점장' ? '콧수염·조끼·열쇠 배지로\nGarage 관리 역할을 표현' : '빨간 캡과 주문 카드로\n요청을 들고 온 고객 표현';
+    this.label(174, 546, copy, 10, '#795044').setDepth(11);
+    (['기본', '기쁨', '고민'] as Emotion[]).forEach((emotion, index) => this.button(206 + index * 59, 638, 54, 34, emotion, () => { this.emotion = emotion; this.render(); }, emotion === this.emotion));
     this.label(195, 697, '작은 필드 실루엣 + 큰 대화 초상화의 연결을 비교', 9, '#fff1c6', true).setOrigin(.5).setDepth(12);
     this.panel(195, 756, 350, 54, P.wood, 12);
-    this.label(195, 756, '독자적 3등신 비율 · 역할별 색과 소품 · 3단계 감정', 10, '#fff1c6', true).setOrigin(.5).setDepth(14);
-  }
-
-  private drawCharacter(x: number, y: number, role: CharacterRole, scale: number, depth: number, selected: boolean) {
-    if (selected) this.add.ellipse(x, y + 73 * scale, 62 * scale, 18 * scale, P.gold, .55).setDepth(depth - 1);
-    const outfit = role === '정비사' ? P.green : role === '점장' ? P.darkWood : P.blue;
-    const hair = role === '점장' ? 0x5a3a2d : 0x734733;
-    this.add.rectangle(x, y - 31 * scale, 36 * scale, 37 * scale, P.peach).setStrokeStyle(3, P.ink).setDepth(depth);
-    this.add.rectangle(x, y - 50 * scale, 38 * scale, 13 * scale, hair).setDepth(depth + 1);
-    this.add.rectangle(x, y + 16 * scale, 45 * scale, 60 * scale, outfit).setStrokeStyle(3, P.ink).setDepth(depth);
-    this.add.rectangle(x - 12 * scale, y + 61 * scale, 14 * scale, 35 * scale, P.tire).setStrokeStyle(2, P.ink).setDepth(depth);
-    this.add.rectangle(x + 12 * scale, y + 61 * scale, 14 * scale, 35 * scale, P.tire).setStrokeStyle(2, P.ink).setDepth(depth);
-    if (role === '정비사') this.add.rectangle(x, y + 21 * scale, 27 * scale, 38 * scale, P.paper).setStrokeStyle(2, P.ink).setDepth(depth + 1);
-    if (role === '점장') this.add.circle(x + 13 * scale, y, 6 * scale, P.gold).setStrokeStyle(2, P.ink).setDepth(depth + 1);
-    if (role === '고객') this.add.rectangle(x + 28 * scale, y + 13 * scale, 20 * scale, 28 * scale, P.paper).setStrokeStyle(2, P.ink).setDepth(depth + 1);
-  }
-
-  private drawPortrait(x: number, y: number, role: CharacterRole, emotion: Emotion, depth: number) {
-    this.add.rectangle(x, y, 106, 118, P.wood).setStrokeStyle(3, P.ink).setDepth(depth);
-    const outfit = role === '정비사' ? P.green : role === '점장' ? P.darkWood : P.blue;
-    this.add.rectangle(x, y + 39, 78, 42, outfit).setStrokeStyle(3, P.ink).setDepth(depth + 1);
-    this.add.rectangle(x, y - 15, 62, 66, P.peach).setStrokeStyle(3, P.ink).setDepth(depth + 2);
-    this.add.rectangle(x, y - 46, 66, 18, role === '점장' ? 0x5a3a2d : 0x734733).setDepth(depth + 3);
-    const eyeY = y - 17;
-    this.add.rectangle(x - 15, eyeY, 6, emotion === '기쁨' ? 3 : 7, P.ink).setDepth(depth + 4);
-    this.add.rectangle(x + 15, eyeY, 6, emotion === '기쁨' ? 3 : 7, P.ink).setDepth(depth + 4);
-    if (emotion === '고민') this.add.rectangle(x + 13, eyeY - 8, 15, 3, P.ink).setAngle(-12).setDepth(depth + 4);
-    const mouthY = y + 7;
-    if (emotion === '기쁨') this.add.rectangle(x, mouthY, 18, 4, P.red).setDepth(depth + 4);
-    else if (emotion === '고민') this.add.rectangle(x, mouthY + 4, 14, 4, P.ink).setAngle(-8).setDepth(depth + 4);
-    else this.add.rectangle(x, mouthY, 12, 3, P.ink).setDepth(depth + 4);
+    this.label(195, 756, '독자적 3등신 픽셀 스프라이트 · 역할 소품 · 3단계 감정', 10, '#fff1c6', true).setOrigin(.5).setDepth(14);
   }
 
   private renderUiIcons() {
