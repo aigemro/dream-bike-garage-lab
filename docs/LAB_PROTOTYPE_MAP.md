@@ -34,6 +34,7 @@ flowchart TB
     CORE --> ECONOMY["난이도 · 경제"]
     CORE --> FEEDBACK["피드백 · 연출"]
     ART --> BACKGROUND["배경 디자인 · Garage 공간"]
+    ART --> HOMEDESIGN["홈 화면 디자인"]
     ART -. 향후 .-> CHARACTER["캐릭터 디자인"]
     ART -. 향후 .-> UIART["UI · 아이콘"]
     ART -. 향후 .-> ANIMATION["애니메이션"]
@@ -140,6 +141,10 @@ mindmap
       A 정통 16비트 픽셀 공방
       B 고밀도 32비트 생활형 픽셀
       C 픽셀 배경 + 캐주얼 UI 친화형
+    홈 화면 디자인
+      A 따뜻한 생활형 픽셀 Garage
+      향후 B 기계적 · 도시형 픽셀 Garage
+      향후 C 캐주얼 UI 중심 Garage
     향후 트랙
       캐릭터 디자인
       UI · 아이콘
@@ -206,6 +211,7 @@ mindmap
 | Game Core | 난이도·경제 | A/B/C | 개발 중 | 주문 시간·행동·수입·소비 측정 | [#108](https://github.com/aigemro/dream-bike-garage-lab/issues/108) |
 | Game Core | 피드백·연출 | A/B/C | 개발 중 | 동일 이벤트의 길이·강도·피로 비교 | [#109](https://github.com/aigemro/dream-bike-garage-lab/issues/109) |
 | Art & Audio | 배경 디자인·Garage 공간 | A/B/C | 검토 준비 (시안·허브 등록) | 390×810 주문·PLAY UI 오버레이 후 감성·가독성·제작 비용 비교 | [#119](https://github.com/aigemro/dream-bike-garage-lab/issues/119), [#120](https://github.com/aigemro/dream-bike-garage-lab/issues/120), [#121](https://github.com/aigemro/dream-bike-garage-lab/issues/121), [#122](https://github.com/aigemro/dream-bike-garage-lab/issues/122) |
+| Art & Audio | 홈 화면 디자인 | A: 따뜻한 생활형 픽셀 Garage | 개발 중 (1차 데모) | 회의안 E 구조 기준 3초 인지·UI 가독성·Garage 소유감 검토 후 B/C안 추가 | [#130](https://github.com/aigemro/dream-bike-garage-lab/issues/130) |
 | Integration | 출시 MVP 통합 검증 | 수직 슬라이스·튜토리얼·반복 성장·출시 QA | 준비 | 개별 실험을 주문→머지→조립→급여→성장→저장 흐름으로 연결 | [#113](https://github.com/aigemro/dream-bike-garage-lab/issues/113), [계획](MVP_READINESS_PLAN.md) |
 | Platform | 입력 방식 | A/B/C | 허브 반영 중 | 탭·드래그·하이브리드를 같은 보드에서 비교 | [#33](https://github.com/aigemro/dream-bike-garage-lab/issues/33), [PR #39](https://github.com/aigemro/dream-bike-garage-lab/pull/39) |
 | Platform | 반응형 화면 | A/B/C | 허브 반영 중 | 모바일·태블릿·웹브라우저 조건별 비교 | [#4](https://github.com/aigemro/dream-bike-garage-lab/issues/4), [PR #39](https://github.com/aigemro/dream-bike-garage-lab/pull/39) |
