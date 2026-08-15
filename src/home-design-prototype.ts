@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { DuskWorkshopGarageScene } from './home-design-dusk-workshop';
 import { RetroPixelGarageScene } from './home-design-retro-pixel';
 import { ModernCasualGarageScene } from './home-design-modern-casual';
+import { drawDreamBike, drawDreamBikeMini, type BikePalette } from './home-design-bike';
 
 export type HomeDesignPrototypeMode =
   | 'warm-pixel-garage'
@@ -13,6 +14,18 @@ const P = {
   ink: 0x3b2531, cream: 0xfff1c6, paper: 0xf6d995, wood: 0x8e5136,
   darkWood: 0x573044, floor: 0xb66f45, green: 0x5e9a67, leaf: 0x86ba6f,
   sky: 0x86c9c8, blue: 0x4e8092, gold: 0xf4b84a, red: 0xc95746, tire: 0x302936,
+};
+
+// 따뜻한 생활형 팔레트에 맞춘 대표 드림 바이크 색상
+const WARM_BIKE_PALETTE: BikePalette = {
+  frame: P.red,
+  frameShadow: 0x9e3f32,
+  tire: P.tire,
+  rim: P.cream,
+  spoke: 0xd9c197,
+  metal: 0xa39985,
+  saddle: P.darkWood,
+  accent: P.gold,
 };
 
 class WarmPixelGarageScene extends Phaser.Scene {
@@ -57,7 +70,7 @@ class WarmPixelGarageScene extends Phaser.Scene {
     this.label(88, 101, 'TODAY\'S ORDER', 9, '#6e473b', true).setDepth(11);
     this.label(88, 119, '통학용 어반 바이크', 14, '#3b2531', true).setDepth(11);
     this.label(88, 140, '진행 2 / 4  ·  보상 1,000', 10, '#8e5136', true).setDepth(11);
-    this.drawTinyBike(282, 127, .34, P.red, 12);
+    drawDreamBikeMini(this, 282, 127, .48, P.red, P.tire, 12);
 
     this.button(38, 205, 54, 48, 'EVENT\n3', () => this.notify('이벤트 준비 중'));
     this.button(38, 263, 54, 48, 'RANK\n#18', () => this.notify('랭킹 준비 중'));
@@ -69,8 +82,10 @@ class WarmPixelGarageScene extends Phaser.Scene {
     this.label(82, 183, 'MY LITTLE GARAGE', 10, '#6e473b', true).setDepth(13);
     this.label(82, 202, '나의 드림 로드바이크', 17, '#3b2531', true).setDepth(13);
     this.label(82, 226, '햇살 아래 한 단계씩 완성 중', 10, '#7b5140').setDepth(13);
-    this.add.ellipse(195, 419, 218, 30, 0x6e473b, .28).setDepth(12);
-    this.drawBike(195, 338, 1, 13);
+    // 정비 매트 + 그림자 위에 상세 드림 바이크(스포크·체인·크랭크·드롭바)를 픽셀 스냅으로 배치
+    this.add.rectangle(195, 416, 240, 12, 0x9c5b3c).setStrokeStyle(2, P.darkWood).setDepth(12);
+    this.add.ellipse(195, 419, 218, 26, 0x6e473b, .28).setDepth(12);
+    drawDreamBike(this, 195, 372, .8, WARM_BIKE_PALETTE, 13, { style: 'road', pixelStep: 2 });
 
     this.pixelRect(195, 478, 222, 72, 0xffe6a8, P.wood, 13);
     this.label(98, 454, 'COLLECTION', 8, '#7b5140', true).setDepth(14);
@@ -95,32 +110,89 @@ class WarmPixelGarageScene extends Phaser.Scene {
 
   private renderWorkshop() {
     this.add.rectangle(195, 274, 390, 548, 0xd79a63);
+    // 벽 판재 결: 낮은 대비의 가로선으로 목재 벽의 질감을 만듭니다
+    for (let y = 96; y < 548; y += 46) this.add.line(0, 0, 0, y, 390, y, P.darkWood, .08).setOrigin(0);
     this.add.rectangle(195, 632, 390, 168, P.floor);
     for (let y = 574; y < 710; y += 34) this.add.line(0, 0, 0, y, 390, y, P.darkWood, .35).setOrigin(0);
     for (let x = 16; x < 390; x += 58) this.add.line(0, 0, x, 574, x - 14, 710, P.darkWood, .22).setOrigin(0);
 
+    // 창: 이중 프레임 + 해·구름·나무가 있는 창밖 풍경과 창턱 화분
     this.pixelRect(195, 260, 214, 210, 0x6a3e36, P.darkWood, 1);
     this.pixelRect(195, 254, 184, 172, P.sky, P.cream, 2);
+    this.add.circle(140, 208, 15, P.gold).setStrokeStyle(3, 0xffe6a8).setDepth(3);
+    [[236, 196, 15], [252, 200, 12], [222, 201, 11]].forEach(([x, y, r]) => this.add.ellipse(x, y, r * 2.4, r * 1.5, P.cream, .92).setDepth(3));
     this.add.rectangle(195, 300, 180, 78, 0x8fc975).setDepth(3);
+    this.add.rectangle(195, 268, 180, 10, 0xb9dd9a).setDepth(3);
     this.add.triangle(150, 292, 95, 335, 150, 266, 205, 335, 0x5e9a67).setDepth(3);
     this.add.triangle(246, 293, 198, 335, 248, 258, 300, 335, 0x4f8060).setDepth(3);
+    this.add.rectangle(150, 300, 8, 26, 0x6a4a30).setDepth(3);
     this.add.rectangle(195, 254, 8, 172, P.cream).setDepth(4);
     this.add.rectangle(195, 254, 184, 8, P.cream).setDepth(4);
+    this.add.rectangle(146, 352, 18, 12, P.wood).setStrokeStyle(2, P.ink).setDepth(5);
+    this.add.circle(141, 342, 6, P.leaf).setStrokeStyle(2, P.ink).setDepth(5);
+    this.add.circle(151, 340, 5, P.green).setStrokeStyle(2, P.ink).setDepth(5);
 
+    // 공구 벽: 페그보드 점 + 실루엣이 다른 공구 4종(렌치·드라이버·망치·오일캔)
     this.pixelRect(54, 386, 74, 250, P.darkWood, P.ink, 4);
+    for (let py = 300; py <= 490; py += 24) for (let px = 32; px <= 78; px += 23) this.add.circle(px, py, 1.6, 0x3f2231).setDepth(5);
     this.label(54, 282, 'TOOLS', 9, '#fff1c6', true).setOrigin(.5).setDepth(5);
-    [P.red, P.gold, P.green, P.blue].forEach((c, i) => {
-      this.add.rectangle(38 + (i % 2) * 31, 322 + Math.floor(i / 2) * 62, 14, 42, c).setStrokeStyle(2, P.ink).setDepth(5);
-      this.add.circle(38 + (i % 2) * 31, 352 + Math.floor(i / 2) * 62, 8, c).setStrokeStyle(2, P.ink).setDepth(5);
-    });
+    this.drawWrench(38, 336, 5);
+    this.drawScrewdriver(70, 336, 5);
+    this.drawHammer(38, 428, 5);
+    this.drawOilCan(70, 430, 5);
 
+    // 주문 게시판: 압정으로 고정된 메모, 가운데 메모는 살짝 기울임
     this.pixelRect(337, 450, 78, 120, 0x6d8b62, P.ink, 4);
     this.label(337, 411, 'ORDERS', 9, '#fff1c6', true).setOrigin(.5).setDepth(5);
-    [0, 1, 2].forEach((i) => this.add.rectangle(337, 440 + i * 31, 54, 21, 0xffe8ad).setStrokeStyle(2, P.wood).setDepth(5));
+    [0, 1, 2].forEach((i) => {
+      const note = this.add.rectangle(337, 440 + i * 31, 54, 21, 0xffe8ad).setStrokeStyle(2, P.wood).setDepth(5);
+      if (i === 1) note.setAngle(-4);
+      this.add.circle(337, 432 + i * 31, 2.5, i === 2 ? P.red : P.gold).setStrokeStyle(1, P.ink).setDepth(6);
+      this.add.line(0, 0, 316, 443 + i * 31, 352, 443 + i * 31, P.wood, .8).setOrigin(0).setDepth(6);
+    });
 
+    // 생활 소품: 화분, 기대 놓은 타이어, 공구 상자
     this.add.rectangle(27, 555, 26, 64, P.wood).setStrokeStyle(3, P.ink).setDepth(5);
     this.add.circle(27, 518, 28, P.leaf).setStrokeStyle(3, P.ink).setDepth(5);
     this.add.circle(45, 529, 22, P.green).setStrokeStyle(3, P.ink).setDepth(5);
+    this.add.circle(30, 652, 17, 0x00000, 0).setStrokeStyle(9, P.tire).setDepth(5);
+    this.add.circle(30, 652, 6, P.floor).setStrokeStyle(3, P.cream).setDepth(6);
+    this.drawToolbox(360, 655, 6);
+  }
+
+  // 벽걸이 렌치: 손잡이 막대 + 홈이 파인 머리
+  private drawWrench(x: number, y: number, depth: number) {
+    this.add.rectangle(x, y + 10, 8, 30, 0xa39985).setStrokeStyle(2, P.ink).setDepth(depth);
+    this.add.rectangle(x, y - 8, 16, 12, 0xa39985).setStrokeStyle(2, P.ink).setDepth(depth);
+    this.add.rectangle(x, y - 11, 6, 7, P.darkWood).setDepth(depth + 1);
+  }
+
+  // 드라이버: 빨간 손잡이 + 금속 축
+  private drawScrewdriver(x: number, y: number, depth: number) {
+    this.add.rectangle(x, y - 8, 10, 18, P.red).setStrokeStyle(2, P.ink).setDepth(depth);
+    this.add.rectangle(x, y + 12, 4, 22, 0xa39985).setStrokeStyle(1, P.ink).setDepth(depth);
+  }
+
+  // 망치: 나무 손잡이 + 넓은 머리
+  private drawHammer(x: number, y: number, depth: number) {
+    this.add.rectangle(x, y + 8, 7, 30, P.paper).setStrokeStyle(2, P.ink).setDepth(depth);
+    this.add.rectangle(x, y - 10, 20, 11, P.tire).setStrokeStyle(2, P.ink).setDepth(depth);
+  }
+
+  // 오일캔: 초록 몸통 + 주둥이와 라벨
+  private drawOilCan(x: number, y: number, depth: number) {
+    this.add.rectangle(x, y + 4, 18, 22, P.green).setStrokeStyle(2, P.ink).setDepth(depth);
+    this.add.rectangle(x - 2, y - 10, 6, 8, 0xa39985).setStrokeStyle(2, P.ink).setDepth(depth);
+    this.add.rectangle(x + 7, y - 13, 10, 4, 0xa39985).setStrokeStyle(1, P.ink).setDepth(depth).setAngle(-30);
+    this.add.rectangle(x, y + 5, 10, 8, P.cream).setDepth(depth + 1);
+  }
+
+  // 바닥 공구 상자: 뚜껑 라인과 금색 걸쇠
+  private drawToolbox(x: number, y: number, depth: number) {
+    this.add.rectangle(x, y, 42, 24, P.red).setStrokeStyle(3, P.ink).setDepth(depth);
+    this.add.line(0, 0, x - 21, y - 5, x + 21, y - 5, P.ink, .9).setOrigin(0).setDepth(depth + 1);
+    this.add.rectangle(x, y - 2, 8, 7, P.gold).setStrokeStyle(1, P.ink).setDepth(depth + 1);
+    this.add.rectangle(x, y - 14, 16, 5, P.red).setStrokeStyle(2, P.ink).setDepth(depth);
   }
 
   private renderTopBar() {
@@ -159,26 +231,6 @@ class WarmPixelGarageScene extends Phaser.Scene {
   }
 
   private notify(message: string) { this.toast = message; this.render(); }
-
-  private drawBike(x: number, y: number, scale: number, depth: number) {
-    const g = this.add.graphics().setDepth(depth);
-    const rearX = x - 72 * scale; const frontX = x + 72 * scale; const wheelY = y + 38 * scale; const r = 35 * scale;
-    g.lineStyle(8 * scale, P.tire).strokeCircle(rearX, wheelY, r).strokeCircle(frontX, wheelY, r);
-    g.lineStyle(4 * scale, P.cream).strokeCircle(rearX, wheelY, r - 7 * scale).strokeCircle(frontX, wheelY, r - 7 * scale);
-    g.lineStyle(8 * scale, P.red)
-      .lineBetween(rearX, wheelY, x - 21 * scale, y - 27 * scale).lineBetween(x - 21 * scale, y - 27 * scale, x, wheelY)
-      .lineBetween(x, wheelY, rearX, wheelY).lineBetween(x - 21 * scale, y - 27 * scale, x + 41 * scale, y - 20 * scale)
-      .lineBetween(x + 41 * scale, y - 20 * scale, x, wheelY).lineBetween(x + 41 * scale, y - 20 * scale, frontX, wheelY);
-    g.lineStyle(5 * scale, P.ink).lineBetween(x + 41 * scale, y - 20 * scale, x + 60 * scale, y - 37 * scale);
-    this.add.rectangle(x - 27 * scale, y - 35 * scale, 30 * scale, 7 * scale, P.ink).setDepth(depth);
-  }
-
-  private drawTinyBike(x: number, y: number, scale: number, color: number, depth: number) {
-    const g = this.add.graphics().setDepth(depth);
-    const rear = x - 55 * scale; const front = x + 55 * scale; const wy = y + 20 * scale; const r = 22 * scale;
-    g.lineStyle(5 * scale, P.tire).strokeCircle(rear, wy, r).strokeCircle(front, wy, r);
-    g.lineStyle(6 * scale, color).lineBetween(rear, wy, x - 15 * scale, y - 17 * scale).lineBetween(x - 15 * scale, y - 17 * scale, x, wy).lineBetween(x, wy, rear, wy).lineBetween(x - 15 * scale, y - 17 * scale, x + 32 * scale, y - 12 * scale).lineBetween(x + 32 * scale, y - 12 * scale, front, wy);
-  }
 }
 
 export function startHomeDesignPrototype(parent: string, mode: HomeDesignPrototypeMode) {
