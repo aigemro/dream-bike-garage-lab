@@ -7,14 +7,32 @@
 
 ## 1. 실험 분류
 
-### Game Core
+### MVP Core Play
 
-게임의 재미와 플레이 구조를 비교합니다.
+한 주문 안에서 사용자가 직접 수행하는 플레이 구조를 비교합니다.
 
 - Merge Mechanics
+- Order Goal
+- Parts Supply
+- Assembly & Completion
+
+### Meta Progression
+
+주문 완료 뒤 다음 플레이 이유와 장기 성장 구조를 비교합니다.
+
 - Collection
-- Order & Assembly
 - Reward & Progression
+- Level Design & Unlock
+- Career Rank
+- Difficulty & Economy
+
+### Art & Audio
+
+동일한 게임 상태를 전달하는 시각·청각 표현을 비교합니다.
+
+- Visual Feedback & Motion
+- Background, Character, UI Art
+- Music & Sound Effects
 
 ### Platform & Technology
 
@@ -36,7 +54,7 @@ game-core / collection / prototype-b / v2
 platform / persistence / indexeddb / v1
 ```
 
-- **Category**: Game Core 또는 Platform
+- **Category**: MVP Core Play, Meta Progression, Art & Audio, Platform 또는 Release Integration
 - **Track**: 비교하려는 문제 영역
 - **Prototype**: 하나의 독립된 해결 방안
 - **Version**: 같은 방안 내부의 의미 있는 변경
@@ -154,7 +172,7 @@ platform / persistence / indexeddb / v1
 - 상위 Issue: 실험 트랙과 공통 평가 기준
 - 하위 Issue: Prototype 하나의 구현과 결과 기록
 - PR: 한 Prototype 또는 한 번의 비교 가능한 변경
-- Project View: Game Core / Platform으로 분리
+- Project View: MVP Core Play / Meta Progression / Art & Audio / Platform / Release Integration으로 분리
 - 권장 필드: Track, Prototype, Status, Result, Priority, Main 적용 여부
 
 Prototype Issue 제목 예시:
