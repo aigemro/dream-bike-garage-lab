@@ -44,6 +44,9 @@ import doc42 from '../docs/variants/background-16bit.md?raw';
 import doc43 from '../docs/variants/background-32bit.md?raw';
 import doc44 from '../docs/variants/background-ui-friendly.md?raw';
 import doc45 from '../docs/variants/home-design-warm-pixel.md?raw';
+import doc46 from '../docs/variants/home-design-dusk-workshop.md?raw';
+import doc47 from '../docs/variants/home-design-retro-pixel.md?raw';
+import doc48 from '../docs/variants/home-design-modern-casual.md?raw';
 
 const variantDocs: Record<string, string> = {
   'merge-free-board': doc0,
@@ -92,6 +95,9 @@ const variantDocs: Record<string, string> = {
   'background-32bit': doc43,
   'background-ui-friendly': doc44,
   'home-design-warm-pixel': doc45,
+  'home-design-dusk-workshop': doc46,
+  'home-design-retro-pixel': doc47,
+  'home-design-modern-casual': doc48,
 };
 
 export default variantDocs;
