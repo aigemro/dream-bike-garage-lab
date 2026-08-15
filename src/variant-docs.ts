@@ -60,6 +60,9 @@ import doc58 from '../docs/variants/mvp-integration-selected-flow.md?raw';
 import doc59 from '../docs/variants/collection-design-catalog.md?raw';
 import doc60 from '../docs/variants/collection-design-showcase.md?raw';
 import doc61 from '../docs/variants/collection-design-dream.md?raw';
+import doc62 from '../docs/variants/profile-design-id-card.md?raw';
+import doc63 from '../docs/variants/profile-design-career-board.md?raw';
+import doc64 from '../docs/variants/profile-design-stats-dashboard.md?raw';
 
 const variantDocs: Record<string, string> = {
   'merge-free-board': doc0,
@@ -124,6 +127,9 @@ const variantDocs: Record<string, string> = {
   'collection-design-catalog': doc59,
   'collection-design-showcase': doc60,
   'collection-design-dream': doc61,
+  'profile-design-id-card': doc62,
+  'profile-design-career-board': doc63,
+  'profile-design-stats-dashboard': doc64,
 };
 
 export default variantDocs;
