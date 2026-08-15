@@ -7,6 +7,7 @@ import { startSupplyPrototype, type SupplyPrototypeMode } from './supply-prototy
 import { startRewardPrototype, type RewardPrototypeMode } from './reward-prototype';
 import { startAssemblyPrototype, type AssemblyPrototypeMode } from './assembly-prototype';
 import { startHomePlayPrototype, type HomePlayPrototypeMode } from './home-play-prototype';
+import { startHomeDesignPrototype, type HomeDesignPrototypeMode } from './home-design-prototype';
 import { startInputPrototype, type InputPrototypeMode } from './input-prototype';
 import { startStoragePrototype, type StoragePrototypeMode } from './storage-prototype';
 import { startGameSystemPrototype, type GameSystemPrototypeMode } from './game-system-prototype';
@@ -30,6 +31,7 @@ type Variant = {
   rewardDemo?: RewardPrototypeMode;
   assemblyDemo?: AssemblyPrototypeMode;
   homePlayDemo?: HomePlayPrototypeMode;
+  homeDesignDemo?: HomeDesignPrototypeMode;
   inputDemo?: InputPrototypeMode;
   storageDemo?: StoragePrototypeMode;
   systemDemo?: GameSystemPrototypeMode;
@@ -99,6 +101,13 @@ const tracks: Track[] = [
   { id: 'animation-motion', group: 'ART & AUDIO', title: '애니메이션·모션 표현 방향', description: '캐릭터 행동, 부품 머지, 자전거 조립과 화면 전환의 움직임과 제작 범위를 비교합니다.', issueNumber: 127, variants: [] },
   { id: 'background-music', group: 'ART & AUDIO', title: '배경음악·공간 분위기', description: 'Garage 홈과 플레이 상태에 어울리는 음악 방향, 반복 피로와 전환 규칙을 비교합니다.', issueNumber: 128, variants: [] },
   { id: 'sound-effects', group: 'ART & AUDIO', title: '효과음·조작 피드백', description: '탭·생성·머지·장착·납품·보상의 소리와 기계적 조립감의 균형을 비교합니다.', issueNumber: 129, variants: [] },
+  {
+    id: 'home-screen-design', group: 'ART & AUDIO', title: '홈 화면 디자인',
+    description: '회의안 기반 Garage 홈의 정보 구조를 유지하고, 실제 게임 화면의 픽셀 아트·UI·공간 연출을 비교합니다.',
+    variants: [
+      { id: 'warm-pixel-garage', label: 'A안', title: '따뜻한 생활형 픽셀 Garage', description: '목재 공방과 계절감 있는 창밖 풍경 위에 중앙 드림 바이크와 하단 PLAY를 선명하게 배치합니다.', status: '체험 가능', question: '따뜻한 픽셀 생활감이 Garage 소유감을 높이면서 주문·PLAY·수집 UI의 가독성을 유지하는가?', controls: '대표 자전거와 수집 목표를 확인하고 PLAY로 작업 화면에 진입한 뒤 HOME으로 돌아와 화면 흐름을 비교합니다.', homeDesignDemo: 'warm-pixel-garage', issueNumber: 130, documentId: 'home-design-warm-pixel' },
+    ],
+  },
   {
     id: 'main-home-play',
     group: 'GAME CORE',
@@ -334,10 +343,10 @@ function renderVariant(track: Track, variant: Variant) {
 function renderDemo(track: Track, variant: Variant) {
   destroyGame();
   shell(`<main class="experiment-page demo-page">
-    ${variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.inputDemo || variant.systemDemo || variant.storageDemo || variant.boardSizeDemo || variant.imageDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${variant.imageDemo ? '동일 Garage 장면 · 390×810 세로 화면' : variant.boardSizeDemo ? '동일 주문·초기 부품 · 보드 조건만 변경' : variant.storageDemo ? '동일 상태 · 보드·재화·주문' : variant.systemDemo ? '동일 초반 레벨·주문·직급 데이터' : variant.inputDemo ? '동일 6×5 보드 · 동일 초기 부품 · 입력 규칙만 비교' : variant.homePlayDemo ? '390×810 · 동일 주문·메뉴·보드 데이터' : variant.assemblyDemo ? '동일 주문 · 동일 부품 4종' : variant.rewardDemo ? '동일 시작 급여 1,000 · 기본 보상 500' : variant.supplyDemo ? '동일 5×4 보드 · 목표 Lv.3 ×2' : variant.collectionDemo ? '동일 데이터 · 3,000코인' : variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div>${variant.imageDemo ? '' : '<button id="reset-demo">초기화</button>'}</div>${variant.imageDemo ? `<figure class="background-art-preview"><img src="${variant.imageDemo}" alt="${variant.title} Garage 배경 시안" /></figure>` : `<div id="game-root" class="demo-${variant.boardSizeDemo ?? variant.storageDemo ?? variant.systemDemo ?? variant.inputDemo ?? variant.homePlayDemo ?? variant.assemblyDemo ?? variant.rewardDemo ?? variant.supplyDemo ?? variant.collectionDemo ?? variant.demo}"></div>`}<p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
+    ${variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.homeDesignDemo || variant.inputDemo || variant.systemDemo || variant.storageDemo || variant.boardSizeDemo || variant.imageDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${variant.imageDemo ? '동일 Garage 장면 · 390×810 세로 화면' : variant.homeDesignDemo ? '회의안 기반 정보 구조 · 독자적 생활형 픽셀 디자인' : variant.boardSizeDemo ? '동일 주문·초기 부품 · 보드 조건만 변경' : variant.storageDemo ? '동일 상태 · 보드·재화·주문' : variant.systemDemo ? '동일 초반 레벨·주문·직급 데이터' : variant.inputDemo ? '동일 6×5 보드 · 동일 초기 부품 · 입력 규칙만 비교' : variant.homePlayDemo ? '390×810 · 동일 주문·메뉴·보드 데이터' : variant.assemblyDemo ? '동일 주문 · 동일 부품 4종' : variant.rewardDemo ? '동일 시작 급여 1,000 · 기본 보상 500' : variant.supplyDemo ? '동일 5×4 보드 · 목표 Lv.3 ×2' : variant.collectionDemo ? '동일 데이터 · 3,000코인' : variant.demo === 'free' ? '4~10 가변 보드 · 4 PARTS · 2차 구현' : '6×7 · 4 PARTS'}</span><strong>${variant.title}</strong></div>${variant.imageDemo ? '' : '<button id="reset-demo">초기화</button>'}</div>${variant.imageDemo ? `<figure class="background-art-preview"><img src="${variant.imageDemo}" alt="${variant.title} Garage 배경 시안" /></figure>` : `<div id="game-root" class="demo-${variant.boardSizeDemo ?? variant.storageDemo ?? variant.systemDemo ?? variant.inputDemo ?? variant.homeDesignDemo ?? variant.homePlayDemo ?? variant.assemblyDemo ?? variant.rewardDemo ?? variant.supplyDemo ?? variant.collectionDemo ?? variant.demo}"></div>`}<p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
   </main>`, { href: `#/track/${track.id}/${variant.id}`, label: `${variant.title} 상세` });
-  if (variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.inputDemo || variant.systemDemo || variant.storageDemo || variant.boardSizeDemo) {
-    const start = () => { destroyGame(); if (variant.boardSizeDemo) { game = startBoardSizePrototype('game-root', variant.boardSizeDemo) as unknown as Phaser.Game; return; } if (variant.storageDemo) { startStoragePrototype('game-root', variant.storageDemo); return; } game = variant.systemDemo ? startGameSystemPrototype('game-root', variant.systemDemo) : variant.inputDemo ? startInputPrototype('game-root', variant.inputDemo) : variant.homePlayDemo ? startHomePlayPrototype('game-root', variant.homePlayDemo) : variant.assemblyDemo ? startAssemblyPrototype('game-root', variant.assemblyDemo) : variant.rewardDemo ? startRewardPrototype('game-root', variant.rewardDemo) : variant.supplyDemo ? startSupplyPrototype('game-root', variant.supplyDemo) : variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
+  if (variant.demo || variant.collectionDemo || variant.supplyDemo || variant.rewardDemo || variant.assemblyDemo || variant.homePlayDemo || variant.homeDesignDemo || variant.inputDemo || variant.systemDemo || variant.storageDemo || variant.boardSizeDemo) {
+    const start = () => { destroyGame(); if (variant.boardSizeDemo) { game = startBoardSizePrototype('game-root', variant.boardSizeDemo) as unknown as Phaser.Game; return; } if (variant.storageDemo) { startStoragePrototype('game-root', variant.storageDemo); return; } game = variant.systemDemo ? startGameSystemPrototype('game-root', variant.systemDemo) : variant.inputDemo ? startInputPrototype('game-root', variant.inputDemo) : variant.homeDesignDemo ? startHomeDesignPrototype('game-root', variant.homeDesignDemo) : variant.homePlayDemo ? startHomePlayPrototype('game-root', variant.homePlayDemo) : variant.assemblyDemo ? startAssemblyPrototype('game-root', variant.assemblyDemo) : variant.rewardDemo ? startRewardPrototype('game-root', variant.rewardDemo) : variant.supplyDemo ? startSupplyPrototype('game-root', variant.supplyDemo) : variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
     start();
     document.querySelector('#reset-demo')?.addEventListener('click', start);
   }

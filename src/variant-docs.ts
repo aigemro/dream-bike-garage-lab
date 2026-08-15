@@ -43,6 +43,7 @@ import doc41 from '../docs/variants/feedback-reward.md?raw';
 import doc42 from '../docs/variants/background-16bit.md?raw';
 import doc43 from '../docs/variants/background-32bit.md?raw';
 import doc44 from '../docs/variants/background-ui-friendly.md?raw';
+import doc45 from '../docs/variants/home-design-warm-pixel.md?raw';
 
 const variantDocs: Record<string, string> = {
   'merge-free-board': doc0,
@@ -90,6 +91,7 @@ const variantDocs: Record<string, string> = {
   'background-16bit': doc42,
   'background-32bit': doc43,
   'background-ui-friendly': doc44,
+  'home-design-warm-pixel': doc45,
 };
 
 export default variantDocs;

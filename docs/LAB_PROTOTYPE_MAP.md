@@ -39,6 +39,7 @@ flowchart TB
     ART --> ANIMATION["애니메이션"]
     ART --> BGM["배경음악"]
     ART --> SFX["효과음"]
+    ART --> HOMEDESIGN["홈 화면 디자인"]
 
     PLATFORM --> INPUT["입력 방식"]
     PLATFORM --> RESPONSIVE["반응형 화면"]
@@ -140,6 +141,10 @@ mindmap
       A 정통 16비트 픽셀 공방
       B 고밀도 32비트 생활형 픽셀
       C 픽셀 배경 + 캐주얼 UI 친화형
+    홈 화면 디자인
+      A 따뜻한 생활형 픽셀 Garage
+      향후 B 기계적 · 도시형 픽셀 Garage
+      향후 C 캐주얼 UI 중심 Garage
     캐릭터 디자인
       트랙 이슈 준비
       방안 추후 추가
@@ -215,6 +220,7 @@ mindmap
 | Game Core | 난이도·경제 | A/B/C | 개발 중 | 주문 시간·행동·수입·소비 측정 | [#108](https://github.com/aigemro/dream-bike-garage-lab/issues/108) |
 | Game Core | 피드백·연출 | A/B/C | 개발 중 | 동일 이벤트의 길이·강도·피로 비교 | [#109](https://github.com/aigemro/dream-bike-garage-lab/issues/109) |
 | Art & Audio | 배경 디자인·Garage 공간 | A/B/C | 검토 준비 (시안·허브 등록) | 390×810 주문·PLAY UI 오버레이 후 감성·가독성·제작 비용 비교 | [#119](https://github.com/aigemro/dream-bike-garage-lab/issues/119), [#120](https://github.com/aigemro/dream-bike-garage-lab/issues/120), [#121](https://github.com/aigemro/dream-bike-garage-lab/issues/121), [#122](https://github.com/aigemro/dream-bike-garage-lab/issues/122) |
+| Art & Audio | 홈 화면 디자인 | A: 따뜻한 생활형 픽셀 Garage | 개발 중 (1차 데모) | 회의안 E 구조 기준 3초 인지·UI 가독성·Garage 소유감 검토 후 B/C안 추가 | [#130](https://github.com/aigemro/dream-bike-garage-lab/issues/130) |
 | Art & Audio | 캐릭터 디자인·표현 방향 | 방안 추후 추가 | 트랙 준비 | 캐릭터 비율·실루엣·초상화 공통 조건 정의 | [#125](https://github.com/aigemro/dream-bike-garage-lab/issues/125) |
 | Art & Audio | UI·아이콘 아트 방향 | 방안 추후 추가 | 트랙 준비 | 모바일 가독성·상태 구분 평가 기준 정의 | [#126](https://github.com/aigemro/dream-bike-garage-lab/issues/126) |
 | Art & Audio | 애니메이션·모션 표현 방향 | 방안 추후 추가 | 트랙 준비 | 동작 범위·프레임·반복 피로·성능 기준 정의 | [#127](https://github.com/aigemro/dream-bike-garage-lab/issues/127) |
