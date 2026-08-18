@@ -60,6 +60,7 @@ import doc58 from '../docs/variants/mvp-integration-core-features.md?raw';
 import doc59 from '../docs/variants/collection-design-catalog.md?raw';
 import doc60 from '../docs/variants/collection-design-showcase.md?raw';
 import doc61 from '../docs/variants/collection-design-dream.md?raw';
+import doc62 from '../docs/variants/game-screen-design-warm-pixel.md?raw';
 
 const variantDocs: Record<string, string> = {
   'merge-free-board': doc0,
@@ -124,6 +125,7 @@ const variantDocs: Record<string, string> = {
   'collection-design-catalog': doc59,
   'collection-design-showcase': doc60,
   'collection-design-dream': doc61,
+  'game-screen-design-warm-pixel': doc62,
 };
 
 export default variantDocs;

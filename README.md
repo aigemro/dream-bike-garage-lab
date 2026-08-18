@@ -60,6 +60,12 @@ Lab은 기능 하나를 완성하는 저장소가 아니라, 같은 게임 코�
 
 배경·캐릭터·UI·애니메이션·피드백·음악·효과음을 게임 규칙과 분리해 관리합니다.
 
+| 트랙 | 실험 예시 | 확인할 핵심 |
+|---|---|---|
+| Home Screen Design | 따뜻한 생활형 픽셀 Garage 등 | 첫 시선, 소유감, PLAY 진입 |
+| Game Screen Design | MVP 통합 따뜻한 픽셀 Garage | 주문·보드·택배·장착 가독성, 홈과 작업 공간의 연속성 |
+| Collection Screen Design | 도감, Garage 전시, 드림 바이크 성장 | 수집 정보, 소유감, 다음 목표 |
+
 처음에는 **Merge Mechanics**와 **Collection**을 우선 트랙으로 운영합니다. 실험안은 A/B/C로 고정하지 않고 필요할 때 계속 추가할 수 있습니다.
 
 ### 플레이 기반 (Platform & Technology)

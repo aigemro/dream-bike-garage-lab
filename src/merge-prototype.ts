@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 
 export type MergePrototypeMode = 'free' | 'order' | 'guided' | 'integrated';
+export type MergePrototypeTheme = 'lab' | 'warm-pixel';
 
 type PartType = 'frame' | 'wheel' | 'drivetrain' | 'handlebar';
 type Point = { x: number; y: number };
@@ -48,7 +49,17 @@ const ORDERS: Goal[][] = [
 ];
 
 class MergePrototypeScene extends Phaser.Scene {
-  constructor(private readonly mode: MergePrototypeMode) { super(`merge-${mode}`); }
+  constructor(
+    private readonly mode: MergePrototypeMode,
+    private readonly theme: MergePrototypeTheme = 'lab',
+  ) { super(`merge-${mode}-${theme}`); }
+
+  private get warm() { return this.theme === 'warm-pixel'; }
+
+  private partColor(type: PartType) {
+    if (!this.warm) return PARTS.find((part) => part.type === type)!.color;
+    return ({ frame: 0xc95746, wheel: 0xe7a942, drivetrain: 0x5e9a67, handlebar: 0x4e8092 } as const)[type];
+  }
 
   private rows = 7;
   private columns = 6;
@@ -89,9 +100,10 @@ class MergePrototypeScene extends Phaser.Scene {
   private orderCompleting = false;
 
   create() {
-    this.cameras.main.setBackgroundColor('#0b1727');
+    this.cameras.main.setBackgroundColor(this.warm ? '#c78452' : '#0b1727');
     this.startedAt = this.time.now;
     this.goals = ORDERS[0].map((goal) => ({ ...goal }));
+    if (this.warm) this.drawWarmWorkshopBackdrop();
     this.drawHeader();
     if (this.mode === 'order') {
       this.drawCustomOrder();
@@ -117,41 +129,86 @@ class MergePrototypeScene extends Phaser.Scene {
 
   private drawHeader() {
     const names = { free: 'A · 자유 보드 · 2차 구현', order: 'B · 주문 중심 · 2차 구현', guided: 'C · 자유 + 가이드', integrated: 'MVP 핵심 기능 통합 · 머지 코어 C안 기반' };
+    if (this.warm) {
+      this.add.rectangle(560, 44, 1080, 68, 0xfff1c6).setStrokeStyle(4, 0x3b2531).setDepth(8);
+      this.add.rectangle(560, 72, 1080, 8, 0x8e5136).setDepth(9);
+      this.add.text(34, 17, 'WORK ORDER · WARM PIXEL GARAGE', { fontFamily: '"Arial Rounded MT Bold", "Noto Sans KR", sans-serif', fontSize: '10px', color: '#8e5136', fontStyle: 'bold' }).setDepth(10);
+      this.add.text(34, 32, names[this.mode], { fontFamily: '"Arial Rounded MT Bold", "Noto Sans KR", sans-serif', fontSize: '18px', color: '#3b2531', fontStyle: 'bold' }).setDepth(10);
+      this.info = this.add.text(34, 56, '', { fontFamily: '"Arial Rounded MT Bold", "Noto Sans KR", sans-serif', fontSize: '11px', color: '#6e473b', wordWrap: { width: 810 } }).setDepth(10);
+      this.metrics = this.add.text(1080, 22, '', { fontFamily: '"Arial Rounded MT Bold", "Noto Sans KR", sans-serif', fontSize: '11px', color: '#6e473b', fontStyle: 'bold' }).setOrigin(1, 0).setDepth(10);
+      return;
+    }
     this.add.text(24, 18, names[this.mode], { fontFamily: 'Arial', fontSize: '19px', color: '#55d6be', fontStyle: 'bold' });
     this.info = this.add.text(24, 47, '', { fontFamily: 'Arial', fontSize: '12px', color: '#bfd0dc', wordWrap: { width: 1040 } });
     this.metrics = this.add.text(1096, 20, '', { fontFamily: 'Arial', fontSize: '11px', color: '#758da1' }).setOrigin(1, 0);
   }
 
-  private drawGuidedOrder() {
-    this.add.rectangle(122, 404, 220, 520, 0x0e1d2e).setStrokeStyle(1, 0x29465e);
-    this.add.text(30, 158, 'ORDER PARTS', { fontFamily: 'Arial', fontSize: '10px', color: '#55d6be', fontStyle: 'bold' });
+  private drawWarmWorkshopBackdrop() {
+    this.add.rectangle(560, 270, 1120, 540, 0xd79a63).setDepth(-20);
+    this.add.rectangle(560, 630, 1120, 180, 0xb66f45).setDepth(-20);
+    for (let y = 96; y < 540; y += 44) this.add.line(0, 0, 0, y, 1120, y, 0x573044, .1).setOrigin(0).setDepth(-19);
+    for (let y = 552; y < 720; y += 34) this.add.line(0, 0, 0, y, 1120, y, 0x573044, .34).setOrigin(0).setDepth(-19);
+    for (let x = 20; x < 1120; x += 72) this.add.line(0, 0, x, 552, x - 18, 720, 0x573044, .2).setOrigin(0).setDepth(-19);
 
-    this.add.rectangle(500, 150, 480, 140, 0x0e1d2e).setStrokeStyle(1, 0x55d6be, 0.72);
-    this.add.rectangle(286, 100, 74, 22, 0x173b43).setStrokeStyle(1, 0x55d6be, 0.85);
-    this.add.text(286, 100, 'NEW ORDER', { fontFamily: 'Arial', fontSize: '9px', color: '#9ff3e3', fontStyle: 'bold' }).setOrigin(0.5);
-    this.add.text(270, 122, '고객 주문이 도착했습니다', { fontFamily: 'Arial', fontSize: '11px', color: '#8fa8ba' });
-    this.orderText = this.add.text(270, 145, '', { fontFamily: 'Arial', fontSize: '17px', color: '#f0f7fb', fontStyle: 'bold' });
-    this.guidedOrderProgress = this.add.text(270, 174, '', { fontFamily: 'Arial', fontSize: '11px', color: '#8fa8ba' });
-    this.add.text(270, 196, '필요 부품을 완성해 주문을 납품하세요.', { fontFamily: 'Arial', fontSize: '10px', color: '#607b8f' });
+    this.add.rectangle(558, 152, 250, 116, 0x86c9c8).setStrokeStyle(8, 0x573044).setDepth(-18);
+    this.add.circle(492, 126, 15, 0xf4b84a).setDepth(-17);
+    this.add.ellipse(616, 128, 72, 24, 0xfff1c6, .9).setDepth(-17);
+    this.add.rectangle(558, 180, 242, 48, 0x86ba6f).setDepth(-17);
+    this.add.rectangle(558, 152, 8, 110, 0xfff1c6).setDepth(-16);
+    this.add.rectangle(558, 152, 242, 8, 0xfff1c6).setDepth(-16);
+
+    this.add.rectangle(112, 222, 160, 250, 0x8e5136).setStrokeStyle(5, 0x3b2531).setDepth(-18);
+    for (let py = 120; py < 320; py += 24) for (let px = 52; px < 178; px += 24) this.add.circle(px, py, 2, 0x573044, .55).setDepth(-17);
+    this.add.text(54, 92, 'ORDER WALL', { fontFamily: 'Arial', fontSize: '11px', color: '#fff1c6', fontStyle: 'bold' }).setDepth(-16);
+
+    this.add.rectangle(1008, 234, 164, 260, 0x8e5136).setStrokeStyle(5, 0x3b2531).setDepth(-18);
+    [144, 212, 280].forEach((y) => {
+      this.add.rectangle(1008, y, 138, 44, 0xc9894f).setStrokeStyle(3, 0x573044).setDepth(-17);
+      this.add.rectangle(1008, y - 5, 36, 16, 0xf6d995).setStrokeStyle(2, 0x573044).setDepth(-16);
+    });
+    this.add.text(954, 92, 'PARCEL SHELF', { fontFamily: 'Arial', fontSize: '11px', color: '#fff1c6', fontStyle: 'bold' }).setDepth(-16);
+  }
+
+  private drawGuidedOrder() {
+    const panelFill = this.warm ? 0xfff1c6 : 0x0e1d2e;
+    const cardFill = this.warm ? 0xf6d995 : 0x0b1929;
+    const border = this.warm ? 0x3b2531 : 0x29465e;
+    const ink = this.warm ? '#3b2531' : '#dce9f2';
+    const muted = this.warm ? '#7b5140' : '#71899c';
+    const accent = this.warm ? '#8e5136' : '#55d6be';
+    const fontFamily = this.warm ? '"Arial Rounded MT Bold", "Noto Sans KR", sans-serif' : 'Arial';
+
+    this.add.rectangle(122, 404, 220, 520, panelFill).setStrokeStyle(this.warm ? 4 : 1, border).setDepth(this.warm ? 2 : 0);
+    this.add.rectangle(122, 158, 184, 26, this.warm ? 0x8e5136 : 0x0e1d2e).setDepth(this.warm ? 3 : 0);
+    this.add.text(30, 150, this.warm ? '주문 부품 · ORDER PARTS' : 'ORDER PARTS', { fontFamily, fontSize: '10px', color: this.warm ? '#fff1c6' : accent, fontStyle: 'bold' }).setDepth(this.warm ? 4 : 0);
+
+    this.add.rectangle(500, 150, 480, 140, panelFill).setStrokeStyle(this.warm ? 4 : 1, this.warm ? 0x8e5136 : 0x55d6be, 0.9).setDepth(this.warm ? 2 : 0);
+    this.add.rectangle(286, 100, 92, 24, this.warm ? 0xc95746 : 0x173b43).setStrokeStyle(this.warm ? 3 : 1, border, 0.9).setDepth(this.warm ? 3 : 0);
+    this.add.text(286, 100, 'NEW ORDER', { fontFamily, fontSize: '9px', color: this.warm ? '#fff1c6' : '#9ff3e3', fontStyle: 'bold' }).setOrigin(0.5).setDepth(this.warm ? 4 : 0);
+    this.add.text(270, 122, '고객 주문이 도착했습니다', { fontFamily, fontSize: '11px', color: muted }).setDepth(this.warm ? 3 : 0);
+    this.orderText = this.add.text(270, 145, '', { fontFamily, fontSize: '17px', color: ink, fontStyle: 'bold' }).setDepth(this.warm ? 3 : 0);
+    this.guidedOrderProgress = this.add.text(270, 174, '', { fontFamily, fontSize: '11px', color: muted, fontStyle: this.warm ? 'bold' : 'normal' }).setDepth(this.warm ? 3 : 0);
+    this.add.text(270, 196, '필요 부품을 완성해 주문을 납품하세요.', { fontFamily, fontSize: '10px', color: this.warm ? '#8e5136' : '#607b8f' }).setDepth(this.warm ? 3 : 0);
     this.orderBike = this.add.graphics().setDepth(2).setScale(0.46).setPosition(445, 6);
 
     this.goals.forEach((goal, index) => {
       const part = PARTS.find((item) => item.type === goal.type)!;
+      const partColor = this.partColor(part.type);
       const y = 264 + index * 72;
-      const panel = this.add.rectangle(122, y, 184, 56, 0x0b1929).setStrokeStyle(1, part.color, 0.55);
-      this.add.rectangle(52, y, 28, 28, part.color, 0.24).setStrokeStyle(1, part.color);
-      this.add.text(52, y, part.short, { fontFamily: 'Arial', fontSize: '12px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
-      this.add.text(76, y - 11, part.name, { fontFamily: 'Arial', fontSize: '11px', color: '#dce9f2', fontStyle: 'bold' });
-      const status = this.add.text(76, y + 7, '', { fontFamily: 'Arial', fontSize: '10px', color: '#71899c' });
+      const panel = this.add.rectangle(122, y, 184, 56, cardFill).setStrokeStyle(this.warm ? 3 : 1, partColor, this.warm ? 1 : 0.55).setDepth(this.warm ? 3 : 0);
+      this.add.rectangle(52, y, 28, 28, partColor, this.warm ? 0.92 : 0.24).setStrokeStyle(this.warm ? 2 : 1, this.warm ? border : partColor).setDepth(this.warm ? 4 : 0);
+      this.add.text(52, y, part.short, { fontFamily, fontSize: '12px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(this.warm ? 5 : 0);
+      this.add.text(76, y - 11, part.name, { fontFamily, fontSize: '11px', color: ink, fontStyle: 'bold' }).setDepth(this.warm ? 4 : 0);
+      const status = this.add.text(76, y + 7, '', { fontFamily, fontSize: '10px', color: muted }).setDepth(this.warm ? 4 : 0);
       this.guidedGoalDisplays.set(goal.type, { panel, status });
     });
 
-    this.add.text(30, 574, this.mode === 'integrated' ? '통합 검증' : 'C안 가이드', { fontFamily: 'Arial', fontSize: '11px', color: '#55d6be', fontStyle: 'bold' });
+    this.add.text(30, 574, this.mode === 'integrated' ? (this.warm ? '오늘의 작업 메모' : '통합 검증') : 'C안 가이드', { fontFamily, fontSize: '11px', color: accent, fontStyle: 'bold' }).setDepth(this.warm ? 4 : 0);
     this.add.text(30, 598, this.mode === 'integrated'
       ? '부품은 택배로만 수급되며\n목표 레벨 완성 시 자전거에\n부품별로 자동 장착됩니다.'
       : '필요한 부품만 알려주며\n배치 위치와 제작 순서는\n플레이어가 자유롭게 정합니다.', {
-      fontFamily: 'Arial', fontSize: '10px', color: '#71899c', lineSpacing: 6,
-    });
+      fontFamily, fontSize: '10px', color: muted, lineSpacing: 6,
+    }).setDepth(this.warm ? 4 : 0);
     this.drawOrderBike();
   }
 
@@ -306,11 +363,19 @@ class MergePrototypeScene extends Phaser.Scene {
   }
 
   private drawBoard() {
+    if (this.warm) {
+      const width = this.columns * this.cellSize + 18;
+      const height = this.rows * this.cellSize + 18;
+      this.boardObjects.push(
+        this.add.rectangle(this.boardLeft + (this.columns * this.cellSize) / 2, this.boardTop + (this.rows * this.cellSize) / 2, width, height, 0x8e5136)
+          .setStrokeStyle(5, 0x3b2531).setDepth(0),
+      );
+    }
     for (let row = 0; row < this.rows; row += 1) {
       for (let column = 0; column < this.columns; column += 1) {
         const { x, y } = this.cellCenter(row, column);
-        const zone = this.add.rectangle(x, y, this.cellSize - this.gap, this.cellSize - this.gap, 0x13263b)
-          .setStrokeStyle(1, 0x28455f).setInteractive({ useHandCursor: true });
+        const zone = this.add.rectangle(x, y, this.cellSize - this.gap, this.cellSize - this.gap, this.warm ? 0xffe6a8 : 0x13263b)
+          .setStrokeStyle(this.warm ? 2 : 1, this.warm ? 0x9c5b3c : 0x28455f).setInteractive({ useHandCursor: true }).setDepth(this.warm ? 1 : 0);
         zone.on('pointerover', () => this.showPlacementGhost(row, column));
         zone.on('pointerout', () => this.clearPlacementGhost());
         zone.on('pointerdown', () => this.handleCell(row, column));
@@ -363,13 +428,14 @@ class MergePrototypeScene extends Phaser.Scene {
   }
 
   private drawPartPreviews(panelLeft: number, panelWidth: number, panelPadding: number, previewTop: number) {
-    const previewLabel = this.add.text(panelLeft + panelPadding, previewTop, '선택 부품 미리보기', { fontFamily: 'Arial', fontSize: '12px', color: '#8fa8ba', fontStyle: 'bold' });
-    const previewPanel = this.add.rectangle(panelLeft + panelWidth / 2, previewTop + 76, panelWidth - panelPadding * 2, 118, 0x0b1929).setStrokeStyle(1, 0x29465e);
+    const previewLabel = this.add.text(panelLeft + panelPadding, previewTop, '선택 부품 미리보기', { fontFamily: this.warm ? '"Arial Rounded MT Bold", "Noto Sans KR", sans-serif' : 'Arial', fontSize: '12px', color: this.warm ? '#6e473b' : '#8fa8ba', fontStyle: 'bold' }).setDepth(this.warm ? 4 : 0);
+    const previewPanel = this.add.rectangle(panelLeft + panelWidth / 2, previewTop + 76, panelWidth - panelPadding * 2, 118, this.warm ? 0xffe6a8 : 0x0b1929).setStrokeStyle(this.warm ? 3 : 1, this.warm ? 0x8e5136 : 0x29465e).setDepth(this.warm ? 3 : 0);
     this.controls.push(previewLabel, previewPanel);
 
     PARTS.forEach((part) => {
       const previewCell = 25;
       [0, 1, 2, 3].forEach((rotation) => {
+        const partColor = this.partColor(part.type);
         const previewShape = this.shape(part.type, rotation);
         const maxX = Math.max(...previewShape.map((point) => point.x));
         const maxY = Math.max(...previewShape.map((point) => point.y));
@@ -384,12 +450,12 @@ class MergePrototypeScene extends Phaser.Scene {
           point.y * previewCell - shapeHeight / 2 + previewCell / 2,
           previewCell - 3,
           previewCell - 3,
-          part.color,
-        ).setStrokeStyle(1, 0x07111f));
+          partColor,
+        ).setStrokeStyle(this.warm ? 2 : 1, this.warm ? 0x3b2531 : 0x07111f));
         const caption = this.add.text(0, 42, `${part.name} · ${part.shape.length}칸 · ${rotation * 90}°`, {
-          fontFamily: 'Arial', fontSize: '10px', color: '#bfd0dc', align: 'center',
+          fontFamily: this.warm ? '"Arial Rounded MT Bold", "Noto Sans KR", sans-serif' : 'Arial', fontSize: '10px', color: this.warm ? '#3b2531' : '#bfd0dc', align: 'center',
         }).setOrigin(0.5);
-        preview.add([...blocks, caption]);
+        preview.add([...blocks, caption]).setDepth(this.warm ? 4 : 0);
         this.controls.push(preview);
       });
     });
@@ -402,26 +468,28 @@ class MergePrototypeScene extends Phaser.Scene {
     const panelPadding = 24;
     const controlsLeft = panelLeft + panelPadding;
     const controlsTop = 150;
-    const panel = this.add.rectangle(panelLeft + panelWidth / 2, 404, panelWidth, 520, 0x0e1d2e).setStrokeStyle(1, 0x29465e).setDepth(0);
-    const label = this.add.text(controlsLeft, controlsTop, '부품 택배 수급', { fontFamily: 'Arial', fontSize: '12px', color: '#8fa8ba' });
+    const fontFamily = this.warm ? '"Arial Rounded MT Bold", "Noto Sans KR", sans-serif' : 'Arial';
+    const panel = this.add.rectangle(panelLeft + panelWidth / 2, 404, panelWidth, 520, this.warm ? 0xfff1c6 : 0x0e1d2e).setStrokeStyle(this.warm ? 4 : 1, this.warm ? 0x3b2531 : 0x29465e).setDepth(this.warm ? 2 : 0);
+    const label = this.add.text(controlsLeft, controlsTop, this.warm ? '택배 선반 · PARTS DELIVERY' : '부품 택배 수급', { fontFamily, fontSize: '12px', color: this.warm ? '#6e473b' : '#8fa8ba', fontStyle: this.warm ? 'bold' : 'normal' }).setDepth(this.warm ? 4 : 0);
     this.controls.push(panel, label);
     this.parcelDisplays.clear();
 
     PARTS.forEach((part, index) => {
       const y = controlsTop + 54 + index * 64;
-      const button = this.add.rectangle(panelLeft + panelWidth / 2, y, panelWidth - panelPadding * 2, 56, 0x13263b)
-        .setStrokeStyle(2, part.color).setInteractive({ useHandCursor: true });
+      const partColor = this.partColor(part.type);
+      const button = this.add.rectangle(panelLeft + panelWidth / 2, y, panelWidth - panelPadding * 2, 56, this.warm ? 0xf6d995 : 0x13263b)
+        .setStrokeStyle(this.warm ? 3 : 2, partColor).setInteractive({ useHandCursor: true }).setDepth(this.warm ? 3 : 0);
       button.on('pointerdown', () => this.handleParcelButton(part.type));
-      const name = this.add.text(controlsLeft + 14, y - 20, `${part.name} · ${part.short} · ${part.shape.length}칸`, { fontFamily: 'Arial', fontSize: '12px', color: '#e8f1f7', fontStyle: 'bold' });
-      const status = this.add.text(controlsLeft + 14, y + 2, '', { fontFamily: 'Arial', fontSize: '10px', color: '#8fa8ba' });
-      const need = this.add.text(panelLeft + panelWidth - panelPadding - 14, y - 20, '주문 필요', { fontFamily: 'Arial', fontSize: '9px', color: '#ffd37a', fontStyle: 'bold' }).setOrigin(1, 0);
+      const name = this.add.text(controlsLeft + 14, y - 20, `${this.warm ? '▣  ' : ''}${part.name} · ${part.short} · ${part.shape.length}칸`, { fontFamily, fontSize: '12px', color: this.warm ? '#3b2531' : '#e8f1f7', fontStyle: 'bold' }).setDepth(this.warm ? 4 : 0);
+      const status = this.add.text(controlsLeft + 14, y + 2, '', { fontFamily, fontSize: '10px', color: this.warm ? '#7b5140' : '#8fa8ba' }).setDepth(this.warm ? 4 : 0);
+      const need = this.add.text(panelLeft + panelWidth - panelPadding - 14, y - 20, '주문 필요', { fontFamily, fontSize: '9px', color: this.warm ? '#a14a38' : '#ffd37a', fontStyle: 'bold' }).setOrigin(1, 0).setDepth(this.warm ? 4 : 0);
       this.parcelDisplays.set(part.type, { button, status, need });
       this.controls.push(button, name, status, need);
     });
 
     const guide = this.add.text(controlsLeft, controlsTop + 316, '택배 주문 → 배송 → 상자 개봉 → 보드 배치 순서로\n부품을 수급합니다. 개봉 후 같은 버튼을 다시 누르면\n부품이 90° 회전합니다.', {
-      fontFamily: 'Arial', fontSize: '10px', color: '#71899c', lineSpacing: 5, wordWrap: { width: panelWidth - panelPadding * 2 },
-    });
+      fontFamily, fontSize: '10px', color: this.warm ? '#7b5140' : '#71899c', lineSpacing: 5, wordWrap: { width: panelWidth - panelPadding * 2 },
+    }).setDepth(this.warm ? 4 : 0);
     this.controls.push(guide);
     this.drawPartPreviews(panelLeft, panelWidth, panelPadding, controlsTop + 372);
     this.refreshControls();
@@ -472,25 +540,28 @@ class MergePrototypeScene extends Phaser.Scene {
     this.parcelDisplays.forEach((display, type) => {
       if (!display.button.active) return;
       const part = PARTS.find((item) => item.type === type)!;
+      const partColor = this.partColor(part.type);
       const parcel = this.parcels.get(type);
       const needed = this.goals.some((goal) => goal.type === type && !goal.delivered && !goal.installing);
       const placing = this.pendingParcel === type && this.generatorPlacementActive;
       display.need.setVisible(needed);
       let statusText = '탭하면 택배를 주문합니다';
-      let statusColor = '#8fa8ba';
+      let statusColor = this.warm ? '#7b5140' : '#8fa8ba';
       if (parcel?.state === 'delivering') {
         statusText = `배송 중… ${Math.max(0, (parcel.readyAt - this.time.now) / 1000).toFixed(1)}초`;
-        statusColor = '#ffd37a';
+        statusColor = this.warm ? '#a16028' : '#ffd37a';
       } else if (placing) {
         statusText = `배치 중 · ${this.generatorRotation * 90}° · 다시 누르면 회전`;
-        statusColor = '#9ff3e3';
+        statusColor = this.warm ? '#3f7851' : '#9ff3e3';
       } else if (parcel?.state === 'arrived') {
         statusText = '📦 도착 · 탭해서 개봉';
-        statusColor = '#ffd37a';
+        statusColor = this.warm ? '#a16028' : '#ffd37a';
       }
       display.status.setText(statusText).setColor(statusColor);
-      display.button.setFillStyle(placing ? 0x21445a : parcel?.state === 'arrived' ? 0x1a3a50 : 0x13263b);
-      display.button.setStrokeStyle(needed ? 3 : 1.5, part.color, needed ? 1 : 0.4);
+      display.button.setFillStyle(this.warm
+        ? placing ? 0xffe6a8 : parcel?.state === 'arrived' ? 0xf4c86a : 0xf6d995
+        : placing ? 0x21445a : parcel?.state === 'arrived' ? 0x1a3a50 : 0x13263b);
+      display.button.setStrokeStyle(needed ? 3 : 1.5, partColor, needed ? 1 : 0.4);
     });
   }
 
@@ -585,7 +656,7 @@ class MergePrototypeScene extends Phaser.Scene {
     const canMerge = Boolean(mergeTarget);
     const valid = canMerge || (!clicked && this.canPlace(this.selectedGenerator, anchorRow, anchorColumn, rotation));
     const part = PARTS.find((item) => item.type === this.selectedGenerator)!;
-    const color = valid ? part.color : 0xff5d73;
+    const color = valid ? this.partColor(part.type) : 0xff5d73;
     const blocks = this.shape(this.selectedGenerator, rotation).map((point) => this.add.rectangle(
       point.x * this.cellSize,
       point.y * this.cellSize,
@@ -617,8 +688,9 @@ class MergePrototypeScene extends Phaser.Scene {
 
   private makePiece(type: PartType, row: number, column: number, rotation: number, level: number) {
     const part = PARTS.find((item) => item.type === type)!;
+    const partColor = this.partColor(part.type);
     const cells = this.shape(type, rotation);
-    const blocks = cells.map((point) => this.add.rectangle(point.x * this.cellSize, point.y * this.cellSize, this.cellSize - this.gap * 2, this.cellSize - this.gap * 2, part.color).setStrokeStyle(2, 0x07111f));
+    const blocks = cells.map((point) => this.add.rectangle(point.x * this.cellSize, point.y * this.cellSize, this.cellSize - this.gap * 2, this.cellSize - this.gap * 2, partColor).setStrokeStyle(this.warm ? 3 : 2, this.warm ? 0x3b2531 : 0x07111f));
     const center = cells.reduce((sum, point) => ({ x: sum.x + point.x, y: sum.y + point.y }), { x: 0, y: 0 });
     center.x /= cells.length;
     center.y /= cells.length;
@@ -631,8 +703,8 @@ class MergePrototypeScene extends Phaser.Scene {
     const badgeY = badgeCell.y * this.cellSize;
     const badgeWidth = Math.max(24, Math.min(52, this.cellSize - this.gap * 4));
     const badgeHeight = Math.max(18, Math.min(28, this.cellSize - this.gap * 4, this.cellSize * 0.48));
-    const badge = this.add.rectangle(badgeX, badgeY, badgeWidth, badgeHeight, 0x07111f, 0.9).setStrokeStyle(1, 0xffffff, 0.7);
-    const tag = this.add.text(badgeX, badgeY, `Lv.${level}`, { align: 'center', fontFamily: 'Arial', fontSize: `${Math.max(10, Math.min(15, badgeHeight * 0.58))}px`, color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+    const badge = this.add.rectangle(badgeX, badgeY, badgeWidth, badgeHeight, this.warm ? 0xfff1c6 : 0x07111f, 0.94).setStrokeStyle(this.warm ? 2 : 1, this.warm ? 0x3b2531 : 0xffffff, 0.8);
+    const tag = this.add.text(badgeX, badgeY, `Lv.${level}`, { align: 'center', fontFamily: this.warm ? '"Arial Rounded MT Bold", "Noto Sans KR", sans-serif' : 'Arial', fontSize: `${Math.max(10, Math.min(15, badgeHeight * 0.58))}px`, color: this.warm ? '#3b2531' : '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
     const item = this.add.container(0, 0, [...blocks, badge, tag]).setDepth(2);
     const piece: Piece = { id: this.nextId++, type, level, row, column, rotation, item };
     this.positionPiece(piece);
@@ -706,7 +778,9 @@ class MergePrototypeScene extends Phaser.Scene {
 
   private refreshControls() {
     this.controls.filter((object): object is Phaser.GameObjects.Rectangle => object instanceof Phaser.GameObjects.Rectangle && Boolean(object.getData('part')))
-      .forEach((button) => button.setFillStyle(button.getData('part') === this.selectedGenerator && !this.selectedPiece && this.generatorPlacementActive ? 0x21445a : 0x13263b));
+      .forEach((button) => button.setFillStyle(button.getData('part') === this.selectedGenerator && !this.selectedPiece && this.generatorPlacementActive
+        ? (this.warm ? 0xffe6a8 : 0x21445a)
+        : (this.warm ? 0xf6d995 : 0x13263b)));
     this.controls.filter((object): object is Phaser.GameObjects.Container => object instanceof Phaser.GameObjects.Container && Boolean(object.getData('previewPart')))
       .forEach((preview) => preview.setVisible(preview.getData('previewPart') === this.selectedGenerator && preview.getData('previewRotation') === this.generatorRotation
         && (this.mode !== 'integrated' || this.generatorPlacementActive)));
@@ -748,10 +822,11 @@ class MergePrototypeScene extends Phaser.Scene {
     }
     this.installingPart = true;
     const part = PARTS.find((item) => item.type === next.goal.type)!;
+    const partColor = this.partColor(part.type);
     const target = this.bikeAnchor(next.goal.type);
     this.info.setText(`${part.name} Lv.${next.level} 완성 · 고객 자전거로 이동해 장착합니다.`);
     this.refreshOrder();
-    const marker = this.add.circle(next.from.x, next.from.y, 15, part.color).setDepth(30).setStrokeStyle(2, 0xffffff, 0.85);
+    const marker = this.add.rectangle(next.from.x, next.from.y, this.warm ? 28 : 30, this.warm ? 28 : 30, partColor).setDepth(30).setStrokeStyle(this.warm ? 4 : 2, this.warm ? 0xfff1c6 : 0xffffff, 0.9);
     this.tweens.add({
       targets: marker,
       x: target.x,
@@ -836,22 +911,23 @@ class MergePrototypeScene extends Phaser.Scene {
         const slot = this.goalSlots.get(goal.type);
         if (!slot) return;
         const part = PARTS.find((item) => item.type === goal.type)!;
-        slot.panel.setFillStyle(goal.delivered ? part.color : 0x0b1929, goal.delivered ? 0.28 : 1);
-        slot.panel.setStrokeStyle(goal.delivered ? 2 : 1, part.color, goal.delivered ? 1 : 0.65);
+        const partColor = this.partColor(part.type);
+        slot.panel.setFillStyle(goal.delivered ? partColor : (this.warm ? 0xf6d995 : 0x0b1929), goal.delivered ? 0.28 : 1);
+        slot.panel.setStrokeStyle(goal.delivered ? 2 : 1, partColor, goal.delivered ? 1 : 0.65);
         const levels = this.orderParts.get(goal.type) ?? [];
-        slot.label.setText(`${goal.delivered ? '✓ 완성' : part.name}  ·  목표 Lv.${goal.level}`).setColor(goal.delivered ? '#ffffff' : '#dce9f2');
+        slot.label.setText(`${goal.delivered ? '✓ 완성' : part.name}  ·  목표 Lv.${goal.level}`).setColor(goal.delivered ? (this.warm ? '#3b2531' : '#ffffff') : (this.warm ? '#3b2531' : '#dce9f2'));
         const display = this.orderPartDisplays.get(goal.type);
         if (display) {
           display.removeAll(true);
           if (levels.length === 0) {
-            const ghost = this.add.rectangle(22, 12, 44, 28, part.color, 0.08).setStrokeStyle(1, part.color, 0.45);
+            const ghost = this.add.rectangle(22, 12, 44, 28, partColor, 0.08).setStrokeStyle(1, partColor, 0.45);
             const ghostText = this.add.text(22, 12, `Lv.${goal.level}`, { fontFamily: 'Arial', fontSize: '10px', color: '#6f8799', fontStyle: 'bold' }).setOrigin(0.5);
             const hint = this.add.text(54, 12, '필요 부품 고스트', { fontFamily: 'Arial', fontSize: '10px', color: '#536b80' }).setOrigin(0, 0.5);
             display.add([ghost, ghostText, hint]);
           } else {
             levels.slice(0, 5).forEach((level, index) => {
               const complete = level >= goal.level;
-              const chip = this.add.rectangle(index * 52 + 20, 12, 44, 28, part.color, complete ? 0.9 : 0.28).setStrokeStyle(1, part.color);
+              const chip = this.add.rectangle(index * 52 + 20, 12, 44, 28, partColor, complete ? 0.9 : 0.28).setStrokeStyle(1, partColor);
               const text = this.add.text(index * 52 + 20, 12, `Lv.${level}`, { fontFamily: 'Arial', fontSize: '10px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
               display.add([chip, text]);
             });
@@ -870,16 +946,19 @@ class MergePrototypeScene extends Phaser.Scene {
       const display = this.guidedGoalDisplays.get(goal.type);
       if (!display) return;
       const part = PARTS.find((item) => item.type === goal.type)!;
+      const partColor = this.partColor(part.type);
       const current = this.pieces.filter((piece) => piece.type === goal.type).reduce((max, piece) => Math.max(max, piece.level), 0);
       const active = goal.delivered || Boolean(goal.installing);
-      display.panel.setFillStyle(active ? part.color : 0x0b1929, goal.delivered ? 0.22 : goal.installing ? 0.12 : 1);
-      display.panel.setStrokeStyle(active ? 2 : 1, part.color, active ? 1 : 0.55);
+      display.panel.setFillStyle(active ? partColor : (this.warm ? 0xf6d995 : 0x0b1929), goal.delivered ? (this.warm ? 0.36 : 0.22) : goal.installing ? 0.18 : 1);
+      display.panel.setStrokeStyle(active ? (this.warm ? 3 : 2) : (this.warm ? 2 : 1), partColor, active ? 1 : 0.55);
       display.status.setText(goal.delivered
         ? `✓ Lv.${goal.level} ${this.mode === 'integrated' ? '장착 완료' : '납품 완료'}`
         : goal.installing
           ? `Lv.${goal.level} 장착 중…`
           : `현재 Lv.${current || '-'}  →  목표 Lv.${goal.level}`)
-        .setColor(goal.delivered ? '#ffffff' : goal.installing ? '#9ff3e3' : current > 0 ? '#ffd37a' : '#71899c');
+        .setColor(this.warm
+          ? goal.delivered ? '#3f7851' : goal.installing ? '#a16028' : current > 0 ? '#a14a38' : '#7b5140'
+          : goal.delivered ? '#ffffff' : goal.installing ? '#9ff3e3' : current > 0 ? '#ffd37a' : '#71899c');
     });
   }
 
@@ -890,6 +969,12 @@ class MergePrototypeScene extends Phaser.Scene {
     const delivered = (type: PartType) => this.goals.find((goal) => goal.type === type)?.delivered ?? false;
     const alpha = (type: PartType) => delivered(type) ? 1 : 0.16;
     const ghost = (type: PartType) => delivered(type) ? 0 : 0.52;
+    const wheelColor = this.partColor('wheel');
+    const frameColor = this.partColor('frame');
+    const drivetrainColor = this.partColor('drivetrain');
+    const handlebarColor = this.partColor('handlebar');
+    const lightInk = this.warm ? 0xfff1c6 : 0xffd29a;
+    const darkInk = this.warm ? 0x3b2531 : 0x07111f;
 
     // 실제 자전거 비율 기준점: BB(크랭크)는 허브 축보다 아래(BB 드롭), 시트튜브 상단은 BB보다 뒤쪽에 둔다.
     const rearX = 218;
@@ -909,30 +994,30 @@ class MergePrototypeScene extends Phaser.Scene {
     const drawWheel = (x: number) => {
       const wheelAlpha = alpha('wheel');
       // MTB는 굵고 각진 타이어, 로드는 얇은 이중 림으로 구분한다.
-      g.lineStyle(isMtb ? 11 : 4, 0xffb35c, wheelAlpha).strokeCircle(x, groundY, radius);
-      g.lineStyle(isMtb ? 2 : 2, isMtb ? 0xffd29a : 0xffdcb0, wheelAlpha * 0.9).strokeCircle(x, groundY, radius - (isMtb ? 8 : 5));
+      g.lineStyle(isMtb ? 11 : 4, wheelColor, wheelAlpha).strokeCircle(x, groundY, radius);
+      g.lineStyle(isMtb ? 2 : 2, lightInk, wheelAlpha * 0.9).strokeCircle(x, groundY, radius - (isMtb ? 8 : 5));
       if (isMtb) {
         for (let angle = 0; angle < 360; angle += 18) {
           const rad = Phaser.Math.DegToRad(angle);
           const inner = radius - 5;
           const outer = radius + 3;
-          g.lineStyle(3, 0xffc274, wheelAlpha)
+          g.lineStyle(3, wheelColor, wheelAlpha)
             .lineBetween(x + Math.cos(rad) * inner, groundY + Math.sin(rad) * inner, x + Math.cos(rad) * outer, groundY + Math.sin(rad) * outer);
         }
       }
-      g.lineStyle(1.5, 0xffd29a, wheelAlpha * 0.72);
+      g.lineStyle(1.5, lightInk, wheelAlpha * 0.72);
       for (let angle = 0; angle < 360; angle += (isMtb ? 30 : 20)) {
         const rad = Phaser.Math.DegToRad(angle);
         g.lineBetween(x, groundY, x + Math.cos(rad) * (radius - (isMtb ? 10 : 7)), groundY + Math.sin(rad) * (radius - (isMtb ? 10 : 7)));
       }
-      g.fillStyle(0xffb35c, wheelAlpha).fillCircle(x, groundY, isMtb ? 7 : 5);
-      g.lineStyle(2, 0x07111f, wheelAlpha).strokeCircle(x, groundY, isMtb ? 7 : 5);
+      g.fillStyle(wheelColor, wheelAlpha).fillCircle(x, groundY, isMtb ? 7 : 5);
+      g.lineStyle(2, darkInk, wheelAlpha).strokeCircle(x, groundY, isMtb ? 7 : 5);
     };
     drawWheel(rearX);
     drawWheel(frontX);
 
     // 프레임: 다이아몬드 구조(시트스테이·시트튜브·체인스테이·탑튜브·헤드튜브·다운튜브).
-    g.lineStyle(frameWidth, 0x55d6be, alpha('frame'));
+    g.lineStyle(frameWidth, frameColor, alpha('frame'));
     g.lineBetween(rearX, groundY, seatX, seatY);
     g.lineBetween(seatX, seatY, crankX, crankY);
     g.lineBetween(crankX, crankY, rearX, groundY);
@@ -942,39 +1027,39 @@ class MergePrototypeScene extends Phaser.Scene {
 
     // 포크: MTB는 서스펜션(굵은 로워 + 밝은 스탠션), 로드는 얇은 일자 포크.
     if (isMtb) {
-      g.lineStyle(11, 0x2d6f6b, alpha('frame')).lineBetween(headBottomX, headBottomY, frontX, groundY);
-      g.lineStyle(4, 0xc8fff5, alpha('frame')).lineBetween(
+      g.lineStyle(11, this.warm ? 0x9e3f32 : 0x2d6f6b, alpha('frame')).lineBetween(headBottomX, headBottomY, frontX, groundY);
+      g.lineStyle(4, this.warm ? 0xf6d995 : 0xc8fff5, alpha('frame')).lineBetween(
         headBottomX, headBottomY,
         headBottomX + (frontX - headBottomX) * 0.45, headBottomY + (groundY - headBottomY) * 0.45,
       );
     } else {
-      g.lineStyle(6, 0x71e5d0, alpha('frame')).lineBetween(headBottomX, headBottomY, frontX, groundY);
+      g.lineStyle(6, this.warm ? 0xe87558 : 0x71e5d0, alpha('frame')).lineBetween(headBottomX, headBottomY, frontX, groundY);
     }
 
     // 시트포스트와 안장: 시트튜브 연장선 위에 올린다.
     const postTopX = seatX - 5;
     const postTopY = seatY - 26;
-    g.lineStyle(5, 0x71e5d0, alpha('frame')).lineBetween(seatX, seatY, postTopX, postTopY);
-    g.lineStyle(isMtb ? 8 : 6, 0x8bf1df, alpha('frame')).lineBetween(postTopX - 26, postTopY - 5, postTopX + 18, postTopY - 5);
+    g.lineStyle(5, this.warm ? 0xe87558 : 0x71e5d0, alpha('frame')).lineBetween(seatX, seatY, postTopX, postTopY);
+    g.lineStyle(isMtb ? 8 : 6, this.warm ? 0x573044 : 0x8bf1df, alpha('frame')).lineBetween(postTopX - 26, postTopY - 5, postTopX + 18, postTopY - 5);
     if (isMtb) {
       // MTB 전용 리어 쇼크: 탑튜브와 다운튜브를 잇는 대각선으로 연결한다.
-      g.lineStyle(5, 0xc8fff5, alpha('frame')).lineBetween(seatX + 42, seatY + 8, crankX + 36, crankY - 26);
+      g.lineStyle(5, this.warm ? 0xf6d995 : 0xc8fff5, alpha('frame')).lineBetween(seatX + 42, seatY + 8, crankX + 36, crankY - 26);
     }
 
     // 구동계: 체인링, 크랭크·페달, 체인, 리어 카세트.
     const driveAlpha = alpha('drivetrain');
     const ringRadius = isMtb ? 16 : 19;
     const cassetteRadius = isMtb ? 13 : 10;
-    g.lineStyle(5, 0xff7185, driveAlpha).strokeCircle(crankX, crankY, ringRadius);
-    g.lineStyle(2, 0xffb0bd, driveAlpha).strokeCircle(crankX, crankY, ringRadius - 6);
-    g.lineStyle(3, 0xff9bab, driveAlpha)
+    g.lineStyle(5, drivetrainColor, driveAlpha).strokeCircle(crankX, crankY, ringRadius);
+    g.lineStyle(2, this.warm ? 0xb9dd9a : 0xffb0bd, driveAlpha).strokeCircle(crankX, crankY, ringRadius - 6);
+    g.lineStyle(3, this.warm ? 0x86ba6f : 0xff9bab, driveAlpha)
       .strokeCircle(rearX, groundY, cassetteRadius)
       .lineBetween(crankX, crankY - ringRadius, rearX, groundY - cassetteRadius)
       .lineBetween(crankX, crankY + ringRadius, rearX, groundY + cassetteRadius);
-    g.lineStyle(4, 0xff7185, driveAlpha)
+    g.lineStyle(4, drivetrainColor, driveAlpha)
       .lineBetween(crankX, crankY, crankX + 24, crankY + 16)
       .lineBetween(crankX, crankY, crankX - 24, crankY - 16);
-    g.lineStyle(5, 0xffb0bd, driveAlpha)
+    g.lineStyle(5, this.warm ? 0xb9dd9a : 0xffb0bd, driveAlpha)
       .lineBetween(crankX + 18, crankY + 16, crankX + 32, crankY + 16)
       .lineBetween(crankX - 32, crankY - 16, crankX - 18, crankY - 16);
 
@@ -983,28 +1068,28 @@ class MergePrototypeScene extends Phaser.Scene {
     if (isMtb) {
       const stemTopX = headTopX + 5;
       const stemTopY = headTopY - 20;
-      g.lineStyle(6, 0x8c7bff, barAlpha).lineBetween(headTopX, headTopY, stemTopX, stemTopY);
-      g.lineStyle(7, 0x8c7bff, barAlpha).lineBetween(stemTopX - 44, stemTopY - 4, stemTopX + 48, stemTopY - 4);
-      g.lineStyle(5, 0xb4a9ff, barAlpha)
+      g.lineStyle(6, handlebarColor, barAlpha).lineBetween(headTopX, headTopY, stemTopX, stemTopY);
+      g.lineStyle(7, handlebarColor, barAlpha).lineBetween(stemTopX - 44, stemTopY - 4, stemTopX + 48, stemTopY - 4);
+      g.lineStyle(5, this.warm ? 0x86c9c8 : 0xb4a9ff, barAlpha)
         .lineBetween(stemTopX - 44, stemTopY - 12, stemTopX - 44, stemTopY + 4)
         .lineBetween(stemTopX + 48, stemTopY - 12, stemTopX + 48, stemTopY + 4);
-      g.fillStyle(0x8c7bff, barAlpha).fillCircle(stemTopX - 26, stemTopY, 3).fillCircle(stemTopX + 30, stemTopY, 3);
+      g.fillStyle(handlebarColor, barAlpha).fillCircle(stemTopX - 26, stemTopY, 3).fillCircle(stemTopX + 30, stemTopY, 3);
     } else {
       // 스티어러는 헤드튜브 기울기를 따라 올리고, 드롭바는 앞으로 뻗은 뒤 아래로 말리는 곡선으로 그린다.
       const steerX = headTopX - 4;
       const steerY = headTopY - 14;
       const barX = steerX + 30;
       const barY = steerY - 4;
-      g.lineStyle(6, 0x8c7bff, barAlpha)
+      g.lineStyle(6, handlebarColor, barAlpha)
         .lineBetween(headTopX, headTopY, steerX, steerY)
         .lineBetween(steerX, steerY, barX, barY);
       // arc는 lineBetween과 체이닝하면 beginPath에 경로가 지워지므로 명시적으로 경로를 그린다.
-      g.lineStyle(5, 0xb4a9ff, barAlpha);
+      g.lineStyle(5, this.warm ? 0x86c9c8 : 0xb4a9ff, barAlpha);
       g.beginPath();
       g.arc(barX, barY + 14, 14, -Math.PI / 2, Math.PI * 0.65, false);
       g.strokePath();
       // 브레이크 후드.
-      g.lineStyle(4, 0xd5cfff, barAlpha).lineBetween(barX + 12, barY + 8, barX + 16, barY + 18);
+      g.lineStyle(4, this.warm ? 0xcce6d2 : 0xd5cfff, barAlpha).lineBetween(barX + 12, barY + 8, barX + 16, barY + 18);
     }
 
     // 미완성 부품은 위 자전거 본체의 낮은 alpha로만 표시한다.
@@ -1031,14 +1116,14 @@ class MergePrototypeScene extends Phaser.Scene {
   private partName(type: PartType) { return PARTS.find((part) => part.type === type)!.name; }
 }
 
-export function startMergePrototype(parent: string, mode: MergePrototypeMode) {
+export function startMergePrototype(parent: string, mode: MergePrototypeMode, theme: MergePrototypeTheme = 'lab') {
   return new Phaser.Game({
     type: Phaser.AUTO,
     parent,
     width: 1120,
     height: 720,
-    backgroundColor: '#0b1727',
-    scene: new MergePrototypeScene(mode),
+    backgroundColor: theme === 'warm-pixel' ? '#c78452' : '#0b1727',
+    scene: new MergePrototypeScene(mode, theme),
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     input: { activePointers: 2 },
   });
