@@ -186,7 +186,7 @@ class MergePrototypeScene extends Phaser.Scene {
     const accent = this.warm ? '#8e5136' : '#55d6be';
     const fontFamily = this.warm ? '"Arial Rounded MT Bold", "Noto Sans KR", sans-serif' : 'Arial';
 
-    const orderPanelOffsetY = this.warm ? -8 : 0;
+    const orderPanelOffsetY = this.warm ? 4 : 0;
     const workMemoY = this.warm ? 542 : 574;
     this.add.rectangle(122, 404 + orderPanelOffsetY, 220, 520, panelFill).setStrokeStyle(this.warm ? 4 : 1, border).setDepth(this.warm ? 2 : 0);
     this.add.rectangle(122, 158 + orderPanelOffsetY, 184, 26, this.warm ? 0x8e5136 : 0x0e1d2e).setDepth(this.warm ? 3 : 0);
