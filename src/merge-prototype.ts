@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { drawDreamBike, type BikePalette } from './home-design-bike';
 
 export type MergePrototypeMode = 'free' | 'order' | 'guided' | 'integrated';
 export type MergePrototypeTheme = 'lab' | 'warm-pixel';
@@ -19,6 +20,17 @@ type Goal = { type: PartType; level: number; delivered: boolean; installing?: bo
 type ParcelState = { state: 'idle' | 'delivering' | 'arrived'; readyAt: number };
 
 const PARCEL_DELIVERY_MS = 1500;
+
+const WARM_ORDER_BIKE_PALETTE: BikePalette = {
+  frame: 0xc95746,
+  frameShadow: 0x9e3f32,
+  tire: 0x302936,
+  rim: 0xfff1c6,
+  spoke: 0xd9c197,
+  metal: 0xa39985,
+  saddle: 0x573044,
+  accent: 0xf4b84a,
+};
 
 const PARTS: Array<{ type: PartType; name: string; short: string; color: number; shape: Point[] }> = [
   { type: 'frame', name: '프레임', short: 'F', color: 0x55d6be, shape: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }] },
@@ -174,7 +186,8 @@ class MergePrototypeScene extends Phaser.Scene {
     const accent = this.warm ? '#8e5136' : '#55d6be';
     const fontFamily = this.warm ? '"Arial Rounded MT Bold", "Noto Sans KR", sans-serif' : 'Arial';
 
-    const orderPanelOffsetY = this.warm ? -16 : 0;
+    const orderPanelOffsetY = this.warm ? -8 : 0;
+    const workMemoY = this.warm ? 542 : 574;
     this.add.rectangle(122, 404 + orderPanelOffsetY, 220, 520, panelFill).setStrokeStyle(this.warm ? 4 : 1, border).setDepth(this.warm ? 2 : 0);
     this.add.rectangle(122, 158 + orderPanelOffsetY, 184, 26, this.warm ? 0x8e5136 : 0x0e1d2e).setDepth(this.warm ? 3 : 0);
     this.add.text(30, 150 + orderPanelOffsetY, this.warm ? '주문 부품 · ORDER PARTS' : 'ORDER PARTS', { fontFamily, fontSize: '10px', color: this.warm ? '#fff1c6' : accent, fontStyle: 'bold' }).setDepth(this.warm ? 4 : 0);
@@ -186,7 +199,8 @@ class MergePrototypeScene extends Phaser.Scene {
     this.orderText = this.add.text(270, 145, '', { fontFamily, fontSize: '17px', color: ink, fontStyle: 'bold' }).setDepth(this.warm ? 3 : 0);
     this.guidedOrderProgress = this.add.text(270, 174, '', { fontFamily, fontSize: '11px', color: muted, fontStyle: this.warm ? 'bold' : 'normal' }).setDepth(this.warm ? 3 : 0);
     this.add.text(270, 196, '필요 부품을 완성해 주문을 납품하세요.', { fontFamily, fontSize: '10px', color: this.warm ? '#8e5136' : '#607b8f' }).setDepth(this.warm ? 3 : 0);
-    this.orderBike = this.add.graphics().setDepth(2).setScale(this.warm ? 0.62 : 0.46).setPosition(this.warm ? 308 : 445, this.warm ? -30 : 6);
+    this.orderBike = this.add.graphics().setDepth(2);
+    if (!this.warm) this.orderBike.setScale(0.46).setPosition(445, 6);
 
     this.goals.forEach((goal, index) => {
       const part = PARTS.find((item) => item.type === goal.type)!;
@@ -200,8 +214,8 @@ class MergePrototypeScene extends Phaser.Scene {
       this.guidedGoalDisplays.set(goal.type, { panel, status });
     });
 
-    this.add.text(30, 574 + orderPanelOffsetY, this.mode === 'integrated' ? (this.warm ? '오늘의 작업 메모' : '통합 검증') : 'C안 가이드', { fontFamily, fontSize: '11px', color: accent, fontStyle: 'bold' }).setDepth(this.warm ? 4 : 0);
-    this.add.text(30, 598 + orderPanelOffsetY, this.mode === 'integrated'
+    this.add.text(30, workMemoY, this.mode === 'integrated' ? (this.warm ? '오늘의 작업 메모' : '통합 검증') : 'C안 가이드', { fontFamily, fontSize: '11px', color: accent, fontStyle: 'bold' }).setDepth(this.warm ? 4 : 0);
+    this.add.text(30, workMemoY + 24, this.mode === 'integrated'
       ? '부품은 택배로만 수급되며\n목표 레벨 완성 시 자전거에\n부품별로 자동 장착됩니다.'
       : '필요한 부품만 알려주며\n배치 위치와 제작 순서는\n플레이어가 자유롭게 정합니다.', {
       fontFamily, fontSize: '10px', color: muted, lineSpacing: 6,
@@ -847,8 +861,19 @@ class MergePrototypeScene extends Phaser.Scene {
     });
   }
 
-  // 주문 패널 자전거의 부품별 장착 위치. drawGuidedOrder의 orderBike는 (445, 6)에 0.46 배율로 놓인다.
+  // 주문 패널 자전거의 부품별 장착 위치. 따뜻한 안은 홈 화면 공용 모델의 실제 좌표를 사용한다.
   private bikeAnchor(type: PartType): Point {
+    if (this.warm) {
+      const x = 565;
+      const y = 170;
+      const scale = 0.68;
+      return ({
+        frame: { x: x - 10 * scale, y: y - 20 * scale },
+        wheel: { x: x + 82 * scale, y },
+        drivetrain: { x: x - 10 * scale, y: y + 8 * scale },
+        handlebar: { x: x + 68 * scale, y: y - 58 * scale },
+      } as const)[type];
+    }
     const local: Record<PartType, Point> = {
       frame: { x: 380, y: 275 },
       wheel: { x: 546, y: 350 },
@@ -961,9 +986,24 @@ class MergePrototypeScene extends Phaser.Scene {
 
   private drawOrderBike() {
     if (!this.orderBike) return;
-    const g = this.orderBike.clear();
     const isMtb = this.orderIndex === 1;
     const delivered = (type: PartType) => this.goals.find((goal) => goal.type === type)?.delivered ?? false;
+    if (this.warm) {
+      this.orderBike.destroy();
+      const incompleteAlpha = 0.5;
+      this.orderBike = drawDreamBike(this, 565, 170, 0.68, WARM_ORDER_BIKE_PALETTE, 4, {
+        style: isMtb ? 'city' : 'road',
+        pixelStep: 2,
+        partAlpha: {
+          frame: delivered('frame') ? 1 : incompleteAlpha,
+          wheel: delivered('wheel') ? 1 : incompleteAlpha,
+          drivetrain: delivered('drivetrain') ? 1 : incompleteAlpha,
+          handlebar: delivered('handlebar') ? 1 : incompleteAlpha,
+        },
+      });
+      return;
+    }
+    const g = this.orderBike.clear();
     const alpha = (type: PartType) => delivered(type) ? 1 : (this.warm ? 0.42 : 0.16);
     const wheelColor = this.partColor('wheel');
     const frameColor = this.partColor('frame');

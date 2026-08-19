@@ -20,6 +20,7 @@ export interface BikePalette {
 export interface BikeOptions {
   style?: BikeStyle; // road: 드롭바 / city: 플랫바
   pixelStep?: number; // 지정 시 모든 좌표를 격자에 스냅해 픽셀풍 유지
+  partAlpha?: Partial<Record<'frame' | 'wheel' | 'drivetrain' | 'handlebar', number>>; // 주문 카드의 부품별 완성 상태
 }
 
 // 픽셀풍 씬에서 좌표를 격자에 맞추기 위한 스냅 함수
@@ -43,6 +44,12 @@ export function drawDreamBike(
   options: BikeOptions = {},
 ): Phaser.GameObjects.Graphics {
   const { style = 'road', pixelStep } = options;
+  const partAlpha = {
+    frame: options.partAlpha?.frame ?? 1,
+    wheel: options.partAlpha?.wheel ?? 1,
+    drivetrain: options.partAlpha?.drivetrain ?? 1,
+    handlebar: options.partAlpha?.handlebar ?? 1,
+  };
   const s = scale;
   const g = scene.add.graphics().setDepth(depth);
   const px = (v: number) => snap(v, pixelStep);
@@ -58,9 +65,9 @@ export function drawDreamBike(
 
   // 바퀴: 타이어 → 림 → 스포크 → 허브 순서로 겹쳐 그림
   const drawWheel = (cx: number, cy: number) => {
-    g.lineStyle(9 * s, palette.tire).strokeCircle(cx, cy, wheelR);
-    g.lineStyle(3.5 * s, palette.rim).strokeCircle(cx, cy, wheelR - 7.5 * s);
-    g.lineStyle(2 * s, palette.spoke);
+    g.lineStyle(9 * s, palette.tire, partAlpha.wheel).strokeCircle(cx, cy, wheelR);
+    g.lineStyle(3.5 * s, palette.rim, partAlpha.wheel).strokeCircle(cx, cy, wheelR - 7.5 * s);
+    g.lineStyle(2 * s, palette.spoke, partAlpha.wheel);
     const spokeCount = pixelStep ? 8 : 10;
     for (let i = 0; i < spokeCount; i += 1) {
       const angle = (Math.PI * 2 * i) / spokeCount + (pixelStep ? 0 : 0.24);
@@ -69,8 +76,8 @@ export function drawDreamBike(
         px(cx + Math.cos(angle) * (wheelR - 9 * s)), px(cy + Math.sin(angle) * (wheelR - 9 * s)),
       );
     }
-    g.fillStyle(palette.rim).fillCircle(cx, cy, 6 * s);
-    g.fillStyle(palette.accent).fillCircle(cx, cy, 3 * s);
+    g.fillStyle(palette.rim, partAlpha.wheel).fillCircle(cx, cy, 6 * s);
+    g.fillStyle(palette.accent, partAlpha.wheel).fillCircle(cx, cy, 3 * s);
   };
   drawWheel(rear.x, rear.y);
   drawWheel(front.x, front.y);
@@ -78,10 +85,10 @@ export function drawDreamBike(
   // 구동계: 체인이 프레임 뒤에 깔리도록 프레임보다 먼저 그림
   const chainringR = 15 * s;
   const cogR = 7 * s;
-  g.lineStyle(3 * s, palette.metal);
+  g.lineStyle(3 * s, palette.metal, partAlpha.drivetrain);
   g.lineBetween(bb.x, bb.y - chainringR, rear.x, rear.y - cogR); // 체인 상단
   g.lineBetween(bb.x, bb.y + chainringR, rear.x, rear.y + cogR); // 체인 하단
-  g.lineStyle(3.5 * s, palette.rim).strokeCircle(rear.x, rear.y, cogR); // 뒤 스프라켓
+  g.lineStyle(3.5 * s, palette.rim, partAlpha.drivetrain).strokeCircle(rear.x, rear.y, cogR); // 뒤 스프라켓
 
   // 프레임 음영: 본체보다 살짝 아래로 어두운 색을 깔아 입체감 부여
   const frameLines: Array<[{ x: number; y: number }, { x: number; y: number }]> = [
@@ -93,44 +100,44 @@ export function drawDreamBike(
     [rear, seatTop], // 시트스테이
     [headBottom, front], // 포크
   ];
-  g.lineStyle(8 * s, palette.frameShadow);
+  g.lineStyle(8 * s, palette.frameShadow, partAlpha.frame);
   frameLines.forEach(([a, b]) => g.lineBetween(a.x, a.y + 2.5 * s, b.x, b.y + 2.5 * s));
-  g.lineStyle(7 * s, palette.frame);
+  g.lineStyle(7 * s, palette.frame, partAlpha.frame);
   frameLines.forEach(([a, b]) => g.lineBetween(a.x, a.y, b.x, b.y));
 
   // 크랭크·체인링·페달
-  g.fillStyle(palette.metal).fillCircle(bb.x, bb.y, 5 * s);
-  g.lineStyle(4 * s, palette.rim).strokeCircle(bb.x, bb.y, chainringR);
-  g.lineStyle(4.5 * s, palette.metal);
+  g.fillStyle(palette.metal, partAlpha.drivetrain).fillCircle(bb.x, bb.y, 5 * s);
+  g.lineStyle(4 * s, palette.rim, partAlpha.drivetrain).strokeCircle(bb.x, bb.y, chainringR);
+  g.lineStyle(4.5 * s, palette.metal, partAlpha.drivetrain);
   const pedalFront = { x: px(bb.x + 15 * s), y: px(bb.y + 13 * s) };
   const pedalRear = { x: px(bb.x - 15 * s), y: px(bb.y - 13 * s) };
   g.lineBetween(bb.x, bb.y, pedalFront.x, pedalFront.y);
   g.lineBetween(bb.x, bb.y, pedalRear.x, pedalRear.y);
-  g.fillStyle(palette.tire);
+  g.fillStyle(palette.tire, partAlpha.drivetrain);
   g.fillRect(pedalFront.x - 8 * s, pedalFront.y - 2.5 * s, 16 * s, 5 * s);
   g.fillRect(pedalRear.x - 8 * s, pedalRear.y - 2.5 * s, 16 * s, 5 * s);
 
   // 싯포스트와 안장
   const saddle = { x: px(x - 41 * s), y: px(y - 68 * s) };
-  g.lineStyle(4.5 * s, palette.metal).lineBetween(seatTop.x, seatTop.y, saddle.x + 3 * s, saddle.y + 4 * s);
-  g.fillStyle(palette.saddle).fillRoundedRect(saddle.x - 19 * s, saddle.y - 5 * s, 38 * s, 9 * s, 4 * s);
+  g.lineStyle(4.5 * s, palette.metal, partAlpha.frame).lineBetween(seatTop.x, seatTop.y, saddle.x + 3 * s, saddle.y + 4 * s);
+  g.fillStyle(palette.saddle, partAlpha.frame).fillRoundedRect(saddle.x - 19 * s, saddle.y - 5 * s, 38 * s, 9 * s, 4 * s);
 
   // 스템과 핸들바 (road: 드롭바 / city: 플랫바)
   const stemEnd = { x: px(headTop.x + 6 * s), y: px(headTop.y - 10 * s) };
-  g.lineStyle(4.5 * s, palette.metal).lineBetween(headTop.x, headTop.y, stemEnd.x, stemEnd.y);
+  g.lineStyle(4.5 * s, palette.metal, partAlpha.handlebar).lineBetween(headTop.x, headTop.y, stemEnd.x, stemEnd.y);
   if (style === 'road') {
-    g.lineStyle(4.5 * s, palette.metal);
+    g.lineStyle(4.5 * s, palette.metal, partAlpha.handlebar);
     g.lineBetween(stemEnd.x, stemEnd.y, px(stemEnd.x + 15 * s), stemEnd.y);
     g.lineBetween(px(stemEnd.x + 15 * s), stemEnd.y, px(stemEnd.x + 19 * s), px(stemEnd.y + 12 * s));
     g.lineBetween(px(stemEnd.x + 19 * s), px(stemEnd.y + 12 * s), px(stemEnd.x + 10 * s), px(stemEnd.y + 17 * s));
-    g.fillStyle(palette.saddle).fillCircle(px(stemEnd.x + 10 * s), px(stemEnd.y + 17 * s), 3.5 * s);
+    g.fillStyle(palette.saddle, partAlpha.handlebar).fillCircle(px(stemEnd.x + 10 * s), px(stemEnd.y + 17 * s), 3.5 * s);
   } else {
-    g.lineStyle(4.5 * s, palette.metal).lineBetween(px(stemEnd.x - 13 * s), px(stemEnd.y + 2 * s), px(stemEnd.x + 12 * s), px(stemEnd.y - 2 * s));
-    g.fillStyle(palette.saddle).fillRoundedRect(px(stemEnd.x - 17 * s), px(stemEnd.y) - 2 * s, 9 * s, 5 * s, 2 * s);
+    g.lineStyle(4.5 * s, palette.metal, partAlpha.handlebar).lineBetween(px(stemEnd.x - 13 * s), px(stemEnd.y + 2 * s), px(stemEnd.x + 12 * s), px(stemEnd.y - 2 * s));
+    g.fillStyle(palette.saddle, partAlpha.handlebar).fillRoundedRect(px(stemEnd.x - 17 * s), px(stemEnd.y) - 2 * s, 9 * s, 5 * s, 2 * s);
   }
 
   // 헤드 배지 포인트: 프레임의 시선 포인트
-  g.fillStyle(palette.accent).fillCircle(px((headTop.x + headBottom.x) / 2), px((headTop.y + headBottom.y) / 2), 3.5 * s);
+  g.fillStyle(palette.accent, partAlpha.frame).fillCircle(px((headTop.x + headBottom.x) / 2), px((headTop.y + headBottom.y) / 2), 3.5 * s);
   return g;
 }
 
