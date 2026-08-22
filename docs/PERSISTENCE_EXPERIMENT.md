@@ -62,3 +62,16 @@
 - A안은 구현이 가장 단순하므로 작은 웹 MVP 기준선으로 평가합니다.
 - B안은 비동기 저장과 슬롯 분리를 제공하므로 실제 게임 확장 후보로 평가합니다.
 - 최종 채택은 앱인토스 WebView의 데이터 유지 조건과 로그인 정책을 확인한 뒤 메인 저장소에서 결정합니다.
+
+## C안 · 통합 상태 자동 저장·복구 (#5 결합)
+
+> 관련 이슈: [#5 앱 라이프사이클 및 상태 복구 검증](https://github.com/aigemro/dream-bike-garage-lab/issues/5) · 상위: [#113 출시 MVP 통합 검증](https://github.com/aigemro/dream-bike-garage-lab/issues/113)
+
+A/B 비교에서 정리한 저장 계약을 출시 MVP의 통합 상태(보드, 현재 주문, 코인, 성장 단계, 튜토리얼)에 적용하고, 저장 버튼 없이 라이프사이클 이벤트에서 자동 저장합니다.
+
+- 자동 저장 시점: `visibilitychange`(hidden)로 백그라운드 전환을, `pagehide`로 새로고침·탭 닫기·페이지 이동을 처리합니다. iOS WebView에서 `beforeunload`가 불안정하므로 사용하지 않습니다.
+- 복원 규칙: 진입 시 자동 복원하며, 마지막 저장의 revision과 저장 사유(수동/백그라운드/페이지 이탈)를 표시해 어느 시점으로 돌아왔는지 확인할 수 있습니다.
+- 손상 데이터: 스키마 검증에 실패하면 진행에 적용하지 않고 첫 실행 상태와 오류 안내를 표시합니다.
+- 남은 검증: 앱인토스 WebView 실기기에서 백그라운드 전환·강제 종료 후 복구 조건 판정은 #4·#117과 함께 진행합니다.
+
+자세한 절차는 [variants/storage-integrated-auto.md](variants/storage-integrated-auto.md)를 참고하세요.

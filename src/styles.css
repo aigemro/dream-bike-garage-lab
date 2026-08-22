@@ -51,7 +51,7 @@ button { position: relative; z-index: 1; flex: 0 0 auto; white-space: nowrap; co
 #game-root.demo-play-focus, #game-root.demo-order-focus, #game-root.demo-hub-focus, #game-root.demo-garage-lobby, #game-root.demo-garage-agreement,
 #game-root.demo-warm-pixel-garage, #game-root.demo-character-warm-pixel, #game-root.demo-ui-warm-pixel, #game-root.demo-motion-warm-pixel, #game-root.demo-music-warm-pixel, #game-root.demo-sfx-warm-pixel { width: min(100%, 390px); height: 100%; min-width: 0; min-height: 0; aspect-ratio: 390 / 810; }
 #game-root.demo-warm-catalog, #game-root.demo-warm-showcase, #game-root.demo-warm-dream-growth { width: min(100%, 390px, calc((100dvh - 220px) * 390 / 810)); height: auto; min-width: 0; min-height: 0; aspect-ratio: 390 / 810; }
-#game-root.demo-local, #game-root.demo-indexed-db { width: min(100%, 960px); height: 100%; min-width: 0; min-height: 0; aspect-ratio: auto; overflow: auto; }
+#game-root.demo-local, #game-root.demo-indexed-db, #game-root.demo-integrated-auto { width: min(100%, 960px); height: 100%; min-width: 0; min-height: 0; aspect-ratio: auto; overflow: auto; }
 #game-root.demo-board-size { width: 100%; height: 100%; min-width: 0; min-height: 0; aspect-ratio: auto; overflow: auto; }
 #game-root.demo-order-cycle, #game-root.demo-free-cleanup { width: 100%; height: 100%; min-width: 0; min-height: 0; aspect-ratio: auto; overflow: auto; }
 .core-loop-lab { min-height: 100%; padding: clamp(14px, 2.5vw, 28px); background: radial-gradient(circle at 85% 0, #143650, transparent 48%), #07111f; }
@@ -71,6 +71,8 @@ button { position: relative; z-index: 1; flex: 0 0 auto; white-space: nowrap; co
 .save-state-card { margin-top: 14px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }.save-metric strong { display: block; margin-top: 6px; color: #55d6be; font: 800 28px 'Manrope'; }.parts-preview { grid-column: 1 / -1; min-height: 94px; padding: 14px; border-top: 1px solid #20364b; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }.parts-preview span { padding: 9px 11px; border: 1px solid #395168; color: #adbdca; font-size: 12px; }.parts-preview em { color: #667d92; font-style: normal; }
 .storage-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }.storage-actions span { margin-bottom: 13px; }.storage-actions button { margin: 0 7px 7px 0; }.storage-actions button.accent { color: #07111f; background: #55d6be; border-color: #55d6be; }
 .storage-status { margin: 14px 0 0; padding: 12px 14px; color: #55d6be; background: #0b1828; border-left: 3px solid #55d6be; font-size: 13px; }.storage-guide { color: #71889c; font-size: 11px; line-height: 1.6; }
+.save-event-log { margin-top: 14px; padding: 14px 18px; border: 1px solid #294158; background: rgba(11, 24, 40, .9); }.save-event-log span { display: block; margin-bottom: 8px; color: #71889c; font-size: 10px; letter-spacing: .12em; }.save-event-log p { margin: 4px 0; color: #adbdca; font-size: 12px; }
+.parts-preview .goal-done { border-color: #55d6be; color: #55d6be; }
 .hint { color: #70869a; font-size: 12px; margin: 12px 2px 0; }
 .demo-page { height: calc(100dvh - 72px); min-height: 0; padding-top: 12px !important; padding-bottom: 12px !important; }
 .demo-page .demo-panel { height: 100%; min-height: 0; margin-top: 0 !important; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
