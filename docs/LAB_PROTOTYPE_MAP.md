@@ -21,7 +21,8 @@ flowchart TB
     LAB["Dream Bike Garage Lab"]
     LAB --> CORE["MVP Core Play<br/>한 판의 직접 플레이"]
     LAB --> META["Meta Progression<br/>보상 이후 장기 성장"]
-    LAB --> ART["Art & Audio<br/>시각·청각 표현과 에셋"]
+    LAB --> SCREEN["Screen Design<br/>화면 구조와 사용성"]
+    LAB --> ART["Art & Audio<br/>에셋과 시청각 표현"]
     LAB --> PLATFORM["Platform & Technology<br/>실행 환경과 기술 안정성"]
     LAB --> INTEGRATION["Release Integration<br/>출시 수직 슬라이스"]
 
@@ -159,15 +160,11 @@ mindmap
       C 완성 · 보상 강조
 ```
 
-## 4. Art & Audio 프로토타입
+## 4. 화면 디자인 프로토타입
 
 ```mermaid
 mindmap
-  root((Art & Audio))
-    배경 디자인 · Garage 공간
-      A 정통 16비트 픽셀 공방
-      B 고밀도 32비트 생활형 픽셀
-      C 픽셀 배경 + 캐주얼 UI 친화형
+  root((Screen Design))
     홈 화면 디자인
       A 따뜻한 생활형 픽셀 Garage
       향후 B 기계적 · 도시형 픽셀 Garage
@@ -212,6 +209,19 @@ mindmap
         이슈 준비
       C 미니 조립형
         이슈 준비
+```
+
+화면 디자인은 화면별 정보 우선순위, 시선 흐름, 조작 동선과 화면 전환을 비교합니다. 특정 픽셀 화풍이나 사운드 에셋 자체의 방향은 Art & Audio에서 별도로 관리합니다.
+
+## 5. Art & Audio 프로토타입
+
+```mermaid
+mindmap
+  root((Art & Audio))
+    배경 디자인 · Garage 공간
+      A 정통 16비트 픽셀 공방
+      B 고밀도 32비트 생활형 픽셀
+      C 픽셀 배경 + 캐주얼 UI 친화형
     캐릭터 디자인
       A 따뜻한 생활형 픽셀 정비사 · 고객
       향후 B · C 비교안
@@ -229,9 +239,9 @@ mindmap
       향후 B · C 비교안
 ```
 
-Art & Audio는 게임 규칙이나 플랫폼 기술이 아니라, 동일한 게임 상태를 어떤 시각·청각 언어로 전달할지 비교하는 상위 분류입니다. 배경·캐릭터·UI·애니메이션·음악·효과음을 각각 독립 트랙으로 관리합니다.
+Art & Audio는 게임 규칙이나 화면 정보 구조가 아니라, 동일한 상태를 어떤 에셋과 시각·청각 언어로 전달할지 비교하는 상위 분류입니다. 배경·캐릭터·UI·애니메이션·음악·효과음을 각각 독립 트랙으로 관리합니다.
 
-## 5. Platform & Technology 프로토타입
+## 6. Platform & Technology 프로토타입
 
 ```mermaid
 mindmap
@@ -268,7 +278,7 @@ mindmap
       성능 · 분석 · 오류 수집
 ```
 
-## 6. 현재 진행 현황
+## 7. 현재 진행 현황
 
 | 분류 | 트랙 | Prototype / 작업 | 현재 상태 | 다음 확인 | 관련 항목 |
 |---|---|---|---|---|---|
@@ -294,14 +304,14 @@ mindmap
 | MVP Core Play | 주문 목표·반복 플레이 | A: 순환 주문 세트 | 개발 중 (1차 데모) | 초기 3종 이후 변형 주문의 재플레이 동기 검증 | [#144](https://github.com/aigemro/dream-bike-garage-lab/issues/144) |
 | MVP Core Play | 보드 막힘·복구 | A: 1회 무료 정리 | 개발 중 (1차 데모) | 막힘 감지 후 손실감·복구 행동 수·정상 플레이 복귀 검증 | [#145](https://github.com/aigemro/dream-bike-garage-lab/issues/145) |
 | Art & Audio | 배경 디자인·Garage 공간 | A/B/C | 검토 준비 (시안·허브 등록) | 390×810 주문·PLAY UI 오버레이 후 감성·가독성·제작 비용 비교 | [#119](https://github.com/aigemro/dream-bike-garage-lab/issues/119), [#120](https://github.com/aigemro/dream-bike-garage-lab/issues/120), [#121](https://github.com/aigemro/dream-bike-garage-lab/issues/121), [#122](https://github.com/aigemro/dream-bike-garage-lab/issues/122) |
-| Art & Audio | 홈 화면 디자인 | A: 따뜻한 생활형 픽셀 Garage | 개발 중 (1차 데모) | 회의안 E 구조 기준 3초 인지·UI 가독성·Garage 소유감 검토 후 B/C안 추가 | [#130](https://github.com/aigemro/dream-bike-garage-lab/issues/130) |
-| Art & Audio | 게임 화면 디자인 | A: 브라우저 가로 · B: 모바일 세로 390×810 | 개발 중 (1차 데모) | #114 동일 통합 로직에서 A/B 화면 크기·시선 흐름·터치 크기 비교, 홈 A안 공간 연속성 검증 | [#166](https://github.com/aigemro/dream-bike-garage-lab/issues/166), [#177](https://github.com/aigemro/dream-bike-garage-lab/issues/177), [#114](https://github.com/aigemro/dream-bike-garage-lab/issues/114) |
-| Art & Audio | 자전거 수집 화면 디자인 | A/B/C: 도감·전시·드림 바이크 | 개발 중 (1차 데모) | 홈 A안 자전거 탭 진입 기준 24종 가독성·소유감·성장 동기 비교 | [#147](https://github.com/aigemro/dream-bike-garage-lab/issues/147), [#148](https://github.com/aigemro/dream-bike-garage-lab/issues/148), [#149](https://github.com/aigemro/dream-bike-garage-lab/issues/149), [#150](https://github.com/aigemro/dream-bike-garage-lab/issues/150) |
-| Art & Audio | 프로필 화면 디자인 | A/B/C: 사원증·승진 보드·기록 대시보드 | 개발 중 (1차 데모) | 홈 A안 프로필 탭 진입 기준 정보 3요소 가독성·승진 동기 연결 비교 | [#157](https://github.com/aigemro/dream-bike-garage-lab/issues/157), [#158](https://github.com/aigemro/dream-bike-garage-lab/issues/158), [#159](https://github.com/aigemro/dream-bike-garage-lab/issues/159), [#160](https://github.com/aigemro/dream-bike-garage-lab/issues/160), [검토](PROFILE_SCREEN_DESIGN_REVIEW.md) |
-| Art & Audio | 납품·보상 정산 화면 | A: 급여 봉투 개봉형 (B/C 이슈 준비) | 개발 중 (1차 데모) | 봉투 개봉 성취감·급여 사용처 전달을 B/C안과 비교 | [#179](https://github.com/aigemro/dream-bike-garage-lab/issues/179) |
-| Art & Audio | 첫 플레이 안내 오버레이 | A: 정비사 말풍선형 (B/C 이슈 준비) | 개발 중 (1차 데모) | 스포트라이트·말풍선의 대상 가림 여부와 행동 유도력을 B/C안과 비교 | [#180](https://github.com/aigemro/dream-bike-garage-lab/issues/180), [#115](https://github.com/aigemro/dream-bike-garage-lab/issues/115) |
-| Art & Audio | 설정 화면 | A: 공방 관리 서랍형 (B/C 이슈 준비) | 개발 중 (1차 데모) | 토글 가독성·초기화 위험 구분을 B/C안과 비교 | [#181](https://github.com/aigemro/dream-bike-garage-lab/issues/181), [#117](https://github.com/aigemro/dream-bike-garage-lab/issues/117) |
-| Art & Audio | 타이틀·로딩 화면 | A: 공방 간판형 (B/C 이슈 준비) | 개발 중 (1차 데모) | 3초 장르 전달·대표 이미지 구도를 B/C안과 비교 | [#182](https://github.com/aigemro/dream-bike-garage-lab/issues/182), [#117](https://github.com/aigemro/dream-bike-garage-lab/issues/117) |
+| 화면 디자인 | 홈 화면 디자인 | A: 따뜻한 생활형 픽셀 Garage | 개발 중 (1차 데모) | 회의안 E 구조 기준 3초 인지·UI 가독성·Garage 소유감 검토 후 B/C안 추가 | [#130](https://github.com/aigemro/dream-bike-garage-lab/issues/130) |
+| 화면 디자인 | 게임 화면 디자인 | A: 브라우저 가로 · B: 모바일 세로 390×810 | 개발 중 (1차 데모) | #114 동일 통합 로직에서 A/B 화면 크기·시선 흐름·터치 크기 비교, 홈 A안 공간 연속성 검증 | [#166](https://github.com/aigemro/dream-bike-garage-lab/issues/166), [#177](https://github.com/aigemro/dream-bike-garage-lab/issues/177), [#114](https://github.com/aigemro/dream-bike-garage-lab/issues/114) |
+| 화면 디자인 | 자전거 수집 화면 디자인 | A/B/C: 도감·전시·드림 바이크 | 개발 중 (1차 데모) | 홈 A안 자전거 탭 진입 기준 24종 가독성·소유감·성장 동기 비교 | [#147](https://github.com/aigemro/dream-bike-garage-lab/issues/147), [#148](https://github.com/aigemro/dream-bike-garage-lab/issues/148), [#149](https://github.com/aigemro/dream-bike-garage-lab/issues/149), [#150](https://github.com/aigemro/dream-bike-garage-lab/issues/150) |
+| 화면 디자인 | 프로필 화면 디자인 | A/B/C: 사원증·승진 보드·기록 대시보드 | 개발 중 (1차 데모) | 홈 A안 프로필 탭 진입 기준 정보 3요소 가독성·승진 동기 연결 비교 | [#157](https://github.com/aigemro/dream-bike-garage-lab/issues/157), [#158](https://github.com/aigemro/dream-bike-garage-lab/issues/158), [#159](https://github.com/aigemro/dream-bike-garage-lab/issues/159), [#160](https://github.com/aigemro/dream-bike-garage-lab/issues/160), [검토](PROFILE_SCREEN_DESIGN_REVIEW.md) |
+| 화면 디자인 | 납품·보상 정산 화면 | A: 급여 봉투 개봉형 (B/C 이슈 준비) | 개발 중 (1차 데모) | 봉투 개봉 성취감·급여 사용처 전달을 B/C안과 비교 | [#179](https://github.com/aigemro/dream-bike-garage-lab/issues/179) |
+| 화면 디자인 | 첫 플레이 안내 오버레이 | A: 정비사 말풍선형 (B/C 이슈 준비) | 개발 중 (1차 데모) | 스포트라이트·말풍선의 대상 가림 여부와 행동 유도력을 B/C안과 비교 | [#180](https://github.com/aigemro/dream-bike-garage-lab/issues/180), [#115](https://github.com/aigemro/dream-bike-garage-lab/issues/115) |
+| 화면 디자인 | 설정 화면 | A: 공방 관리 서랍형 (B/C 이슈 준비) | 개발 중 (1차 데모) | 토글 가독성·초기화 위험 구분을 B/C안과 비교 | [#181](https://github.com/aigemro/dream-bike-garage-lab/issues/181), [#117](https://github.com/aigemro/dream-bike-garage-lab/issues/117) |
+| 화면 디자인 | 타이틀·로딩 화면 | A: 공방 간판형 (B/C 이슈 준비) | 개발 중 (1차 데모) | 3초 장르 전달·대표 이미지 구도를 B/C안과 비교 | [#182](https://github.com/aigemro/dream-bike-garage-lab/issues/182), [#117](https://github.com/aigemro/dream-bike-garage-lab/issues/117) |
 | Art & Audio | 캐릭터 디자인·표현 방향 | A: 따뜻한 생활형 픽셀 정비사·고객 | 개발 중 (1차 데모) | 역할 실루엣·필드/초상화 연결·3단계 감정 비교 | [#125](https://github.com/aigemro/dream-bike-garage-lab/issues/125), [#133](https://github.com/aigemro/dream-bike-garage-lab/issues/133) |
 | Art & Audio | UI·아이콘 아트 방향 | A: 종이·목재 픽셀 공방 UI | 개발 중 (1차 데모) | 주문·부품·재화·READY/부족/잠금 상태 가독성 비교 | [#126](https://github.com/aigemro/dream-bike-garage-lab/issues/126), [#134](https://github.com/aigemro/dream-bike-garage-lab/issues/134) |
 | Art & Audio | 애니메이션·모션 표현 방향 | A: 짧고 포근한 픽셀 모션 | 개발 중 (1차 데모) | 0.4초 이하 머지·장착·완성 인지와 반복 피로 비교 | [#127](https://github.com/aigemro/dream-bike-garage-lab/issues/127), [#135](https://github.com/aigemro/dream-bike-garage-lab/issues/135) |
@@ -315,7 +325,7 @@ mindmap
 
 상태는 `아이디어 → 준비 → 개발 중 → 검토 준비 → 검토 → 완료`로 관리하며, 결과는 `채택 / 조건부 채택 / 보류 / 폐기`로 별도 기록합니다.
 
-## 7. 실험에서 메인 적용까지
+## 8. 실험에서 메인 적용까지
 
 ```mermaid
 flowchart LR
@@ -327,7 +337,7 @@ flowchart LR
     DECISION -->|보류·폐기| RECORD["결과와 배운 점 보존"]
 ```
 
-## 8. 신규 트랙·프로토타입 추가 규칙
+## 9. 신규 트랙·프로토타입 추가 규칙
 
 1. 기존 트랙의 해결 방안이면 해당 트랙 아래 Prototype을 추가합니다.
 2. 검증 질문과 평가 기준이 다르면 새 트랙을 만듭니다.
@@ -336,7 +346,7 @@ flowchart LR
 5. 실험 결과에는 측정값, 관찰, 장점, 한계, 메인 적용 여부를 남깁니다.
 6. 현재 MVP 밖의 브랜드·매치3·레이스·경영·과금 확장은 핵심 루프가 검증된 뒤 별도 트랙으로 승격합니다.
 
-## 9. 설계 자료 해석 기준
+## 10. 설계 자료 해석 기준
 
 - `Dream Bike Garage 머지게임 시스템 설계안`은 현재 핵심 루프와 MVP 범위의 기준 자료로 사용합니다.
 - 기존 `글로벌 자전거 브랜드 매치3·머지 게임 마케팅 기획서`의 브랜드, 매치3, 레이스, O2O, 과금 아이디어는 폐기하지 않되 현재 MVP와 섞지 않고 향후 확장 후보로 보관합니다.
