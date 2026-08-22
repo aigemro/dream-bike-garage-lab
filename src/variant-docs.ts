@@ -69,6 +69,7 @@ import doc67 from '../docs/variants/game-screen-design-warm-mobile.md?raw';
 import doc68 from '../docs/variants/reward-settlement-envelope.md?raw';
 import doc69 from '../docs/variants/guide-overlay-bubble.md?raw';
 import doc70 from '../docs/variants/settings-drawer.md?raw';
+import doc71 from '../docs/variants/title-loading-signboard.md?raw';
 
 const variantDocs: Record<string, string> = {
   'merge-free-board': doc0,
@@ -142,6 +143,7 @@ const variantDocs: Record<string, string> = {
   'reward-settlement-envelope': doc68,
   'guide-overlay-bubble': doc69,
   'settings-drawer': doc70,
+  'title-loading-signboard': doc71,
 };
 
 export default variantDocs;

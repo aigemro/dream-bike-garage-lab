@@ -207,7 +207,7 @@ mindmap
         이슈 준비
     타이틀 · 로딩 화면
       A 공방 간판형
-        이슈 준비
+        1차 데모 구현
       B 출근길형
         이슈 준비
       C 미니 조립형
@@ -301,7 +301,7 @@ mindmap
 | Art & Audio | 납품·보상 정산 화면 | A: 급여 봉투 개봉형 (B/C 이슈 준비) | 개발 중 (1차 데모) | 봉투 개봉 성취감·급여 사용처 전달을 B/C안과 비교 | [#179](https://github.com/aigemro/dream-bike-garage-lab/issues/179) |
 | Art & Audio | 첫 플레이 안내 오버레이 | A: 정비사 말풍선형 (B/C 이슈 준비) | 개발 중 (1차 데모) | 스포트라이트·말풍선의 대상 가림 여부와 행동 유도력을 B/C안과 비교 | [#180](https://github.com/aigemro/dream-bike-garage-lab/issues/180), [#115](https://github.com/aigemro/dream-bike-garage-lab/issues/115) |
 | Art & Audio | 설정 화면 | A: 공방 관리 서랍형 (B/C 이슈 준비) | 개발 중 (1차 데모) | 토글 가독성·초기화 위험 구분을 B/C안과 비교 | [#181](https://github.com/aigemro/dream-bike-garage-lab/issues/181), [#117](https://github.com/aigemro/dream-bike-garage-lab/issues/117) |
-| Art & Audio | 타이틀·로딩 화면 | A/B/C: 공방 간판·출근길·미니 조립 | 준비 (이슈 등록) | A안 공방 간판형 구현, 앱인토스 대표 이미지 후보 겸용 | [#182](https://github.com/aigemro/dream-bike-garage-lab/issues/182), [#117](https://github.com/aigemro/dream-bike-garage-lab/issues/117) |
+| Art & Audio | 타이틀·로딩 화면 | A: 공방 간판형 (B/C 이슈 준비) | 개발 중 (1차 데모) | 3초 장르 전달·대표 이미지 구도를 B/C안과 비교 | [#182](https://github.com/aigemro/dream-bike-garage-lab/issues/182), [#117](https://github.com/aigemro/dream-bike-garage-lab/issues/117) |
 | Art & Audio | 캐릭터 디자인·표현 방향 | A: 따뜻한 생활형 픽셀 정비사·고객 | 개발 중 (1차 데모) | 역할 실루엣·필드/초상화 연결·3단계 감정 비교 | [#125](https://github.com/aigemro/dream-bike-garage-lab/issues/125), [#133](https://github.com/aigemro/dream-bike-garage-lab/issues/133) |
 | Art & Audio | UI·아이콘 아트 방향 | A: 종이·목재 픽셀 공방 UI | 개발 중 (1차 데모) | 주문·부품·재화·READY/부족/잠금 상태 가독성 비교 | [#126](https://github.com/aigemro/dream-bike-garage-lab/issues/126), [#134](https://github.com/aigemro/dream-bike-garage-lab/issues/134) |
 | Art & Audio | 애니메이션·모션 표현 방향 | A: 짧고 포근한 픽셀 모션 | 개발 중 (1차 데모) | 0.4초 이하 머지·장착·완성 인지와 반복 피로 비교 | [#127](https://github.com/aigemro/dream-bike-garage-lab/issues/127), [#135](https://github.com/aigemro/dream-bike-garage-lab/issues/135) |
