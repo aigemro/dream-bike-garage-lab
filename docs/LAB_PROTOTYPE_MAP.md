@@ -186,7 +186,7 @@ mindmap
       C 따뜻한 픽셀 작업 기록 대시보드
     납품 · 보상 정산 화면
       A 급여 봉투 개봉형
-        이슈 준비
+        1차 데모 구현
       B 작업 일지 정산형
         이슈 준비
       C 성장 우선형
@@ -298,7 +298,7 @@ mindmap
 | Art & Audio | 게임 화면 디자인 | A: 브라우저 가로 · B: 모바일 세로 390×810 | 개발 중 (1차 데모) | #114 동일 통합 로직에서 A/B 화면 크기·시선 흐름·터치 크기 비교, 홈 A안 공간 연속성 검증 | [#166](https://github.com/aigemro/dream-bike-garage-lab/issues/166), [#177](https://github.com/aigemro/dream-bike-garage-lab/issues/177), [#114](https://github.com/aigemro/dream-bike-garage-lab/issues/114) |
 | Art & Audio | 자전거 수집 화면 디자인 | A/B/C: 도감·전시·드림 바이크 | 개발 중 (1차 데모) | 홈 A안 자전거 탭 진입 기준 24종 가독성·소유감·성장 동기 비교 | [#147](https://github.com/aigemro/dream-bike-garage-lab/issues/147), [#148](https://github.com/aigemro/dream-bike-garage-lab/issues/148), [#149](https://github.com/aigemro/dream-bike-garage-lab/issues/149), [#150](https://github.com/aigemro/dream-bike-garage-lab/issues/150) |
 | Art & Audio | 프로필 화면 디자인 | A/B/C: 사원증·승진 보드·기록 대시보드 | 개발 중 (1차 데모) | 홈 A안 프로필 탭 진입 기준 정보 3요소 가독성·승진 동기 연결 비교 | [#157](https://github.com/aigemro/dream-bike-garage-lab/issues/157), [#158](https://github.com/aigemro/dream-bike-garage-lab/issues/158), [#159](https://github.com/aigemro/dream-bike-garage-lab/issues/159), [#160](https://github.com/aigemro/dream-bike-garage-lab/issues/160), [검토](PROFILE_SCREEN_DESIGN_REVIEW.md) |
-| Art & Audio | 납품·보상 정산 화면 | A/B/C: 급여 봉투·작업 일지·성장 우선 | 준비 (이슈 등록) | A안 급여 봉투 개봉형 체험 화면 구현 | [#179](https://github.com/aigemro/dream-bike-garage-lab/issues/179) |
+| Art & Audio | 납품·보상 정산 화면 | A: 급여 봉투 개봉형 (B/C 이슈 준비) | 개발 중 (1차 데모) | 봉투 개봉 성취감·급여 사용처 전달을 B/C안과 비교 | [#179](https://github.com/aigemro/dream-bike-garage-lab/issues/179) |
 | Art & Audio | 첫 플레이 안내 오버레이 | A/B/C: 말풍선·종이 메모·하이라이트 | 준비 (이슈 등록) | 게임 화면 B안 기반 A안 말풍선형 구현, #115 규칙과 역할 분리 | [#180](https://github.com/aigemro/dream-bike-garage-lab/issues/180), [#115](https://github.com/aigemro/dream-bike-garage-lab/issues/115) |
 | Art & Audio | 설정 화면 | A/B/C: 관리 서랍·체크리스트·모달 | 준비 (이슈 등록) | A안 공방 관리 서랍형 구현, 데이터 초기화 2단계 확인 포함 | [#181](https://github.com/aigemro/dream-bike-garage-lab/issues/181), [#117](https://github.com/aigemro/dream-bike-garage-lab/issues/117) |
 | Art & Audio | 타이틀·로딩 화면 | A/B/C: 공방 간판·출근길·미니 조립 | 준비 (이슈 등록) | A안 공방 간판형 구현, 앱인토스 대표 이미지 후보 겸용 | [#182](https://github.com/aigemro/dream-bike-garage-lab/issues/182), [#117](https://github.com/aigemro/dream-bike-garage-lab/issues/117) |
