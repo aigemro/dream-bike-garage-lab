@@ -1,4 +1,7 @@
+// 자전거 수집 화면 디자인 A/B/C안 비교 프로토타입 (도감 · 전시 · 드림 성장).
+// 자전거 그림은 자체 선 드로잉 대신 공용 픽셀 스프라이트 모듈(bike-pixel-sprite)을 사용합니다.
 import Phaser from 'phaser';
+import { drawPixelBike, addPixelBikeImage, makeWarmColorway, bikeCategoryFromKorean } from './bike-pixel-sprite';
 
 export type BikeCollectionDesignMode = 'warm-catalog' | 'warm-showcase' | 'warm-dream-growth';
 
@@ -6,7 +9,7 @@ export type BikeCollectionDesignMode = 'warm-catalog' | 'warm-showcase' | 'warm-
 const P = {
   ink: 0x3b2531, cream: 0xfff1c6, paper: 0xf6d995, wood: 0x8e5136,
   darkWood: 0x573044, floor: 0xb66f45, green: 0x5e9a67, leaf: 0x86ba6f,
-  sky: 0x86c9c8, blue: 0x4e8092, gold: 0xf4b84a, red: 0xc95746, tire: 0x302936,
+  sky: 0x86c9c8, blue: 0x4e8092, gold: 0xf4b84a, red: 0xc95746,
 };
 
 type DesignBike = {
@@ -136,33 +139,6 @@ class BikeCollectionDesignScene extends Phaser.Scene {
     this.label(195, 787, 'DREAM BIKE GARAGE · WARM PIXEL COLLECTION', 8, '#fff1c6', true).setOrigin(.5).setDepth(19);
   }
 
-  private drawTinyBike(x: number, y: number, scale: number, color: number, depth: number, silhouette = false) {
-    const frame = silhouette ? 0x6a4a3a : color;
-    const tire = silhouette ? 0x5a3f31 : P.tire;
-    const g = this.add.graphics().setDepth(depth);
-    const rear = x - 55 * scale; const front = x + 55 * scale; const wy = y + 20 * scale; const r = 22 * scale;
-    g.lineStyle(5 * scale, tire).strokeCircle(rear, wy, r).strokeCircle(front, wy, r);
-    g.lineStyle(6 * scale, frame).lineBetween(rear, wy, x - 15 * scale, y - 17 * scale)
-      .lineBetween(x - 15 * scale, y - 17 * scale, x, wy).lineBetween(x, wy, rear, wy)
-      .lineBetween(x - 15 * scale, y - 17 * scale, x + 32 * scale, y - 12 * scale)
-      .lineBetween(x + 32 * scale, y - 12 * scale, front, wy);
-    return g;
-  }
-
-  private drawBike(x: number, y: number, scale: number, color: number, depth: number) {
-    const g = this.add.graphics().setDepth(depth);
-    const rearX = x - 72 * scale; const frontX = x + 72 * scale; const wheelY = y + 38 * scale; const r = 35 * scale;
-    g.lineStyle(8 * scale, P.tire).strokeCircle(rearX, wheelY, r).strokeCircle(frontX, wheelY, r);
-    g.lineStyle(4 * scale, P.cream).strokeCircle(rearX, wheelY, r - 7 * scale).strokeCircle(frontX, wheelY, r - 7 * scale);
-    g.lineStyle(8 * scale, color)
-      .lineBetween(rearX, wheelY, x - 21 * scale, y - 27 * scale).lineBetween(x - 21 * scale, y - 27 * scale, x, wheelY)
-      .lineBetween(x, wheelY, rearX, wheelY).lineBetween(x - 21 * scale, y - 27 * scale, x + 41 * scale, y - 20 * scale)
-      .lineBetween(x + 41 * scale, y - 20 * scale, x, wheelY).lineBetween(x + 41 * scale, y - 20 * scale, frontX, wheelY);
-    g.lineStyle(5 * scale, P.ink).lineBetween(x + 41 * scale, y - 20 * scale, x + 60 * scale, y - 37 * scale);
-    this.add.rectangle(x - 27 * scale, y - 35 * scale, 30 * scale, 7 * scale, P.ink).setDepth(depth);
-    return g;
-  }
-
   // A안: 24칸 도감 그리드 + 하단 상세 카드
   private renderCatalog() {
     const owned = this.ownedCount();
@@ -182,7 +158,17 @@ class BikeCollectionDesignScene extends Phaser.Scene {
         .setInteractive({ useHandCursor: true })
         .on('pointerdown', () => { this.selected = bike.id; this.render(); });
       this.add.circle(x - 33, y - 24, 4, GRADE_COLOR[bike.grade]).setStrokeStyle(1, P.ink).setDepth(7);
-      this.drawTinyBike(x, y - 4, .3, bike.color, 7, !bike.owned);
+      // 보유: 카테고리별 픽셀 스프라이트, 미보유: 실루엣 표시.
+      // 24칸을 동시에 그리므로 Graphics 대신 텍스처 캐시 경로(addPixelBikeImage)를 사용합니다.
+      if (bike.owned) {
+        addPixelBikeImage(this, x, y + 4, 1, {
+          category: bikeCategoryFromKorean(bike.category), colorway: makeWarmColorway(bike.color), depth: 7,
+        });
+      } else {
+        addPixelBikeImage(this, x, y + 4, 1, {
+          category: bikeCategoryFromKorean(bike.category), silhouette: { body: 0x8a6a52, ink: 0x4a3328 }, depth: 7,
+        });
+      }
       if (!bike.owned) this.label(x, y + 21, isNextGoal ? 'NEXT' : '?', 9, isNextGoal ? '#f4b84a' : '#c9a98c', true).setOrigin(.5).setDepth(7);
     });
 
@@ -203,10 +189,11 @@ class BikeCollectionDesignScene extends Phaser.Scene {
     this.add.rectangle(195, 500, 390, 52, P.floor);
     for (let x = 30; x < 390; x += 72) this.add.line(0, 0, x, 474, x - 8, 526, P.darkWood, .22).setOrigin(0);
 
+    // cell: 픽셀 스프라이트 한 칸 px (메인 전시대는 크게, 보조 전시대는 작게)
     const stands = [
-      { x: 195, y: 268, scale: .68, deckY: 322, deckW: 196, tag: 'MAIN DISPLAY' },
-      { x: 100, y: 428, scale: .4, deckY: 462, deckW: 124, tag: 'DISPLAY 02' },
-      { x: 290, y: 428, scale: .4, deckY: 462, deckW: 124, tag: 'DISPLAY 03' },
+      { x: 195, y: 268, scale: .68, cell: 2.5, deckY: 322, deckW: 196, tag: 'MAIN DISPLAY' },
+      { x: 100, y: 428, scale: .4, cell: 1.5, deckY: 462, deckW: 124, tag: 'DISPLAY 02' },
+      { x: 290, y: 428, scale: .4, cell: 1.5, deckY: 462, deckW: 124, tag: 'DISPLAY 03' },
     ];
     stands.forEach((stand, index) => {
       const bikeId = this.showcaseSlots[index];
@@ -215,7 +202,10 @@ class BikeCollectionDesignScene extends Phaser.Scene {
       this.add.ellipse(stand.x, stand.deckY + 12, stand.deckW * .86, 14, 0x6e473b, .3).setDepth(2);
       this.add.rectangle(stand.x, stand.deckY, stand.deckW, 10, P.darkWood).setStrokeStyle(2, P.ink).setDepth(3);
       if (bike) {
-        this.drawBike(stand.x, stand.y, stand.scale, bike.color, 4);
+        // 바퀴 하단(y + 10*cell)이 deckY에 닿도록 y를 역산해 배치
+        drawPixelBike(this, stand.x, stand.deckY - 10 * stand.cell, stand.cell, {
+          category: bikeCategoryFromKorean(bike.category), colorway: makeWarmColorway(bike.color), depth: 4,
+        });
         this.label(stand.x, stand.deckY + 20, `${bike.name} · ${bike.grade}`, 9, '#fff1c6', true).setOrigin(.5).setDepth(4);
       } else {
         this.label(stand.x, stand.y + 8, '+', 26, '#fff1c6', true).setOrigin(.5).setDepth(4).setAlpha(.8);
@@ -239,7 +229,10 @@ class BikeCollectionDesignScene extends Phaser.Scene {
         .setStrokeStyle(3, active ? P.ink : P.wood).setDepth(5)
         .setInteractive({ useHandCursor: true })
         .on('pointerdown', () => { this.selected = bike.id; this.notify(`${bike.name} 선택 · 전시대를 눌러 배치하세요.`); });
-      this.drawTinyBike(x, y - 8, .26, bike.color, 6);
+      // 보관 선반은 보유 자전거만 표시하므로 실루엣 없이 컬러 스프라이트로 그림 (다수 표시라 텍스처 캐시 경로)
+      addPixelBikeImage(this, x, y, 1, {
+        category: bikeCategoryFromKorean(bike.category), colorway: makeWarmColorway(bike.color), depth: 6,
+      });
       this.label(x, y + 17, bike.name.length > 8 ? bike.name.slice(0, 8) : bike.name, 8, '#3b2531', true).setOrigin(.5).setDepth(6);
     });
   }
@@ -258,8 +251,15 @@ class BikeCollectionDesignScene extends Phaser.Scene {
 
     if (stage >= 3) this.add.circle(195, 268, 118, P.gold, .16).setStrokeStyle(3, P.gold).setDepth(1);
     this.add.ellipse(195, 344, 220, 28, 0x6e473b, .28).setDepth(1);
-    this.drawBike(195, 272, .92, dream.color, 2);
-    if (stage >= 2) this.label(195, 200, '★ 파츠 강화 반영', 9, '#a16028', true).setOrigin(.5).setDepth(3);
+    // 바퀴 하단(y + 10*cell = 330)이 그림자 타원(y=344) 위에 얹히도록 배치
+    drawPixelBike(this, 195, 300, 3, { category: 'road', colorway: makeWarmColorway(dream.color), depth: 2 });
+    if (stage >= 2) {
+      this.label(195, 200, '★ 파츠 강화 반영', 9, '#a16028', true).setOrigin(.5).setDepth(3);
+      // 강화 반영 시각화: 자전거 주변 골드 반짝임 픽셀
+      [[118, 238], [270, 220], [248, 318]].forEach(([sx, sy]) => {
+        this.add.rectangle(sx, sy, 4, 4, P.gold).setDepth(3);
+      });
+    }
 
     const growth = Math.round((total - 3) / 9 * 100);
     this.label(24, 372, `드림 등급까지 성장 ${growth}%`, 10, '#5d3b34', true);
@@ -304,7 +304,8 @@ class BikeCollectionDesignScene extends Phaser.Scene {
     this.label(82, 355, 'MY LITTLE GARAGE', 10, '#6e473b', true).setDepth(13);
     this.label(82, 374, '나의 드림 로드바이크', 17, '#3b2531', true).setDepth(13);
     this.add.ellipse(195, 520, 218, 30, 0x6e473b, .28).setDepth(12);
-    this.drawBike(195, 452, .9, P.red, 13);
+    // 바퀴 하단(y + 10*cell = 510)이 그림자 타원(y=520) 근처에 오도록 배치
+    drawPixelBike(this, 195, 480, 3, { category: 'road', colorway: makeWarmColorway(P.red), depth: 13 });
 
     this.pixelRect(195, 600, 222, 56, 0xffe6a8, P.wood, 13);
     this.label(98, 582, 'COLLECTION', 8, '#7b5140', true).setDepth(14);

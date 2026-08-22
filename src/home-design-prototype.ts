@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { DuskWorkshopGarageScene } from './home-design-dusk-workshop';
 import { RetroPixelGarageScene } from './home-design-retro-pixel';
 import { ModernCasualGarageScene } from './home-design-modern-casual';
-import { drawDreamBike, drawDreamBikeMini, type BikePalette } from './home-design-bike';
+import { drawPixelBike, makeWarmColorway } from './bike-pixel-sprite';
 
 export type HomeDesignPrototypeMode =
   | 'warm-pixel-garage'
@@ -14,18 +14,6 @@ const P = {
   ink: 0x3b2531, cream: 0xfff1c6, paper: 0xf6d995, wood: 0x8e5136,
   darkWood: 0x573044, floor: 0xb66f45, green: 0x5e9a67, leaf: 0x86ba6f,
   sky: 0x86c9c8, blue: 0x4e8092, gold: 0xf4b84a, red: 0xc95746, tire: 0x302936,
-};
-
-// 따뜻한 생활형 팔레트에 맞춘 대표 드림 바이크 색상
-const WARM_BIKE_PALETTE: BikePalette = {
-  frame: P.red,
-  frameShadow: 0x9e3f32,
-  tire: P.tire,
-  rim: P.cream,
-  spoke: 0xd9c197,
-  metal: 0xa39985,
-  saddle: P.darkWood,
-  accent: P.gold,
 };
 
 class WarmPixelGarageScene extends Phaser.Scene {
@@ -70,7 +58,9 @@ class WarmPixelGarageScene extends Phaser.Scene {
     this.label(88, 101, 'TODAY\'S ORDER', 9, '#6e473b', true).setDepth(11);
     this.label(88, 119, '통학용 어반 바이크', 14, '#3b2531', true).setDepth(11);
     this.label(88, 140, '진행 2 / 4  ·  보상 1,000', 10, '#8e5136', true).setDepth(11);
-    drawDreamBikeMini(this, 282, 127, .48, P.red, P.tire, 12);
+    // 주문 미리보기: 통학용 어반 주문에 맞춘 시티 자전거 픽셀 스프라이트(앞바구니 실루엣).
+    // 카드(중심 y=125, 높이 60 → 95~155) 안에 들어오도록 cell 1.2 사용: 세로 108~143px, 가로 폭 약 65px로 카드 우측 변까지 딱 맞음
+    drawPixelBike(this, 282, 131, 1.2, { category: 'city', colorway: makeWarmColorway(P.red), depth: 12 });
 
     this.button(38, 205, 54, 48, 'EVENT\n3', () => this.notify('이벤트 준비 중'));
     this.button(38, 263, 54, 48, 'RANK\n#18', () => this.notify('랭킹 준비 중'));
@@ -82,10 +72,11 @@ class WarmPixelGarageScene extends Phaser.Scene {
     this.label(82, 183, 'MY LITTLE GARAGE', 10, '#6e473b', true).setDepth(13);
     this.label(82, 202, '나의 드림 로드바이크', 17, '#3b2531', true).setDepth(13);
     this.label(82, 226, '햇살 아래 한 단계씩 완성 중', 10, '#7b5140').setDepth(13);
-    // 정비 매트 + 그림자 위에 상세 드림 바이크(스포크·체인·크랭크·드롭바)를 픽셀 스냅으로 배치
+    // 정비 매트 + 그림자 위에 64×40 그리드 픽셀 스프라이트 로드바이크를 배치
+    // (cell 4 → 폭 약 216px, 바퀴 하단 = y + 10*cell = 412로 매트 상단(410)에 닿음)
     this.add.rectangle(195, 416, 240, 12, 0x9c5b3c).setStrokeStyle(2, P.darkWood).setDepth(12);
     this.add.ellipse(195, 419, 218, 26, 0x6e473b, .28).setDepth(12);
-    drawDreamBike(this, 195, 372, .8, WARM_BIKE_PALETTE, 13, { style: 'road', pixelStep: 2 });
+    drawPixelBike(this, 195, 372, 4, { category: 'road', colorway: makeWarmColorway(P.red), depth: 13 });
 
     this.pixelRect(195, 478, 222, 72, 0xffe6a8, P.wood, 13);
     this.label(98, 454, 'COLLECTION', 8, '#7b5140', true).setDepth(14);

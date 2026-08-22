@@ -1,9 +1,10 @@
 // 게임 화면 디자인 B안: 모바일 세로 따뜻한 픽셀 Garage (390×810)
-// A안(1120×720 브라우저 크기)과 동일한 #114 통합 규칙·데이터(PARTS·ORDERS·팔레트)를 쓰되,
+// A안(1120×720 브라우저 크기)과 동일한 #114 통합 규칙·데이터(PARTS·ORDERS)를 쓰되,
 // 홈 화면 디자인 A안과 같은 모바일 세로 화면 구조(주문 카드 → 머지 보드 → 택배 선반)로 재배치한다.
+// 자전거·부품 색은 bike-pixel-sprite 모듈의 warm 컬러웨이·부품 대표색을 단일 출처로 사용한다.
 import Phaser from 'phaser';
-import { drawDreamBike } from './home-design-bike';
-import { PARTS, ORDERS, WARM_ORDER_BIKE_PALETTE, type PartType, type Goal } from './merge-prototype';
+import { drawPixelBike, drawPixelPartIcon, makeWarmColorway, bikePartAnchorOffset, WARM_PART_COLORS, type BikeCategory } from './bike-pixel-sprite';
+import { PARTS, ORDERS, type PartType, type Goal } from './merge-prototype';
 
 type Point = { x: number; y: number };
 type Piece = { id: number; type: PartType; level: number; row: number; column: number; rotation: number; item: Phaser.GameObjects.Container };
@@ -17,13 +18,14 @@ const CREAM = 0xfff1c6;
 const GOLD = 0xf6d995;
 const BORDER = 0x3b2531;
 const BROWN = 0x8e5136;
-const PART_COLORS: Record<PartType, number> = { frame: 0xc95746, wheel: 0xe7a942, drivetrain: 0x5e9a67, handlebar: 0x4e8092 };
+const PART_COLORS: Record<PartType, number> = WARM_PART_COLORS; // 부품 아이콘과 같은 대표색 단일 출처
 const ORDER_NAMES = ['통학용 어반 로드', '트레일 MTB'];
 
-// 주문 카드 자전거 기준점 (부품 장착 연출 목표 좌표의 기준)
+// 주문 카드 자전거 기준점 (x=자전거 가로 중앙, y=바퀴 축 높이 · 부품 장착 연출 목표 좌표의 기준)
+// 픽셀 자전거는 cell 2 기준 상단 y-38, 하단 y+20, 폭 약 108px → 카드(중심 y=138, 높이 140) 우측 절반에 들어맞는다.
 const BIKE_X = 292;
 const BIKE_Y = 132;
-const BIKE_SCALE = 0.42;
+const BIKE_CELL = 2;
 
 class GameScreenMobileScene extends Phaser.Scene {
   constructor() { super('game-screen-mobile'); }
@@ -101,25 +103,30 @@ class GameScreenMobileScene extends Phaser.Scene {
     this.orderProgress = this.add.text(20, 117, '', { fontFamily: FONT, fontSize: '10px', color: MUTED, fontStyle: 'bold' }).setDepth(4);
 
     this.goals.forEach((goal, index) => {
-      const part = PARTS.find((item) => item.type === goal.type)!;
       const x = 42 + index * 46;
       const y = 168;
       const panel = this.add.rectangle(x, y, 42, 40, GOLD).setStrokeStyle(2, PART_COLORS[goal.type]).setDepth(3);
-      this.add.text(x, y - 9, part.short, { fontFamily: FONT, fontSize: '11px', color: INK, fontStyle: 'bold' }).setOrigin(0.5).setDepth(4);
-      const status = this.add.text(x, y + 9, '', { fontFamily: FONT, fontSize: '9px', color: MUTED, fontStyle: 'bold' }).setOrigin(0.5).setDepth(4);
+      // 칩 위쪽은 부품 픽셀 아이콘, 아래쪽은 상태 텍스트
+      drawPixelPartIcon(this, x, y - 9, 1.5, goal.type, { depth: 4 });
+      const status = this.add.text(x, y + 11, '', { fontFamily: FONT, fontSize: '9px', color: MUTED, fontStyle: 'bold' }).setOrigin(0.5).setDepth(4);
       this.goalChips.set(goal.type, { panel, status });
     });
     this.drawOrderBike();
     this.refreshOrder();
   }
 
+  // 현재 주문에 맞는 자전거 카테고리 ('통학용 어반 로드' → city, '트레일 MTB' → mtb)
+  private orderCategory(): BikeCategory {
+    return this.orderIndex === 1 ? 'mtb' : 'city';
+  }
+
   private drawOrderBike() {
     this.orderBike?.destroy();
-    const isMtb = this.orderIndex === 1;
     const delivered = (type: PartType) => this.goals.find((goal) => goal.type === type)?.delivered ?? false;
-    this.orderBike = drawDreamBike(this, BIKE_X, BIKE_Y, BIKE_SCALE, WARM_ORDER_BIKE_PALETTE, 4, {
-      style: isMtb ? 'city' : 'road',
-      pixelStep: 2,
+    this.orderBike = drawPixelBike(this, BIKE_X, BIKE_Y, BIKE_CELL, {
+      category: this.orderCategory(),
+      colorway: makeWarmColorway(0xc95746),
+      depth: 4,
       partAlpha: {
         frame: delivered('frame') ? 1 : 0.5,
         wheel: delivered('wheel') ? 1 : 0.5,
@@ -129,14 +136,10 @@ class GameScreenMobileScene extends Phaser.Scene {
     });
   }
 
-  // A안 warm 기준점과 같은 상대 좌표를 모바일 자전거 위치·스케일로 환산
+  // 픽셀 스프라이트 앵커(x=중앙, y=축) 기준 부품 위치 오프셋을 월드 좌표로 환산 (장착 연출 목표)
   private bikeAnchor(type: PartType): Point {
-    return ({
-      frame: { x: BIKE_X - 10 * BIKE_SCALE, y: BIKE_Y - 20 * BIKE_SCALE },
-      wheel: { x: BIKE_X + 82 * BIKE_SCALE, y: BIKE_Y },
-      drivetrain: { x: BIKE_X - 10 * BIKE_SCALE, y: BIKE_Y + 8 * BIKE_SCALE },
-      handlebar: { x: BIKE_X + 68 * BIKE_SCALE, y: BIKE_Y - 58 * BIKE_SCALE },
-    } as const)[type];
+    const { dx, dy } = bikePartAnchorOffset(this.orderCategory(), type, BIKE_CELL);
+    return { x: BIKE_X + dx, y: BIKE_Y + dy };
   }
 
   private drawBoard() {
@@ -165,8 +168,10 @@ class GameScreenMobileScene extends Phaser.Scene {
       const y = shelfTop + 40 + Math.floor(index / 2) * 54;
       const button = this.add.rectangle(x, y, 172, 48, GOLD).setStrokeStyle(3, PART_COLORS[part.type]).setInteractive({ useHandCursor: true }).setDepth(3);
       button.on('pointerdown', () => this.handleParcelButton(part.type));
-      this.add.text(x - 78, y - 17, `▣ ${part.name} · ${part.shape.length}칸`, { fontFamily: FONT, fontSize: '11px', color: INK, fontStyle: 'bold' }).setDepth(4);
-      const status = this.add.text(x - 78, y + 2, '', { fontFamily: FONT, fontSize: '9px', color: MUTED }).setDepth(4);
+      // 버튼 왼쪽에 부품 픽셀 아이콘, 텍스트는 아이콘 오른쪽으로 밀어 배치
+      drawPixelPartIcon(this, x - 72, y, 1.5, part.type, { depth: 4 });
+      this.add.text(x - 56, y - 17, `${part.name} · ${part.shape.length}칸`, { fontFamily: FONT, fontSize: '11px', color: INK, fontStyle: 'bold' }).setDepth(4);
+      const status = this.add.text(x - 56, y + 2, '', { fontFamily: FONT, fontSize: '9px', color: MUTED }).setDepth(4);
       const need = this.add.text(x + 80, y - 17, '주문 필요', { fontFamily: FONT, fontSize: '8px', color: '#a14a38', fontStyle: 'bold' }).setOrigin(1, 0).setDepth(4);
       this.parcelDisplays.set(part.type, { button, status, need });
     });
@@ -338,9 +343,11 @@ class GameScreenMobileScene extends Phaser.Scene {
       const closestDistance = (closest.x - center.x) ** 2 + (closest.y - center.y) ** 2;
       return distance < closestDistance ? point : closest;
     });
-    const badge = this.add.rectangle(badgeCell.x * this.cellSize, badgeCell.y * this.cellSize, 32, 18, CREAM, 0.94).setStrokeStyle(2, BORDER, 0.8);
-    const tag = this.add.text(badgeCell.x * this.cellSize, badgeCell.y * this.cellSize, `Lv.${level}`, { fontFamily: FONT, fontSize: '10px', color: INK, fontStyle: 'bold' }).setOrigin(0.5);
-    const item = this.add.container(0, 0, [...blocks, badge, tag]).setDepth(2);
+    // 중앙 칸 위쪽엔 부품 픽셀 아이콘, 아래쪽엔 Lv 배지를 배치해 서로 겹치지 않게 한다
+    const icon = drawPixelPartIcon(this, badgeCell.x * this.cellSize, badgeCell.y * this.cellSize - 8, 2, type, { level });
+    const badge = this.add.rectangle(badgeCell.x * this.cellSize, badgeCell.y * this.cellSize + 14, 32, 18, CREAM, 0.94).setStrokeStyle(2, BORDER, 0.8);
+    const tag = this.add.text(badgeCell.x * this.cellSize, badgeCell.y * this.cellSize + 14, `Lv.${level}`, { fontFamily: FONT, fontSize: '10px', color: INK, fontStyle: 'bold' }).setOrigin(0.5);
+    const item = this.add.container(0, 0, [...blocks, icon, badge, tag]).setDepth(2);
     const piece: Piece = { id: this.nextId++, type, level, row, column, rotation, item };
     this.positionPiece(piece);
     return piece;
