@@ -3,8 +3,7 @@
 // 납품 → 급여 → 성장 게이지 → 다음 주문 예고의 폐곡선을 한 화면으로 잇는다.
 // 보상 수치·성장 비용 규칙은 결정하지 않는다 (#19·#116 담당).
 import Phaser from 'phaser';
-import { drawDreamBike } from './home-design-bike';
-import { WARM_ORDER_BIKE_PALETTE } from './merge-prototype';
+import { drawPixelBike, makeWarmColorway } from './bike-pixel-sprite';
 import { drawFieldCharacter } from './art-character-pixel';
 
 const FONT = '"Arial Rounded MT Bold", "Noto Sans KR", sans-serif';
@@ -46,7 +45,9 @@ class RewardSettlementScene extends Phaser.Scene {
 
     // 중앙: 완성 자전거 + 고객 + 말풍선
     this.add.rectangle(195, 208, 374, 214, 0xd79a63, 0.7).setStrokeStyle(4, BROWN).setDepth(1);
-    drawDreamBike(this, 150, 218, 0.62, WARM_ORDER_BIKE_PALETTE, 3, { style: 'road', pixelStep: 2 });
+    drawPixelBike(this, 150, 218, 3, {
+      category: 'road', colorway: makeWarmColorway(0xc95746), depth: 3,
+    });
     drawFieldCharacter(this, 312, 288, '고객', 4, 3);
     this.add.rectangle(300, 138, 150, 44, CREAM).setStrokeStyle(3, BORDER).setDepth(4);
     this.add.triangle(300, 168, 0, 0, 16, 0, 8, 12, CREAM).setStrokeStyle(2, BORDER).setDepth(4);
