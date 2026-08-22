@@ -4,7 +4,7 @@ import { drawDreamBike, type BikePalette } from './home-design-bike';
 export type MergePrototypeMode = 'free' | 'order' | 'guided' | 'integrated';
 export type MergePrototypeTheme = 'lab' | 'warm-pixel';
 
-type PartType = 'frame' | 'wheel' | 'drivetrain' | 'handlebar';
+export type PartType = 'frame' | 'wheel' | 'drivetrain' | 'handlebar';
 type Point = { x: number; y: number };
 type Piece = {
   id: number;
@@ -15,13 +15,13 @@ type Piece = {
   rotation: number;
   item: Phaser.GameObjects.Container;
 };
-type Goal = { type: PartType; level: number; delivered: boolean; installing?: boolean };
+export type Goal = { type: PartType; level: number; delivered: boolean; installing?: boolean };
 // 통합 모드 택배 상태: 주문 전(idle) → 배송 중(delivering) → 개봉 대기(arrived)
 type ParcelState = { state: 'idle' | 'delivering' | 'arrived'; readyAt: number };
 
 const PARCEL_DELIVERY_MS = 1500;
 
-const WARM_ORDER_BIKE_PALETTE: BikePalette = {
+export const WARM_ORDER_BIKE_PALETTE: BikePalette = {
   frame: 0xc95746,
   frameShadow: 0x9e3f32,
   tire: 0x302936,
@@ -32,14 +32,14 @@ const WARM_ORDER_BIKE_PALETTE: BikePalette = {
   accent: 0xf4b84a,
 };
 
-const PARTS: Array<{ type: PartType; name: string; short: string; color: number; shape: Point[] }> = [
+export const PARTS: Array<{ type: PartType; name: string; short: string; color: number; shape: Point[] }> = [
   { type: 'frame', name: '프레임', short: 'F', color: 0x55d6be, shape: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }] },
   { type: 'wheel', name: '휠셋', short: 'W', color: 0xffb35c, shape: [{ x: 0, y: 0 }, { x: 0, y: 1 }] },
   { type: 'drivetrain', name: '구동계', short: 'D', color: 0xff7185, shape: [{ x: 0, y: 0 }] },
   { type: 'handlebar', name: '핸들바', short: 'H', color: 0x8c7bff, shape: [{ x: 0, y: 0 }, { x: 1, y: 0 }] },
 ];
 
-const ORDERS: Goal[][] = [
+export const ORDERS: Goal[][] = [
   [
     { type: 'frame', level: 2, delivered: false },
     { type: 'wheel', level: 2, delivered: false },
