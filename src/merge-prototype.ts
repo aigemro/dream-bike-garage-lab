@@ -1,5 +1,8 @@
 import Phaser from 'phaser';
-import { drawDreamBike, type BikePalette } from './home-design-bike';
+import {
+  drawPixelBike, drawPixelPartIcon, makeWarmColorway,
+  bikePartAnchorOffset, WARM_PART_COLORS,
+} from './bike-pixel-sprite';
 
 export type MergePrototypeMode = 'free' | 'order' | 'guided' | 'integrated';
 export type MergePrototypeTheme = 'lab' | 'warm-pixel';
@@ -21,16 +24,11 @@ type ParcelState = { state: 'idle' | 'delivering' | 'arrived'; readyAt: number }
 
 const PARCEL_DELIVERY_MS = 1500;
 
-export const WARM_ORDER_BIKE_PALETTE: BikePalette = {
-  frame: 0xc95746,
-  frameShadow: 0x9e3f32,
-  tire: 0x302936,
-  rim: 0xfff1c6,
-  spoke: 0xd9c197,
-  metal: 0xa39985,
-  saddle: 0x573044,
-  accent: 0xf4b84a,
-};
+// warm 테마 주문 자전거 앵커(x=가로 중앙, y=바퀴 축 높이)와 픽셀 셀 크기·프레임 색.
+// drawPixelBike 렌더링과 부품 장착 연출 목표 좌표(bikeAnchor)가 같은 기준을 공유한다.
+const WARM_BIKE_ANCHOR = { x: 565, y: 170 } as const;
+const WARM_BIKE_CELL = 3;
+const WARM_BIKE_FRAME_COLOR = 0xc95746; // warm 테마 주문 자전거 프레임 색
 
 export const PARTS: Array<{ type: PartType; name: string; short: string; color: number; shape: Point[] }> = [
   { type: 'frame', name: '프레임', short: 'F', color: 0x55d6be, shape: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }] },
@@ -70,7 +68,7 @@ class MergePrototypeScene extends Phaser.Scene {
 
   private partColor(type: PartType) {
     if (!this.warm) return PARTS.find((part) => part.type === type)!.color;
-    return ({ frame: 0xc95746, wheel: 0xe7a942, drivetrain: 0x5e9a67, handlebar: 0x4e8092 } as const)[type];
+    return WARM_PART_COLORS[type]; // 부품 아이콘과 같은 대표색 단일 출처
   }
 
   private rows = 7;
@@ -207,8 +205,14 @@ class MergePrototypeScene extends Phaser.Scene {
       const partColor = this.partColor(part.type);
       const y = 264 + orderPanelOffsetY + index * 72;
       const panel = this.add.rectangle(122, y, 184, 56, cardFill).setStrokeStyle(this.warm ? 3 : 1, partColor, this.warm ? 1 : 0.55).setDepth(this.warm ? 3 : 0);
-      this.add.rectangle(52, y, 28, 28, partColor, this.warm ? 0.92 : 0.24).setStrokeStyle(this.warm ? 2 : 1, this.warm ? border : partColor).setDepth(this.warm ? 4 : 0);
-      this.add.text(52, y, part.short, { fontFamily, fontSize: '12px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(this.warm ? 5 : 0);
+      if (this.warm) {
+        // warm: 레터 칩 대신 부품 픽셀 아이콘으로 어떤 부품인지 그림으로 인지시킨다.
+        this.add.rectangle(52, y, 36, 32, 0xfff1c6).setStrokeStyle(2, border).setDepth(4);
+        drawPixelPartIcon(this, 52, y, 2, part.type, { depth: 5 });
+      } else {
+        this.add.rectangle(52, y, 28, 28, partColor, 0.24).setStrokeStyle(1, partColor);
+        this.add.text(52, y, part.short, { fontFamily, fontSize: '12px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+      }
       this.add.text(76, y - 11, part.name, { fontFamily, fontSize: '11px', color: ink, fontStyle: 'bold' }).setDepth(this.warm ? 4 : 0);
       const status = this.add.text(76, y + 7, '', { fontFamily, fontSize: '10px', color: muted }).setDepth(this.warm ? 4 : 0);
       this.guidedGoalDisplays.set(goal.type, { panel, status });
@@ -452,9 +456,10 @@ class MergePrototypeScene extends Phaser.Scene {
         const maxY = Math.max(...previewShape.map((point) => point.y));
         const shapeWidth = (maxX + 1) * previewCell;
         const shapeHeight = (maxY + 1) * previewCell;
+        // warm: footprint 블록 위 아이콘 공간을 확보하기 위해 컨테이너를 살짝 아래로 내린다.
         const preview = this.add.container(
           panelLeft + panelWidth / 2,
-          previewTop + 66,
+          previewTop + (this.warm ? 78 : 66),
         ).setData('previewPart', part.type).setData('previewRotation', rotation);
         const blocks = previewShape.map((point) => this.add.rectangle(
           point.x * previewCell - shapeWidth / 2 + previewCell / 2,
@@ -466,6 +471,8 @@ class MergePrototypeScene extends Phaser.Scene {
         const caption = this.add.text(0, 42, `${part.name} · ${part.shape.length}칸 · ${rotation * 90}°`, {
           fontFamily: this.warm ? '"Arial Rounded MT Bold", "Noto Sans KR", sans-serif' : 'Arial', fontSize: '10px', color: this.warm ? '#3b2531' : '#bfd0dc', align: 'center',
         }).setOrigin(0.5);
+        // warm: footprint 블록 위 중앙에 부품 픽셀 아이콘을 함께 표시 (컨테이너 상대 좌표로 동작)
+        if (this.warm) preview.add(drawPixelPartIcon(this, 0, -44, 2, part.type));
         preview.add([...blocks, caption]).setDepth(this.warm ? 4 : 0);
         this.controls.push(preview);
       });
@@ -491,8 +498,15 @@ class MergePrototypeScene extends Phaser.Scene {
       const button = this.add.rectangle(panelLeft + panelWidth / 2, y, panelWidth - panelPadding * 2, 56, this.warm ? 0xf6d995 : 0x13263b)
         .setStrokeStyle(this.warm ? 3 : 2, partColor).setInteractive({ useHandCursor: true }).setDepth(this.warm ? 3 : 0);
       button.on('pointerdown', () => this.handleParcelButton(part.type));
-      const name = this.add.text(controlsLeft + 14, y - 20, `${this.warm ? '▣  ' : ''}${part.name} · ${part.short} · ${part.shape.length}칸`, { fontFamily, fontSize: '12px', color: this.warm ? '#3b2531' : '#e8f1f7', fontStyle: 'bold' }).setDepth(this.warm ? 4 : 0);
-      const status = this.add.text(controlsLeft + 14, y + 2, '', { fontFamily, fontSize: '10px', color: this.warm ? '#7b5140' : '#8fa8ba' }).setDepth(this.warm ? 4 : 0);
+      // warm: '▣' 문자 대신 버튼 왼쪽에 부품 픽셀 아이콘을 배치하고 텍스트 시작점을 아이콘만큼 민다.
+      // 아이콘은 controls에 넣어 보드 재구성 시 버튼과 함께 정리되므로 중복 생성이 없다.
+      const textLeft = controlsLeft + (this.warm ? 52 : 14);
+      if (this.warm) {
+        const icon = drawPixelPartIcon(this, controlsLeft + 28, y, 1.75, part.type, { depth: 5 });
+        this.controls.push(icon);
+      }
+      const name = this.add.text(textLeft, y - 20, `${part.name} · ${part.short} · ${part.shape.length}칸`, { fontFamily, fontSize: '12px', color: this.warm ? '#3b2531' : '#e8f1f7', fontStyle: 'bold' }).setDepth(this.warm ? 4 : 0);
+      const status = this.add.text(textLeft, y + 2, '', { fontFamily, fontSize: '10px', color: this.warm ? '#7b5140' : '#8fa8ba' }).setDepth(this.warm ? 4 : 0);
       const need = this.add.text(panelLeft + panelWidth - panelPadding - 14, y - 20, '주문 필요', { fontFamily, fontSize: '9px', color: this.warm ? '#a14a38' : '#ffd37a', fontStyle: 'bold' }).setOrigin(1, 0).setDepth(this.warm ? 4 : 0);
       this.parcelDisplays.set(part.type, { button, status, need });
       this.controls.push(button, name, status, need);
@@ -714,9 +728,14 @@ class MergePrototypeScene extends Phaser.Scene {
     const badgeY = badgeCell.y * this.cellSize;
     const badgeWidth = Math.max(24, Math.min(52, this.cellSize - this.gap * 4));
     const badgeHeight = Math.max(18, Math.min(28, this.cellSize - this.gap * 4, this.cellSize * 0.48));
-    const badge = this.add.rectangle(badgeX, badgeY, badgeWidth, badgeHeight, this.warm ? 0xfff1c6 : 0x07111f, 0.94).setStrokeStyle(this.warm ? 2 : 1, this.warm ? 0x3b2531 : 0xffffff, 0.8);
-    const tag = this.add.text(badgeX, badgeY, `Lv.${level}`, { align: 'center', fontFamily: this.warm ? '"Arial Rounded MT Bold", "Noto Sans KR", sans-serif' : 'Arial', fontSize: `${Math.max(10, Math.min(15, badgeHeight * 0.58))}px`, color: this.warm ? '#3b2531' : '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
-    const item = this.add.container(0, 0, [...blocks, badge, tag]).setDepth(2);
+    // warm: badgeCell 위쪽에 부품 픽셀 아이콘을 얹고, Lv 배지는 아이콘과 겹치지 않게 아래로 내린다.
+    const badgeOffsetY = this.warm ? 14 : 0;
+    const badge = this.add.rectangle(badgeX, badgeY + badgeOffsetY, badgeWidth, badgeHeight, this.warm ? 0xfff1c6 : 0x07111f, 0.94).setStrokeStyle(this.warm ? 2 : 1, this.warm ? 0x3b2531 : 0xffffff, 0.8);
+    const tag = this.add.text(badgeX, badgeY + badgeOffsetY, `Lv.${level}`, { align: 'center', fontFamily: this.warm ? '"Arial Rounded MT Bold", "Noto Sans KR", sans-serif' : 'Arial', fontSize: `${Math.max(10, Math.min(15, badgeHeight * 0.58))}px`, color: this.warm ? '#3b2531' : '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+    const children: Phaser.GameObjects.GameObject[] = [...blocks];
+    if (this.warm) children.push(drawPixelPartIcon(this, badgeX, badgeY - 8, 2, type, { level }));
+    children.push(badge, tag);
+    const item = this.add.container(0, 0, children).setDepth(2);
     const piece: Piece = { id: this.nextId++, type, level, row, column, rotation, item };
     this.positionPiece(piece);
     return piece;
@@ -861,18 +880,12 @@ class MergePrototypeScene extends Phaser.Scene {
     });
   }
 
-  // 주문 패널 자전거의 부품별 장착 위치. 따뜻한 안은 홈 화면 공용 모델의 실제 좌표를 사용한다.
+  // 주문 패널 자전거의 부품별 장착 위치. 따뜻한 안은 픽셀 자전거 그리드의 실제 부품 오프셋을 사용한다.
   private bikeAnchor(type: PartType): Point {
     if (this.warm) {
-      const x = 565;
-      const y = 170;
-      const scale = 0.68;
-      return ({
-        frame: { x: x - 10 * scale, y: y - 20 * scale },
-        wheel: { x: x + 82 * scale, y },
-        drivetrain: { x: x - 10 * scale, y: y + 8 * scale },
-        handlebar: { x: x + 68 * scale, y: y - 58 * scale },
-      } as const)[type];
+      const category = this.orderIndex === 1 ? 'mtb' : 'road';
+      const { dx, dy } = bikePartAnchorOffset(category, type, WARM_BIKE_CELL);
+      return { x: WARM_BIKE_ANCHOR.x + dx, y: WARM_BIKE_ANCHOR.y + dy };
     }
     const local: Record<PartType, Point> = {
       frame: { x: 380, y: 275 },
@@ -991,9 +1004,11 @@ class MergePrototypeScene extends Phaser.Scene {
     if (this.warm) {
       this.orderBike.destroy();
       const incompleteAlpha = 0.5;
-      this.orderBike = drawDreamBike(this, 565, 170, 0.68, WARM_ORDER_BIKE_PALETTE, 4, {
-        style: isMtb ? 'city' : 'road',
-        pixelStep: 2,
+      // 주문 카드 자전거: 홈 A안 warm 팔레트 기반 픽셀 자전거 스프라이트로 그린다.
+      this.orderBike = drawPixelBike(this, WARM_BIKE_ANCHOR.x, WARM_BIKE_ANCHOR.y, WARM_BIKE_CELL, {
+        category: isMtb ? 'mtb' : 'road',
+        colorway: makeWarmColorway(WARM_BIKE_FRAME_COLOR),
+        depth: 4,
         partAlpha: {
           frame: delivered('frame') ? 1 : incompleteAlpha,
           wheel: delivered('wheel') ? 1 : incompleteAlpha,
