@@ -170,6 +170,7 @@ mindmap
       향후 C 캐주얼 UI 중심 Garage
     게임 화면 디자인
       A MVP 통합 따뜻한 생활형 픽셀 Garage
+      B 모바일 세로 따뜻한 픽셀 Garage
       기능 기준 MVP 핵심 기능 통합 114
     자전거 수집 화면 디자인
       A 따뜻한 픽셀 자전거 도감
@@ -262,7 +263,7 @@ mindmap
 | MVP Core Play | 보드 막힘·복구 | A: 1회 무료 정리 | 개발 중 (1차 데모) | 막힘 감지 후 손실감·복구 행동 수·정상 플레이 복귀 검증 | [#145](https://github.com/aigemro/dream-bike-garage-lab/issues/145) |
 | Art & Audio | 배경 디자인·Garage 공간 | A/B/C | 검토 준비 (시안·허브 등록) | 390×810 주문·PLAY UI 오버레이 후 감성·가독성·제작 비용 비교 | [#119](https://github.com/aigemro/dream-bike-garage-lab/issues/119), [#120](https://github.com/aigemro/dream-bike-garage-lab/issues/120), [#121](https://github.com/aigemro/dream-bike-garage-lab/issues/121), [#122](https://github.com/aigemro/dream-bike-garage-lab/issues/122) |
 | Art & Audio | 홈 화면 디자인 | A: 따뜻한 생활형 픽셀 Garage | 개발 중 (1차 데모) | 회의안 E 구조 기준 3초 인지·UI 가독성·Garage 소유감 검토 후 B/C안 추가 | [#130](https://github.com/aigemro/dream-bike-garage-lab/issues/130) |
-| Art & Audio | 게임 화면 디자인 | A: MVP 통합 따뜻한 생활형 픽셀 Garage | 개발 중 (1차 데모) | #114 동일 통합 로직에서 주문·보드·택배·장착 가독성과 홈 A안 공간 연속성 검증 | [#166](https://github.com/aigemro/dream-bike-garage-lab/issues/166), [#114](https://github.com/aigemro/dream-bike-garage-lab/issues/114) |
+| Art & Audio | 게임 화면 디자인 | A: 브라우저 가로 · B: 모바일 세로 390×810 | 개발 중 (1차 데모) | #114 동일 통합 로직에서 A/B 화면 크기·시선 흐름·터치 크기 비교, 홈 A안 공간 연속성 검증 | [#166](https://github.com/aigemro/dream-bike-garage-lab/issues/166), [#177](https://github.com/aigemro/dream-bike-garage-lab/issues/177), [#114](https://github.com/aigemro/dream-bike-garage-lab/issues/114) |
 | Art & Audio | 자전거 수집 화면 디자인 | A/B/C: 도감·전시·드림 바이크 | 개발 중 (1차 데모) | 홈 A안 자전거 탭 진입 기준 24종 가독성·소유감·성장 동기 비교 | [#147](https://github.com/aigemro/dream-bike-garage-lab/issues/147), [#148](https://github.com/aigemro/dream-bike-garage-lab/issues/148), [#149](https://github.com/aigemro/dream-bike-garage-lab/issues/149), [#150](https://github.com/aigemro/dream-bike-garage-lab/issues/150) |
 | Art & Audio | 프로필 화면 디자인 | A/B/C: 사원증·승진 보드·기록 대시보드 | 개발 중 (1차 데모) | 홈 A안 프로필 탭 진입 기준 정보 3요소 가독성·승진 동기 연결 비교 | [#157](https://github.com/aigemro/dream-bike-garage-lab/issues/157), [#158](https://github.com/aigemro/dream-bike-garage-lab/issues/158), [#159](https://github.com/aigemro/dream-bike-garage-lab/issues/159), [#160](https://github.com/aigemro/dream-bike-garage-lab/issues/160), [검토](PROFILE_SCREEN_DESIGN_REVIEW.md) |
 | Art & Audio | 캐릭터 디자인·표현 방향 | A: 따뜻한 생활형 픽셀 정비사·고객 | 개발 중 (1차 데모) | 역할 실루엣·필드/초상화 연결·3단계 감정 비교 | [#125](https://github.com/aigemro/dream-bike-garage-lab/issues/125), [#133](https://github.com/aigemro/dream-bike-garage-lab/issues/133) |
