@@ -64,6 +64,7 @@ import doc62 from '../docs/variants/game-screen-design-warm-pixel.md?raw';
 import doc63 from '../docs/variants/profile-design-id-card.md?raw';
 import doc64 from '../docs/variants/profile-design-career-board.md?raw';
 import doc65 from '../docs/variants/profile-design-stats-dashboard.md?raw';
+import doc66 from '../docs/variants/storage-integrated-auto.md?raw';
 
 const variantDocs: Record<string, string> = {
   'merge-free-board': doc0,
@@ -132,6 +133,7 @@ const variantDocs: Record<string, string> = {
   'profile-design-id-card': doc63,
   'profile-design-career-board': doc64,
   'profile-design-stats-dashboard': doc65,
+  'storage-integrated-auto': doc66,
 };
 
 export default variantDocs;
