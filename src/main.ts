@@ -5,6 +5,7 @@ import { startMergePrototype, type MergePrototypeMode } from './merge-prototype'
 import { startGameScreenMobilePrototype } from './game-screen-mobile';
 import { startRewardSettlementPrototype } from './reward-settlement-design';
 import { startGuideOverlayPrototype } from './guide-overlay-design';
+import { startSettingsDrawerPrototype } from './settings-design';
 import { startCollectionPrototype, type CollectionPrototypeMode } from './collection-prototype';
 import { startSupplyPrototype, type SupplyPrototypeMode } from './supply-prototype';
 import { startRewardPrototype, type RewardPrototypeMode } from './reward-prototype';
@@ -26,7 +27,7 @@ import garageUiFriendly from './assets/background-art/garage-ui-friendly.png';
 
 type Status = '체험 가능' | '준비 중';
 type GameScreenDesignMode = 'warm-pixel-game-garage' | 'warm-pixel-game-mobile';
-type ScreenDesignMode = 'reward-settlement' | 'guide-overlay';
+type ScreenDesignMode = 'reward-settlement' | 'guide-overlay' | 'settings-drawer';
 type Variant = {
   id: string;
   label: string;
@@ -68,10 +69,12 @@ type Track = {
 const screenDesignLabels: Record<ScreenDesignMode, string> = {
   'reward-settlement': '홈 A안 시각 언어 · 390×810 · 동일 정산 데이터',
   'guide-overlay': '게임 화면 B안 기준 · 390×810 · 동일 안내 6단계',
+  'settings-drawer': '홈 A안 시각 언어 · 390×810 · 동일 설정 항목',
 };
 const screenDesignStarters: Record<ScreenDesignMode, (parent: string) => Phaser.Game> = {
   'reward-settlement': startRewardSettlementPrototype,
   'guide-overlay': startGuideOverlayPrototype,
+  'settings-drawer': startSettingsDrawerPrototype,
 };
 
 const tracks: Track[] = [
@@ -220,6 +223,13 @@ const tracks: Track[] = [
     description: '#115가 안내 규칙을 비교한다면, 이 트랙은 같은 6단계 안내를 어떤 화면 표현으로 전달할지 비교합니다.',
     variants: [
       { id: 'warm-mechanic-bubble', label: 'A안', title: '따뜻한 픽셀 정비사 말풍선', description: '정비사 두리가 말풍선으로 안내하고 대상 영역만 스포트라이트로 밝히는 캐릭터 중심 안내입니다.', status: '체험 가능', question: '캐릭터 말풍선과 스포트라이트가 다음 행동을 3초 안에 찾게 하면서 보드·버튼을 가리지 않는가?', controls: '다음 버튼으로 첫 주문 6단계 안내를 진행하고, 건너뛰기·안내 다시 보기 진입점과 대상 가림 여부를 확인합니다.', screenDesignDemo: 'guide-overlay', issueNumber: 180, documentId: 'guide-overlay-bubble' },
+    ],
+  },
+  {
+    id: 'settings-design', group: 'ART & AUDIO', title: '설정 화면 디자인', issueNumber: 181,
+    description: '출시 QA 최소 설정(사운드·진동·튜토리얼 재보기·데이터 초기화·버전)을 어떤 화면 형태로 담을지 비교합니다.',
+    variants: [
+      { id: 'warm-workshop-drawer', label: 'A안', title: '따뜻한 픽셀 공방 관리 서랍', description: '공방 서랍장을 여는 메타포로 나무 스위치 토글과 종이 라벨을 사용하는 공간 몰입형 설정입니다.', status: '체험 가능', question: '서랍장 메타포가 몰입을 유지하면서 토글 상태와 초기화의 위험을 명확히 전달하는가?', controls: '소리 서랍의 나무 스위치 3종을 켜고 끄고, 튜토리얼 다시 보기와 데이터 초기화의 2단계 확인 흐름을 확인합니다.', screenDesignDemo: 'settings-drawer', issueNumber: 181, documentId: 'settings-drawer' },
     ],
   },
   {

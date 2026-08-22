@@ -200,7 +200,7 @@ mindmap
         이슈 준비
     설정 화면
       A 공방 관리 서랍형
-        이슈 준비
+        1차 데모 구현
       B 종이 체크리스트형
         이슈 준비
       C 최소 모달형
@@ -300,7 +300,7 @@ mindmap
 | Art & Audio | 프로필 화면 디자인 | A/B/C: 사원증·승진 보드·기록 대시보드 | 개발 중 (1차 데모) | 홈 A안 프로필 탭 진입 기준 정보 3요소 가독성·승진 동기 연결 비교 | [#157](https://github.com/aigemro/dream-bike-garage-lab/issues/157), [#158](https://github.com/aigemro/dream-bike-garage-lab/issues/158), [#159](https://github.com/aigemro/dream-bike-garage-lab/issues/159), [#160](https://github.com/aigemro/dream-bike-garage-lab/issues/160), [검토](PROFILE_SCREEN_DESIGN_REVIEW.md) |
 | Art & Audio | 납품·보상 정산 화면 | A: 급여 봉투 개봉형 (B/C 이슈 준비) | 개발 중 (1차 데모) | 봉투 개봉 성취감·급여 사용처 전달을 B/C안과 비교 | [#179](https://github.com/aigemro/dream-bike-garage-lab/issues/179) |
 | Art & Audio | 첫 플레이 안내 오버레이 | A: 정비사 말풍선형 (B/C 이슈 준비) | 개발 중 (1차 데모) | 스포트라이트·말풍선의 대상 가림 여부와 행동 유도력을 B/C안과 비교 | [#180](https://github.com/aigemro/dream-bike-garage-lab/issues/180), [#115](https://github.com/aigemro/dream-bike-garage-lab/issues/115) |
-| Art & Audio | 설정 화면 | A/B/C: 관리 서랍·체크리스트·모달 | 준비 (이슈 등록) | A안 공방 관리 서랍형 구현, 데이터 초기화 2단계 확인 포함 | [#181](https://github.com/aigemro/dream-bike-garage-lab/issues/181), [#117](https://github.com/aigemro/dream-bike-garage-lab/issues/117) |
+| Art & Audio | 설정 화면 | A: 공방 관리 서랍형 (B/C 이슈 준비) | 개발 중 (1차 데모) | 토글 가독성·초기화 위험 구분을 B/C안과 비교 | [#181](https://github.com/aigemro/dream-bike-garage-lab/issues/181), [#117](https://github.com/aigemro/dream-bike-garage-lab/issues/117) |
 | Art & Audio | 타이틀·로딩 화면 | A/B/C: 공방 간판·출근길·미니 조립 | 준비 (이슈 등록) | A안 공방 간판형 구현, 앱인토스 대표 이미지 후보 겸용 | [#182](https://github.com/aigemro/dream-bike-garage-lab/issues/182), [#117](https://github.com/aigemro/dream-bike-garage-lab/issues/117) |
 | Art & Audio | 캐릭터 디자인·표현 방향 | A: 따뜻한 생활형 픽셀 정비사·고객 | 개발 중 (1차 데모) | 역할 실루엣·필드/초상화 연결·3단계 감정 비교 | [#125](https://github.com/aigemro/dream-bike-garage-lab/issues/125), [#133](https://github.com/aigemro/dream-bike-garage-lab/issues/133) |
 | Art & Audio | UI·아이콘 아트 방향 | A: 종이·목재 픽셀 공방 UI | 개발 중 (1차 데모) | 주문·부품·재화·READY/부족/잠금 상태 가독성 비교 | [#126](https://github.com/aigemro/dream-bike-garage-lab/issues/126), [#134](https://github.com/aigemro/dream-bike-garage-lab/issues/134) |
