@@ -26,8 +26,13 @@ const STEPS: GuideStep[] = [
   { target: { x: 8, y: 66, w: 374, h: 144 }, title: '6 · 납품 완료', text: '부품 4종을 모두 장착하면\n납품 완료! 급여를 받고\n다음 주문이 이어져요.', bubbleTop: false },
 ];
 
+export type GuideOverlayHooks = {
+  onFinish?: () => void;
+  onSfx?: (event: 'tap' | 'complete') => void;
+};
+
 class GuideOverlayScene extends Phaser.Scene {
-  constructor() { super('guide-overlay-a'); }
+  constructor(private readonly hooks: GuideOverlayHooks = {}) { super('guide-overlay-a'); }
 
   private stepIndex = 0;
   private overlayObjects: Phaser.GameObjects.GameObject[] = [];
@@ -136,6 +141,7 @@ class GuideOverlayScene extends Phaser.Scene {
   }
 
   private advance() {
+    this.hooks.onSfx?.('tap');
     if (this.stepIndex >= STEPS.length - 1) {
       this.finish('안내 끝! 이제 직접 첫 주문을 진행해 보세요.');
       return;
@@ -145,6 +151,11 @@ class GuideOverlayScene extends Phaser.Scene {
   }
 
   private finish(message: string) {
+    this.hooks.onSfx?.('complete');
+    if (this.hooks.onFinish) {
+      this.hooks.onFinish();
+      return;
+    }
     this.overlayObjects.forEach((object) => object.destroy());
     this.overlayObjects = [];
     const banner = this.add.rectangle(195, 592, 330, 74, CREAM, 0.97).setStrokeStyle(4, BORDER).setDepth(22);
@@ -156,7 +167,7 @@ class GuideOverlayScene extends Phaser.Scene {
   }
 }
 
-export function startGuideOverlayPrototype(parent: string) {
+export function startGuideOverlayPrototype(parent: string, hooks: GuideOverlayHooks = {}) {
   return new Phaser.Game({
     type: Phaser.AUTO,
     parent,
@@ -164,6 +175,6 @@ export function startGuideOverlayPrototype(parent: string) {
     height: 810,
     backgroundColor: '#c78452',
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    scene: new GuideOverlayScene(),
+    scene: new GuideOverlayScene(hooks),
   });
 }

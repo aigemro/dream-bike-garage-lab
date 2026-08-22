@@ -17,8 +17,17 @@ const RED = 0xc95746;
 
 type ToggleKey = 'bgm' | 'sfx' | 'vibration';
 
+export type SettingsDrawerHooks = {
+  toggles?: Partial<Record<ToggleKey, boolean>>;
+  onHome?: () => void;
+  onTutorial?: () => void;
+  onReset?: () => void;
+  onToggle?: (key: ToggleKey, value: boolean) => void;
+  onSfx?: (event: 'tap' | 'error') => void;
+};
+
 class SettingsDrawerScene extends Phaser.Scene {
-  constructor() { super('settings-drawer-a'); }
+  constructor(private readonly hooks: SettingsDrawerHooks = {}) { super('settings-drawer-a'); }
 
   private toggles: Record<ToggleKey, boolean> = { bgm: true, sfx: true, vibration: false };
   private toggleParts = new Map<ToggleKey, { rail: Phaser.GameObjects.Rectangle; knob: Phaser.GameObjects.Rectangle; state: Phaser.GameObjects.Text }>();
@@ -26,6 +35,7 @@ class SettingsDrawerScene extends Phaser.Scene {
   private confirmObjects: Phaser.GameObjects.GameObject[] = [];
 
   create() {
+    this.toggles = { ...this.toggles, ...this.hooks.toggles };
     this.cameras.main.setBackgroundColor('#c78452');
     this.drawBackdrop();
 
@@ -37,7 +47,7 @@ class SettingsDrawerScene extends Phaser.Scene {
     this.add.text(126, 40, '설정 화면 · A안', { fontFamily: FONT, fontSize: '9px', color: MUTED }).setDepth(10);
     const homeButton = this.add.rectangle(344, 30, 76, 30, GOLD).setStrokeStyle(2, BORDER).setInteractive({ useHandCursor: true }).setDepth(9);
     this.add.text(344, 30, '← HOME', { fontFamily: FONT, fontSize: '10px', color: INK, fontStyle: 'bold' }).setOrigin(0.5).setDepth(10);
-    homeButton.on('pointerdown', () => this.showToast('Garage 홈으로 돌아갑니다. (데모)'));
+    homeButton.on('pointerdown', () => { this.hooks.onSfx?.('tap'); this.hooks.onHome ? this.hooks.onHome() : this.showToast('Garage 홈으로 돌아갑니다. (데모)'); });
 
     // 서랍장 프레임: 정비사가 서랍장을 관리하는 장면
     this.add.rectangle(195, 420, 358, 610, BROWN).setStrokeStyle(5, BORDER).setDepth(1);
@@ -57,7 +67,7 @@ class SettingsDrawerScene extends Phaser.Scene {
     this.add.text(48, 468, '튜토리얼 다시 보기', { fontFamily: FONT, fontSize: '12px', color: INK, fontStyle: 'bold' }).setDepth(4);
     this.add.text(330, 478, '↺', { fontFamily: FONT, fontSize: '16px', color: MUTED, fontStyle: 'bold' }).setOrigin(0.5).setDepth(4);
     this.add.text(48, 486, '첫 주문 안내를 처음부터 다시 표시합니다', { fontFamily: FONT, fontSize: '9px', color: MUTED }).setDepth(4);
-    tutorialButton.on('pointerdown', () => this.showToast('다음 작업 화면부터 첫 플레이 안내를 다시 표시합니다.'));
+    tutorialButton.on('pointerdown', () => { this.hooks.onSfx?.('tap'); this.hooks.onTutorial?.(); this.showToast('다음 작업 화면부터 첫 플레이 안내를 다시 표시합니다.'); });
 
     // 데이터 서랍: 초기화는 위험 동작이라 색과 문구로 구분하고 2단계 확인을 거친다
     this.drawDrawer(538, '기록 서랍 · DATA');
@@ -101,6 +111,8 @@ class SettingsDrawerScene extends Phaser.Scene {
     this.toggleParts.set(key, { rail, knob, state });
     rail.on('pointerdown', () => {
       this.toggles[key] = !this.toggles[key];
+      this.hooks.onToggle?.(key, this.toggles[key]);
+      this.hooks.onSfx?.('tap');
       this.refreshToggle(key);
       this.showToast(`${name}을 ${this.toggles[key] ? '켰습니다' : '껐습니다'}. (데모 표기)`);
     });
@@ -132,7 +144,7 @@ class SettingsDrawerScene extends Phaser.Scene {
     const confirmText = this.add.text(268, 448, '초기화 실행', { fontFamily: FONT, fontSize: '12px', color: '#fff1c6', fontStyle: 'bold' }).setOrigin(0.5).setDepth(23);
     this.confirmObjects = [dim, panel, title, body, cancelButton, cancelText, confirmButton, confirmText];
     cancelButton.on('pointerdown', () => this.closeResetConfirm('초기화를 취소했습니다.'));
-    confirmButton.on('pointerdown', () => this.closeResetConfirm('저장 데이터를 초기화했습니다. 첫 실행 상태로 시작합니다. (데모 표기)'));
+    confirmButton.on('pointerdown', () => { this.hooks.onSfx?.('error'); this.hooks.onReset?.(); this.closeResetConfirm('저장 데이터를 초기화했습니다. 첫 실행 상태로 시작합니다.'); });
   }
 
   private closeResetConfirm(message: string) {
@@ -146,7 +158,7 @@ class SettingsDrawerScene extends Phaser.Scene {
   }
 }
 
-export function startSettingsDrawerPrototype(parent: string) {
+export function startSettingsDrawerPrototype(parent: string, hooks: SettingsDrawerHooks = {}) {
   return new Phaser.Game({
     type: Phaser.AUTO,
     parent,
@@ -154,6 +166,6 @@ export function startSettingsDrawerPrototype(parent: string) {
     height: 810,
     backgroundColor: '#c78452',
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    scene: new SettingsDrawerScene(),
+    scene: new SettingsDrawerScene(hooks),
   });
 }

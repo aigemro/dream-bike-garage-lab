@@ -5,6 +5,13 @@ import { drawPixelBike, addPixelBikeImage, makeWarmColorway, bikeCategoryFromKor
 
 export type BikeCollectionDesignMode = 'warm-catalog' | 'warm-showcase' | 'warm-dream-growth';
 
+export type BikeCollectionDesignHooks = {
+  coins?: number;
+  onHome?: () => void;
+  onCoinsChange?: (coins: number) => void;
+  onSfx?: (event: 'tap' | 'reward' | 'error') => void;
+};
+
 // 홈 화면 디자인 A안(따뜻한 생활형 픽셀 Garage)과 동일한 팔레트를 사용합니다.
 const P = {
   ink: 0x3b2531, cream: 0xfff1c6, paper: 0xf6d995, wood: 0x8e5136,
@@ -62,9 +69,10 @@ class BikeCollectionDesignScene extends Phaser.Scene {
   private showcaseSlots: Array<string | null> = ['dream-road', 'urban-road', null];
   private dreamStats = { 성능: 1, 스타일: 1, 희귀도: 1 };
 
-  constructor(mode: BikeCollectionDesignMode) {
+  constructor(mode: BikeCollectionDesignMode, private readonly hooks: BikeCollectionDesignHooks = {}) {
     super('bike-collection-design');
     this.mode = mode;
+    this.coins = hooks.coins ?? this.coins;
     this.toast =
       mode === 'warm-catalog' ? '도감 칸을 눌러 자전거 정보를 확인해 보세요.'
       : mode === 'warm-showcase' ? '보관 선반에서 자전거를 고른 뒤 전시대를 눌러 배치하세요.'
@@ -122,7 +130,7 @@ class BikeCollectionDesignScene extends Phaser.Scene {
     } as const;
     const [eyebrow, title] = heads[this.mode];
     this.renderTopBar();
-    this.button(57, 99, 84, 40, '← HOME', () => { this.view = 'home'; this.render(); });
+    this.button(57, 99, 84, 40, '← HOME', () => { this.hooks.onSfx?.('tap'); if (this.hooks.onHome) this.hooks.onHome(); else { this.view = 'home'; this.render(); } });
     this.label(112, 82, eyebrow, 8, '#6e473b', true).setDepth(16);
     this.label(112, 96, title, 15, '#3b2531', true).setDepth(16);
     this.pixelRect(348, 99, 66, 40, 0xffe6a8, P.wood, 15);
@@ -179,6 +187,7 @@ class BikeCollectionDesignScene extends Phaser.Scene {
     this.label(28, 693, target.owned ? `보유 중 · ${target.hint}` : target.hint, 10, target.owned ? '#3f7851' : '#a14a38', true).setDepth(9);
     if (!target.owned) this.button(322, 682, 108, 42, '획득 연출\n미리보기', () => {
       target.owned = true;
+      this.hooks.onSfx?.('reward');
       this.notify(`${target.name} 획득! 도감 ${this.ownedCount()} / 24 달성.`);
     });
   }
@@ -277,8 +286,10 @@ class BikeCollectionDesignScene extends Phaser.Scene {
       }
       this.label(160, y + 5, `Lv.${level} / 4`, 9, level === 4 ? '#a16028' : '#7b5140', true).setDepth(6);
       if (level < 4) this.button(300, y, 104, 40, `강화 ${cost}`, () => {
-        if (this.coins < cost) { this.notify('코인이 부족합니다. 주문을 완료해 급여를 받으세요.'); return; }
+        if (this.coins < cost) { this.hooks.onSfx?.('error'); this.notify('코인이 부족합니다. 주문을 완료해 급여를 받으세요.'); return; }
         this.coins -= cost;
+        this.hooks.onCoinsChange?.(this.coins);
+        this.hooks.onSfx?.('reward');
         this.dreamStats[key] += 1;
         const nextTotal = Object.values(this.dreamStats).reduce((sum, value) => sum + value, 0);
         this.notify(nextTotal >= 10 && total < 10 ? '드림 등급 달성! 나만의 드림 바이크 완성.' : nextTotal >= 7 && total < 7 ? '고급 등급 달성! 외형 강조가 추가됐습니다.' : `${key} 강화 완료 · 남은 코인 ${this.coins.toLocaleString()}`);
@@ -324,11 +335,11 @@ class BikeCollectionDesignScene extends Phaser.Scene {
   }
 }
 
-export function startBikeCollectionDesignPrototype(parent: string, mode: BikeCollectionDesignMode) {
+export function startBikeCollectionDesignPrototype(parent: string, mode: BikeCollectionDesignMode, hooks: BikeCollectionDesignHooks = {}) {
   return new Phaser.Game({
     type: Phaser.AUTO, parent, width: 390, height: 810, backgroundColor: '#fff1c6',
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    scene: new BikeCollectionDesignScene(mode),
+    scene: new BikeCollectionDesignScene(mode, hooks),
     render: { antialias: false, pixelArt: true, roundPixels: true },
   });
 }

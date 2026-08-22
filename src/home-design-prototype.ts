@@ -10,6 +10,16 @@ export type HomeDesignPrototypeMode =
   | 'retro-pixel-garage'
   | 'modern-casual-garage';
 
+export type HomeDesignHooks = {
+  coins?: number;
+  completedOrders?: number;
+  onPlay?: () => void;
+  onCollection?: () => void;
+  onProfile?: () => void;
+  onSettings?: () => void;
+  onSfx?: (event: 'tap') => void;
+};
+
 const P = {
   ink: 0x3b2531, cream: 0xfff1c6, paper: 0xf6d995, wood: 0x8e5136,
   darkWood: 0x573044, floor: 0xb66f45, green: 0x5e9a67, leaf: 0x86ba6f,
@@ -20,7 +30,7 @@ class WarmPixelGarageScene extends Phaser.Scene {
   private playing = false;
   private toast = '오늘의 주문을 확인하고 작업을 시작해 보세요.';
 
-  constructor() { super('home-design-warm-pixel-garage'); }
+  constructor(private readonly hooks: HomeDesignHooks = {}) { super('home-design-warm-pixel-garage'); }
   create() { this.render(); }
 
   private label(x: number, y: number, value: string, size = 12, color = '#3b2531', bold = false) {
@@ -57,7 +67,7 @@ class WarmPixelGarageScene extends Phaser.Scene {
     this.pixelRect(195, 125, 238, 60, P.paper, P.ink, 10);
     this.label(88, 101, 'TODAY\'S ORDER', 9, '#6e473b', true).setDepth(11);
     this.label(88, 119, '통학용 어반 바이크', 14, '#3b2531', true).setDepth(11);
-    this.label(88, 140, '진행 2 / 4  ·  보상 1,000', 10, '#8e5136', true).setDepth(11);
+    this.label(88, 140, `완료 ${this.hooks.completedOrders ?? 0}건  ·  보상 1,000`, 10, '#8e5136', true).setDepth(11);
     // 주문 미리보기: 통학용 어반 주문에 맞춘 시티 자전거 픽셀 스프라이트(앞바구니 실루엣).
     // 카드(중심 y=125, 높이 60 → 95~155) 안에 들어오도록 cell 1.2 사용: 세로 108~143px, 가로 폭 약 65px로 카드 우측 변까지 딱 맞음
     drawPixelBike(this, 282, 131, 1.2, { category: 'city', colorway: makeWarmColorway(P.red), depth: 12 });
@@ -93,9 +103,9 @@ class WarmPixelGarageScene extends Phaser.Scene {
     this.label(195, 592, this.toast, 10, '#5d3b34', true).setOrigin(.5).setDepth(15);
 
     this.pixelRect(195, 744, 366, 82, P.wood, P.ink, 18);
-    this.button(67, 741, 80, 48, '프로필\nLv.12', () => this.notify('견습 정비사 프로필'));
-    this.button(195, 738, 150, 58, '▶  PLAY', () => { this.playing = true; this.render(); }, true);
-    this.button(323, 741, 80, 48, '자전거\n8/24', () => this.notify('자전거 도감'));
+    this.button(67, 741, 80, 48, '프로필\nLv.12', () => { this.hooks.onSfx?.('tap'); this.hooks.onProfile ? this.hooks.onProfile() : this.notify('견습 정비사 프로필'); });
+    this.button(195, 738, 150, 58, '▶  PLAY', () => { this.hooks.onSfx?.('tap'); if (this.hooks.onPlay) this.hooks.onPlay(); else { this.playing = true; this.render(); } }, true);
+    this.button(323, 741, 80, 48, '자전거\n8/24', () => { this.hooks.onSfx?.('tap'); this.hooks.onCollection ? this.hooks.onCollection() : this.notify('자전거 도감'); });
     this.label(195, 793, 'DREAM BIKE GARAGE · WARM PIXEL HOME', 8, '#fff1c6', true).setOrigin(.5).setDepth(22);
   }
 
@@ -193,7 +203,8 @@ class WarmPixelGarageScene extends Phaser.Scene {
     this.add.rectangle(112, 43, 72, 8, P.darkWood).setDepth(16).setOrigin(0, .5);
     this.add.rectangle(112, 43, 52, 8, P.green).setDepth(17).setOrigin(0, .5);
     this.label(274, 20, 'COIN', 8, '#795044', true).setDepth(16);
-    this.label(274, 37, '2,480', 14, '#a16028', true).setDepth(16);
+    this.label(274, 37, (this.hooks.coins ?? 2480).toLocaleString(), 14, '#a16028', true).setDepth(16);
+    if (this.hooks.onSettings) this.button(352, 39, 34, 34, '⚙', () => { this.hooks.onSfx?.('tap'); this.hooks.onSettings?.(); });
   }
 
   private renderPlayPreview() {
@@ -224,13 +235,13 @@ class WarmPixelGarageScene extends Phaser.Scene {
   private notify(message: string) { this.toast = message; this.render(); }
 }
 
-export function startHomeDesignPrototype(parent: string, mode: HomeDesignPrototypeMode) {
+export function startHomeDesignPrototype(parent: string, mode: HomeDesignPrototypeMode, hooks: HomeDesignHooks = {}) {
   // 방안별 씬과 기본 배경색·렌더 설정을 분기합니다. (D안만 부드러운 벡터 렌더링)
   const scene =
     mode === 'dusk-workshop-garage' ? new DuskWorkshopGarageScene()
     : mode === 'retro-pixel-garage' ? new RetroPixelGarageScene()
     : mode === 'modern-casual-garage' ? new ModernCasualGarageScene()
-    : new WarmPixelGarageScene();
+    : new WarmPixelGarageScene(hooks);
   const backgroundColor =
     mode === 'dusk-workshop-garage' ? '#141a2e'
     : mode === 'retro-pixel-garage' ? '#101026'
