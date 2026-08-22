@@ -6,6 +6,7 @@ import { startGameScreenMobilePrototype } from './game-screen-mobile';
 import { startRewardSettlementPrototype } from './reward-settlement-design';
 import { startGuideOverlayPrototype } from './guide-overlay-design';
 import { startSettingsDrawerPrototype } from './settings-design';
+import { startTitleLoadingPrototype } from './title-loading-design';
 import { startCollectionPrototype, type CollectionPrototypeMode } from './collection-prototype';
 import { startSupplyPrototype, type SupplyPrototypeMode } from './supply-prototype';
 import { startRewardPrototype, type RewardPrototypeMode } from './reward-prototype';
@@ -27,7 +28,7 @@ import garageUiFriendly from './assets/background-art/garage-ui-friendly.png';
 
 type Status = '체험 가능' | '준비 중';
 type GameScreenDesignMode = 'warm-pixel-game-garage' | 'warm-pixel-game-mobile';
-type ScreenDesignMode = 'reward-settlement' | 'guide-overlay' | 'settings-drawer';
+type ScreenDesignMode = 'reward-settlement' | 'guide-overlay' | 'settings-drawer' | 'title-loading';
 type Variant = {
   id: string;
   label: string;
@@ -70,11 +71,13 @@ const screenDesignLabels: Record<ScreenDesignMode, string> = {
   'reward-settlement': '홈 A안 시각 언어 · 390×810 · 동일 정산 데이터',
   'guide-overlay': '게임 화면 B안 기준 · 390×810 · 동일 안내 6단계',
   'settings-drawer': '홈 A안 시각 언어 · 390×810 · 동일 설정 항목',
+  'title-loading': '홈 A안 시각 언어 · 390×810 · 앱 시작 첫인상',
 };
 const screenDesignStarters: Record<ScreenDesignMode, (parent: string) => Phaser.Game> = {
   'reward-settlement': startRewardSettlementPrototype,
   'guide-overlay': startGuideOverlayPrototype,
   'settings-drawer': startSettingsDrawerPrototype,
+  'title-loading': startTitleLoadingPrototype,
 };
 
 const tracks: Track[] = [
@@ -230,6 +233,13 @@ const tracks: Track[] = [
     description: '출시 QA 최소 설정(사운드·진동·튜토리얼 재보기·데이터 초기화·버전)을 어떤 화면 형태로 담을지 비교합니다.',
     variants: [
       { id: 'warm-workshop-drawer', label: 'A안', title: '따뜻한 픽셀 공방 관리 서랍', description: '공방 서랍장을 여는 메타포로 나무 스위치 토글과 종이 라벨을 사용하는 공간 몰입형 설정입니다.', status: '체험 가능', question: '서랍장 메타포가 몰입을 유지하면서 토글 상태와 초기화의 위험을 명확히 전달하는가?', controls: '소리 서랍의 나무 스위치 3종을 켜고 끄고, 튜토리얼 다시 보기와 데이터 초기화의 2단계 확인 흐름을 확인합니다.', screenDesignDemo: 'settings-drawer', issueNumber: 181, documentId: 'settings-drawer' },
+    ],
+  },
+  {
+    id: 'title-loading-design', group: 'ART & AUDIO', title: '타이틀·로딩 화면 디자인', issueNumber: 182,
+    description: '앱 실행 직후 홈 화면 전까지의 첫인상(로고·로딩·시작)을 어떤 장면으로 전달할지 비교합니다.',
+    variants: [
+      { id: 'warm-signboard', label: 'A안', title: '따뜻한 픽셀 공방 간판', description: '사슬에 걸린 목재 간판 로고와 대표 자전거·정비사 장면, 자전거 바퀴 회전 로딩으로 구성한 간판 중심 타이틀입니다.', status: '체험 가능', question: '3초 안에 자전거 공방 게임임이 전달되고 대표 이미지(스토어 스크린샷) 후보로 쓸 구도인가?', controls: '바퀴 로딩과 진행 바가 100%가 되면 TAP TO START로 홈 전환 연출을 확인합니다. 초기화로 로딩부터 다시 볼 수 있습니다.', screenDesignDemo: 'title-loading', issueNumber: 182, documentId: 'title-loading-signboard' },
     ],
   },
   {
