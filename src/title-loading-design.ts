@@ -3,8 +3,7 @@
 // 진행 바로 로딩을 표현한다. 로딩 진행률은 실제 진행률과 연결 가능한
 // 형태로 두되 데모에서는 시뮬레이션한다. 앱인토스 대표 이미지 후보 겸용.
 import Phaser from 'phaser';
-import { drawDreamBike } from './home-design-bike';
-import { WARM_ORDER_BIKE_PALETTE } from './merge-prototype';
+import { drawPixelBike, makeWarmColorway } from './bike-pixel-sprite';
 import { drawFieldCharacter } from './art-character-pixel';
 
 const FONT = '"Arial Rounded MT Bold", "Noto Sans KR", sans-serif';
@@ -51,7 +50,9 @@ class TitleLoadingScene extends Phaser.Scene {
 
     // 대표 장면: 드림 바이크 + 정비사 (스토어 대표 이미지 후보 구도)
     this.add.rectangle(195, 400, 334, 244, CREAM, 0.35).setStrokeStyle(4, BROWN).setDepth(1);
-    drawDreamBike(this, 172, 408, 0.86, WARM_ORDER_BIKE_PALETTE, 3, { style: 'road', pixelStep: 2 });
+    drawPixelBike(this, 172, 408, 4, {
+      category: 'road', colorway: makeWarmColorway(0xc95746), depth: 3,
+    });
     drawFieldCharacter(this, 322, 492, '정비사', 4, 3);
 
     // 로딩: 회전하는 앞바퀴 + 진행 바

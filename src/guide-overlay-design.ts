@@ -3,8 +3,7 @@
 // 스포트라이트 강조로 첫 주문 6단계를 안내하는 '표현'을 검증한다.
 // 안내 문구·발동 조건 규칙은 #115 담당이며 여기서는 결정하지 않는다.
 import Phaser from 'phaser';
-import { drawDreamBike } from './home-design-bike';
-import { WARM_ORDER_BIKE_PALETTE } from './merge-prototype';
+import { drawPixelBike, makeWarmColorway } from './bike-pixel-sprite';
 import { drawFieldCharacter } from './art-character-pixel';
 
 const FONT = '"Arial Rounded MT Bold", "Noto Sans KR", sans-serif';
@@ -58,7 +57,12 @@ class GuideOverlayScene extends Phaser.Scene {
     this.add.text(64, 78, 'NEW ORDER', { fontFamily: FONT, fontSize: '9px', color: '#fff1c6', fontStyle: 'bold' }).setOrigin(0.5).setDepth(4);
     this.add.text(20, 94, '통학용 어반 로드', { fontFamily: FONT, fontSize: '15px', color: INK, fontStyle: 'bold' }).setDepth(4);
     this.add.text(20, 117, '장착 0/4 · 부품별 자동 장착', { fontFamily: FONT, fontSize: '10px', color: MUTED }).setDepth(4);
-    drawDreamBike(this, 292, 132, 0.42, WARM_ORDER_BIKE_PALETTE, 4, { style: 'road', pixelStep: 2, partAlpha: { frame: 0.5, wheel: 0.5, drivetrain: 0.5, handlebar: 0.5 } });
+    drawPixelBike(this, 292, 132, 2, {
+      category: 'road',
+      colorway: makeWarmColorway(0xc95746),
+      depth: 4,
+      partAlpha: { frame: 0.5, wheel: 0.5, drivetrain: 0.5, handlebar: 0.5 },
+    });
     ['F', 'W', 'D', 'H'].forEach((short, index) => {
       const x = 42 + index * 46;
       this.add.rectangle(x, 168, 42, 40, GOLD).setStrokeStyle(2, [0xc95746, 0xe7a942, 0x5e9a67, 0x4e8092][index]).setDepth(3);
