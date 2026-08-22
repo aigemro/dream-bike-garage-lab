@@ -60,7 +60,7 @@ type Variant = {
 };
 type Track = {
   id: string;
-  group: 'MVP CORE PLAY' | 'META PROGRESSION' | 'ART & AUDIO' | 'PLATFORM & TECHNOLOGY' | 'RELEASE INTEGRATION';
+  group: 'MVP CORE PLAY' | 'META PROGRESSION' | 'SCREEN DESIGN' | 'ART & AUDIO' | 'PLATFORM & TECHNOLOGY' | 'RELEASE INTEGRATION';
   title: string;
   description: string;
   issueNumber?: number;
@@ -177,7 +177,7 @@ const tracks: Track[] = [
     ],
   },
   {
-    id: 'home-screen-design', group: 'ART & AUDIO', title: '홈 화면 디자인',
+    id: 'home-screen-design', group: 'SCREEN DESIGN', title: '홈 화면 디자인',
     description: '회의안 기반 Garage 홈의 정보 구조와 데이터를 고정하고, 실제 게임 화면의 아트 스타일·UI·공간 연출만 바꿔 비교합니다.',
     variants: [
       { id: 'warm-pixel-garage', label: 'A안', title: '따뜻한 생활형 픽셀 Garage', description: '목재 공방과 계절감 있는 창밖 풍경 위에 중앙 드림 바이크와 하단 PLAY를 선명하게 배치합니다.', status: '체험 가능', question: '따뜻한 픽셀 생활감이 Garage 소유감을 높이면서 주문·PLAY·수집 UI의 가독성을 유지하는가?', controls: '대표 자전거와 수집 목표를 확인하고 PLAY로 작업 화면에 진입한 뒤 HOME으로 돌아와 화면 흐름을 비교합니다.', homeDesignDemo: 'warm-pixel-garage', issueNumber: 130, documentId: 'home-design-warm-pixel' },
@@ -187,7 +187,7 @@ const tracks: Track[] = [
     ],
   },
   {
-    id: 'game-screen-design', group: 'ART & AUDIO', title: '게임 화면 디자인', issueNumber: 166,
+    id: 'game-screen-design', group: 'SCREEN DESIGN', title: '게임 화면 디자인', issueNumber: 166,
     description: 'MVP 핵심 기능 통합의 기능·상태는 그대로 유지하고, 실제 주문·택배·머지·자동 장착 화면의 아트 스타일과 정보 전달만 비교합니다.',
     variants: [
       { id: 'warm-pixel-garage', label: 'A안', title: 'MVP 통합 따뜻한 생활형 픽셀 Garage', description: '홈 A안의 목재 공방·크림 종이 UI·따뜻한 부품 팔레트를 #114 통합 플레이 화면에 적용합니다.', status: '체험 가능', question: '따뜻한 Garage 생활감이 주문·택배·보드·장착 상태의 가독성을 유지하면서 홈에서 작업 화면으로 자연스럽게 이어지는가?', controls: '주문 목표 확인 → 필요한 택배 주문·개봉 → 보드 배치·2-to-1 머지 → 고객 자전거 자동 장착 흐름을 진행하며 #114 기능 화면과 표현 차이를 확인합니다.', gameScreenDesignDemo: 'warm-pixel-game-garage', issueNumber: 166, documentId: 'game-screen-design-warm-pixel' },
@@ -195,7 +195,7 @@ const tracks: Track[] = [
     ],
   },
   {
-    id: 'bike-collection-design', group: 'ART & AUDIO', title: '자전거 수집 화면 디자인',
+    id: 'bike-collection-design', group: 'SCREEN DESIGN', title: '자전거 수집 화면 디자인',
     description: '홈 화면 A안의 자전거 탭에서 진입하는 수집 화면을 동일 데이터(8/24)로 고정하고, 도감·전시·드림 바이크 세 형태를 비교합니다.',
     issueNumber: 147,
     variants: [
@@ -205,7 +205,7 @@ const tracks: Track[] = [
     ],
   },
   {
-    id: 'profile-design', group: 'ART & AUDIO', title: '프로필 화면 디자인',
+    id: 'profile-design', group: 'SCREEN DESIGN', title: '프로필 화면 디자인',
     description: '홈 화면 A안의 프로필 탭에서 진입하는 프로필 화면을 동일 데이터로 고정하고, 사원증·승진 보드·기록 대시보드 세 형태를 비교합니다.',
     issueNumber: 157,
     variants: [
@@ -215,28 +215,28 @@ const tracks: Track[] = [
     ],
   },
   {
-    id: 'reward-settlement-design', group: 'ART & AUDIO', title: '납품·보상 정산 화면 디자인', issueNumber: 179,
+    id: 'reward-settlement-design', group: 'SCREEN DESIGN', title: '납품·보상 정산 화면 디자인', issueNumber: 179,
     description: '주문 납품 순간을 급여 수령 → 성장 게이지 → 다음 주문 예고로 잇는 정산 화면을 화면의 주인공을 달리해 비교합니다.',
     variants: [
       { id: 'warm-pay-envelope', label: 'A안', title: '따뜻한 픽셀 급여 봉투', description: '고객이 건네는 급여 봉투를 탭으로 개봉해 코인 상승과 감사 인사를 중심에 둔 성취감 우선 정산입니다.', status: '체험 가능', question: '봉투 개봉의 성취감이 급여와 사용처(성장)의 연결을 3초 안에 전달하는가?', controls: '급여 봉투를 탭해 개봉하고 코인 카운트업·성장 게이지 진행·다음 주문 예고까지의 흐름을 확인합니다.', screenDesignDemo: 'reward-settlement', issueNumber: 179, documentId: 'reward-settlement-envelope' },
     ],
   },
   {
-    id: 'guide-overlay-design', group: 'ART & AUDIO', title: '첫 플레이 안내 오버레이 디자인', issueNumber: 180,
+    id: 'guide-overlay-design', group: 'SCREEN DESIGN', title: '첫 플레이 안내 오버레이 디자인', issueNumber: 180,
     description: '#115가 안내 규칙을 비교한다면, 이 트랙은 같은 6단계 안내를 어떤 화면 표현으로 전달할지 비교합니다.',
     variants: [
       { id: 'warm-mechanic-bubble', label: 'A안', title: '따뜻한 픽셀 정비사 말풍선', description: '정비사 두리가 말풍선으로 안내하고 대상 영역만 스포트라이트로 밝히는 캐릭터 중심 안내입니다.', status: '체험 가능', question: '캐릭터 말풍선과 스포트라이트가 다음 행동을 3초 안에 찾게 하면서 보드·버튼을 가리지 않는가?', controls: '다음 버튼으로 첫 주문 6단계 안내를 진행하고, 건너뛰기·안내 다시 보기 진입점과 대상 가림 여부를 확인합니다.', screenDesignDemo: 'guide-overlay', issueNumber: 180, documentId: 'guide-overlay-bubble' },
     ],
   },
   {
-    id: 'settings-design', group: 'ART & AUDIO', title: '설정 화면 디자인', issueNumber: 181,
+    id: 'settings-design', group: 'SCREEN DESIGN', title: '설정 화면 디자인', issueNumber: 181,
     description: '출시 QA 최소 설정(사운드·진동·튜토리얼 재보기·데이터 초기화·버전)을 어떤 화면 형태로 담을지 비교합니다.',
     variants: [
       { id: 'warm-workshop-drawer', label: 'A안', title: '따뜻한 픽셀 공방 관리 서랍', description: '공방 서랍장을 여는 메타포로 나무 스위치 토글과 종이 라벨을 사용하는 공간 몰입형 설정입니다.', status: '체험 가능', question: '서랍장 메타포가 몰입을 유지하면서 토글 상태와 초기화의 위험을 명확히 전달하는가?', controls: '소리 서랍의 나무 스위치 3종을 켜고 끄고, 튜토리얼 다시 보기와 데이터 초기화의 2단계 확인 흐름을 확인합니다.', screenDesignDemo: 'settings-drawer', issueNumber: 181, documentId: 'settings-drawer' },
     ],
   },
   {
-    id: 'title-loading-design', group: 'ART & AUDIO', title: '타이틀·로딩 화면 디자인', issueNumber: 182,
+    id: 'title-loading-design', group: 'SCREEN DESIGN', title: '타이틀·로딩 화면 디자인', issueNumber: 182,
     description: '앱 실행 직후 홈 화면 전까지의 첫인상(로고·로딩·시작)을 어떤 장면으로 전달할지 비교합니다.',
     variants: [
       { id: 'warm-signboard', label: 'A안', title: '따뜻한 픽셀 공방 간판', description: '사슬에 걸린 목재 간판 로고와 대표 자전거·정비사 장면, 자전거 바퀴 회전 로딩으로 구성한 간판 중심 타이틀입니다.', status: '체험 가능', question: '3초 안에 자전거 공방 게임임이 전달되고 대표 이미지(스토어 스크린샷) 후보로 쓸 구도인가?', controls: '바퀴 로딩과 진행 바가 100%가 되면 TAP TO START로 홈 전환 연출을 확인합니다. 초기화로 로딩부터 다시 볼 수 있습니다.', screenDesignDemo: 'title-loading', issueNumber: 182, documentId: 'title-loading-signboard' },
@@ -423,10 +423,11 @@ function shell(content: string, back?: { href: string; label: string }) {
 
 function renderHome() {
   destroyGame();
-  const groups: Track['group'][] = ['MVP CORE PLAY', 'META PROGRESSION', 'ART & AUDIO', 'PLATFORM & TECHNOLOGY', 'RELEASE INTEGRATION'];
+  const groups: Track['group'][] = ['MVP CORE PLAY', 'META PROGRESSION', 'SCREEN DESIGN', 'ART & AUDIO', 'PLATFORM & TECHNOLOGY', 'RELEASE INTEGRATION'];
   const groupCopy: Record<Track['group'], { title: string; description: string }> = {
     'MVP CORE PLAY': { title: 'MVP 핵심 플레이', description: '주문 목표 → 부품 수급 → 머지 → 조립·완성으로 이어지는 한 판의 직접 플레이를 비교합니다.' },
     'META PROGRESSION': { title: '메타 성장', description: '납품 이후의 보상·수집·레벨·커리어가 다음 플레이 목표를 만드는지 검증합니다.' },
+    'SCREEN DESIGN': { title: '화면 디자인', description: '홈·플레이·수집·프로필과 보조 화면의 정보 구조, 시선 흐름과 사용성을 화면 단위로 비교합니다.' },
     'ART & AUDIO': { title: '아트·오디오', description: '배경·캐릭터·UI·애니메이션·피드백·음악·효과음의 표현 방안을 비교합니다.' },
     'PLATFORM & TECHNOLOGY': { title: '플레이 기반', description: '입력·반응형 화면·저장·앱인토스처럼 전체 플레이를 지탱하는 기술을 검증합니다.' },
     'RELEASE INTEGRATION': { title: '릴리스 통합', description: '개별 트랙의 선택안을 다시 구현하지 않고 출시 가능한 하나의 MVP 흐름으로 연결해 검증합니다.' },
