@@ -45,8 +45,7 @@ h1, h2, h3 { font-family: 'Manrope', sans-serif; margin: 0; }
 .background-art-preview img { display: block; width: 100%; height: 100%; object-fit: cover; image-rendering: auto; }
 button { position: relative; z-index: 1; flex: 0 0 auto; white-space: nowrap; color: #d8e5ee; background: transparent; border: 1px solid #395168; padding: 9px 15px; cursor: pointer; }button:hover { border-color: #55d6be; color: #55d6be; }
 #game-root { width: min(100%, 640px, calc((100dvh - 310px) * 8 / 9)); min-width: 280px; aspect-ratio: 8 / 9; margin: 0 auto; background: #07111f; overflow: hidden; }
-#game-root.demo-free, #game-root.demo-order, #game-root.demo-guided, #game-root.demo-catalog, #game-root.demo-garage, #game-root.demo-dream-bike, #game-root.demo-instant, #game-root.demo-parcel, #game-root.demo-generator, #game-root.demo-fixed, #game-root.demo-performance, #game-root.demo-soft-timer, #game-root.demo-auto, #game-root.demo-slots,
-#game-root.demo-integrated,
+#game-root.demo-free, #game-root.demo-order, #game-root.demo-guided, #game-root.demo-integrated, #game-root.demo-catalog, #game-root.demo-garage, #game-root.demo-dream-bike, #game-root.demo-instant, #game-root.demo-parcel, #game-root.demo-generator, #game-root.demo-fixed, #game-root.demo-performance, #game-root.demo-soft-timer, #game-root.demo-auto, #game-root.demo-slots,
 #game-root[class*="demo-level-"], #game-root[class*="demo-career-"], #game-root[class*="demo-economy-"], #game-root[class*="demo-feedback-"] { width: 100%; height: 100%; min-width: 0; min-height: 0; aspect-ratio: auto; }
 #game-root.demo-warm-pixel-game-garage { width: min(100%, 1120px, calc((100dvh - 240px) * 14 / 9)); height: auto; max-height: 100%; min-width: 0; min-height: 0; aspect-ratio: 14 / 9; background: #c78452; border: 3px solid #573044; box-shadow: 0 0 0 4px #f6d995; }
 #game-root.demo-play-focus, #game-root.demo-order-focus, #game-root.demo-hub-focus, #game-root.demo-garage-lobby, #game-root.demo-garage-agreement,
