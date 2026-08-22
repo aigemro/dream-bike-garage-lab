@@ -67,6 +67,7 @@ import doc65 from '../docs/variants/profile-design-stats-dashboard.md?raw';
 import doc66 from '../docs/variants/storage-integrated-auto.md?raw';
 import doc67 from '../docs/variants/game-screen-design-warm-mobile.md?raw';
 import doc68 from '../docs/variants/reward-settlement-envelope.md?raw';
+import doc69 from '../docs/variants/guide-overlay-bubble.md?raw';
 
 const variantDocs: Record<string, string> = {
   'merge-free-board': doc0,
@@ -138,6 +139,7 @@ const variantDocs: Record<string, string> = {
   'storage-integrated-auto': doc66,
   'game-screen-design-warm-mobile': doc67,
   'reward-settlement-envelope': doc68,
+  'guide-overlay-bubble': doc69,
 };
 
 export default variantDocs;
