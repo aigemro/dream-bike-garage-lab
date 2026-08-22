@@ -19,8 +19,17 @@ const REWARD = 1000;
 const GAUGE_FROM = 0.4;
 const GAUGE_TO = 0.62;
 
+export type RewardSettlementHooks = {
+  initialCoins?: number;
+  reward?: number;
+  onNext?: () => void;
+  onHome?: () => void;
+  onReward?: (coins: number) => void;
+  onSfx?: (event: 'reward' | 'tap') => void;
+};
+
 class RewardSettlementScene extends Phaser.Scene {
-  constructor() { super('reward-settlement-a'); }
+  constructor(private readonly hooks: RewardSettlementHooks = {}) { super('reward-settlement-a'); }
 
   private phase: 'arrive' | 'counting' | 'next' = 'arrive';
   private countStart = 0;
@@ -61,7 +70,7 @@ class RewardSettlementScene extends Phaser.Scene {
     this.add.rectangle(195, 540, 374, 150, CREAM).setStrokeStyle(4, BORDER).setDepth(2);
     this.add.text(28, 480, '이번 납품 정산', { fontFamily: FONT, fontSize: '11px', color: MUTED, fontStyle: 'bold' }).setDepth(3);
     this.add.text(28, 508, '보유 코인', { fontFamily: FONT, fontSize: '10px', color: MUTED }).setDepth(3);
-    this.coinText = this.add.text(362, 504, BASE_COINS.toLocaleString(), { fontFamily: FONT, fontSize: '18px', color: INK, fontStyle: 'bold' }).setOrigin(1, 0).setDepth(3);
+    this.coinText = this.add.text(362, 504, (this.hooks.initialCoins ?? BASE_COINS).toLocaleString(), { fontFamily: FONT, fontSize: '18px', color: INK, fontStyle: 'bold' }).setOrigin(1, 0).setDepth(3);
     this.rewardText = this.add.text(362, 486, '', { fontFamily: FONT, fontSize: '11px', color: '#3f7851', fontStyle: 'bold' }).setOrigin(1, 0).setDepth(3);
     this.add.text(28, 546, '드림 바이크 성장 게이지', { fontFamily: FONT, fontSize: '10px', color: MUTED }).setDepth(3);
     this.add.rectangle(195, 578, 334, 18, 0xffe6a8).setStrokeStyle(2, BORDER).setDepth(3);
@@ -76,7 +85,9 @@ class RewardSettlementScene extends Phaser.Scene {
     if (this.phase !== 'counting') return;
     const progress = Math.min(1, (this.time.now - this.countStart) / 1100);
     const eased = 1 - (1 - progress) ** 3;
-    this.coinText.setText(Math.round(BASE_COINS + REWARD * eased).toLocaleString());
+    const initialCoins = this.hooks.initialCoins ?? BASE_COINS;
+    const reward = this.hooks.reward ?? REWARD;
+    this.coinText.setText(Math.round(initialCoins + reward * eased).toLocaleString());
     const gauge = GAUGE_FROM + (GAUGE_TO - GAUGE_FROM) * eased;
     this.gaugeFill.width = 334 * gauge;
     this.gaugeFill.setPosition(28 + (334 * gauge) / 2, 578);
@@ -108,13 +119,16 @@ class RewardSettlementScene extends Phaser.Scene {
 
   private openEnvelope(flap: Phaser.GameObjects.Triangle, hint: Phaser.GameObjects.Text) {
     if (this.phase !== 'arrive') return;
+    this.hooks.onSfx?.('reward');
     this.phase = 'counting';
     this.countStart = this.time.now;
     this.tweens.killTweensOf(this.envelope);
     hint.setVisible(false);
     this.tweens.add({ targets: flap, scaleY: -0.8, duration: 260, ease: 'Cubic.easeOut' });
-    this.message.setText(`급여 ${REWARD.toLocaleString()}코인을 받았습니다!`);
-    this.rewardText.setText(`+${REWARD.toLocaleString()}`);
+    const reward = this.hooks.reward ?? REWARD;
+    this.message.setText(`급여 ${reward.toLocaleString()}코인을 받았습니다!`);
+    this.rewardText.setText(`+${reward.toLocaleString()}`);
+    this.hooks.onReward?.((this.hooks.initialCoins ?? BASE_COINS) + reward);
     // 봉투에서 코인 조각이 정산 패널로 날아가는 짧은 픽셀 연출
     for (let i = 0; i < 5; i += 1) {
       const coin = this.add.rectangle(195 + (i - 2) * 10, 392, 12, 12, 0xe7a942).setStrokeStyle(2, BORDER).setDepth(20);
@@ -134,13 +148,13 @@ class RewardSettlementScene extends Phaser.Scene {
     const homeText = this.add.text(104, 736, '← HOME', { fontFamily: FONT, fontSize: '12px', color: INK, fontStyle: 'bold' }).setOrigin(0.5).setDepth(10).setAlpha(0);
     this.nextGroup = [card, tag, tagText, title, detail, nextButton, nextText, homeButton, homeText];
     this.tweens.add({ targets: this.nextGroup, alpha: 1, duration: 320, ease: 'Cubic.easeOut' });
-    nextButton.on('pointerdown', () => this.message.setText('다음 주문 화면(게임 화면 B안)으로 이동합니다. 데모에서는 초기화로 다시 볼 수 있습니다.'));
-    homeButton.on('pointerdown', () => this.message.setText('Garage 홈으로 돌아갑니다. 데모에서는 초기화로 다시 볼 수 있습니다.'));
+    nextButton.on('pointerdown', () => { this.hooks.onSfx?.('tap'); this.hooks.onNext ? this.hooks.onNext() : this.message.setText('다음 주문 화면(게임 화면 B안)으로 이동합니다. 데모에서는 초기화로 다시 볼 수 있습니다.'); });
+    homeButton.on('pointerdown', () => { this.hooks.onSfx?.('tap'); this.hooks.onHome ? this.hooks.onHome() : this.message.setText('Garage 홈으로 돌아갑니다. 데모에서는 초기화로 다시 볼 수 있습니다.'); });
     this.message.setText('정산이 끝났습니다. 다음 주문을 시작하거나 홈으로 돌아가세요.');
   }
 }
 
-export function startRewardSettlementPrototype(parent: string) {
+export function startRewardSettlementPrototype(parent: string, hooks: RewardSettlementHooks = {}) {
   return new Phaser.Game({
     type: Phaser.AUTO,
     parent,
@@ -148,6 +162,6 @@ export function startRewardSettlementPrototype(parent: string) {
     height: 810,
     backgroundColor: '#c78452',
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    scene: new RewardSettlementScene(),
+    scene: new RewardSettlementScene(hooks),
   });
 }

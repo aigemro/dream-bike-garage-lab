@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 
 export type ProfileDesignMode = 'warm-id-card' | 'warm-career-board' | 'warm-stats-dashboard';
+export type ProfileDesignHooks = { onHome?: () => void; onSfx?: (event: 'tap') => void };
 
 // 홈 화면 디자인 A안(따뜻한 생활형 픽셀 Garage)과 동일한 팔레트를 사용합니다.
 const P = {
@@ -52,7 +53,7 @@ class ProfileDesignScene extends Phaser.Scene {
   private cardTheme = 0;
   private chartMetric: 'delivery' | 'merge' = 'delivery';
 
-  constructor(mode: ProfileDesignMode) {
+  constructor(mode: ProfileDesignMode, private readonly hooks: ProfileDesignHooks = {}) {
     super('profile-design');
     this.mode = mode;
     this.toast =
@@ -110,7 +111,7 @@ class ProfileDesignScene extends Phaser.Scene {
     } as const;
     const [eyebrow, title] = heads[this.mode];
     this.renderTopBar();
-    this.button(57, 99, 84, 40, '← HOME', () => { this.view = 'home'; this.render(); });
+    this.button(57, 99, 84, 40, '← HOME', () => { this.hooks.onSfx?.('tap'); if (this.hooks.onHome) this.hooks.onHome(); else { this.view = 'home'; this.render(); } });
     this.label(112, 82, eyebrow, 8, '#6e473b', true).setDepth(16);
     this.label(112, 96, title, 15, '#3b2531', true).setDepth(16);
     this.pixelRect(348, 99, 66, 40, 0xffe6a8, P.wood, 15);
@@ -279,11 +280,11 @@ class ProfileDesignScene extends Phaser.Scene {
   }
 }
 
-export function startProfileDesignPrototype(parent: string, mode: ProfileDesignMode) {
+export function startProfileDesignPrototype(parent: string, mode: ProfileDesignMode, hooks: ProfileDesignHooks = {}) {
   return new Phaser.Game({
     type: Phaser.AUTO, parent, width: 390, height: 810, backgroundColor: '#fff1c6',
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    scene: new ProfileDesignScene(mode),
+    scene: new ProfileDesignScene(mode, hooks),
     render: { antialias: false, pixelArt: true, roundPixels: true },
   });
 }

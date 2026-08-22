@@ -16,8 +16,13 @@ const BROWN = 0x8e5136;
 
 const LOADING_MS = 2600;
 
+export type TitleLoadingHooks = {
+  onEnterHome?: () => void;
+  onSfx?: (event: 'tap' | 'start') => void;
+};
+
 class TitleLoadingScene extends Phaser.Scene {
-  constructor() { super('title-loading-a'); }
+  constructor(private readonly hooks: TitleLoadingHooks = {}) { super('title-loading-a'); }
 
   private phase: 'loading' | 'ready' | 'entering' = 'loading';
   private loadStart = 0;
@@ -101,16 +106,26 @@ class TitleLoadingScene extends Phaser.Scene {
 
   private enterHome() {
     if (this.phase !== 'ready') return;
+    this.hooks.onSfx?.('tap');
     this.phase = 'entering';
     this.startText?.destroy();
     this.message.setText('같은 Garage의 홈 화면(홈 A안)으로 이어집니다.\n데모에서는 초기화로 다시 볼 수 있습니다.');
     // 셔터가 올라가듯 화면이 밝아지며 홈으로 전환되는 짧은 연출
     const shutter = this.add.rectangle(195, 405, 390, 810, 0xfff1c6, 0).setDepth(30);
-    this.tweens.add({ targets: shutter, fillAlpha: { from: 0, to: 0.85 }, duration: 700, ease: 'Cubic.easeIn', yoyo: true, onComplete: () => shutter.destroy() });
+    this.tweens.add({
+      targets: shutter,
+      fillAlpha: { from: 0, to: 0.85 },
+      duration: 700,
+      ease: 'Cubic.easeIn',
+      onComplete: () => {
+        this.hooks.onSfx?.('start');
+        this.hooks.onEnterHome?.();
+      },
+    });
   }
 }
 
-export function startTitleLoadingPrototype(parent: string) {
+export function startTitleLoadingPrototype(parent: string, hooks: TitleLoadingHooks = {}) {
   return new Phaser.Game({
     type: Phaser.AUTO,
     parent,
@@ -118,6 +133,6 @@ export function startTitleLoadingPrototype(parent: string) {
     height: 810,
     backgroundColor: '#c78452',
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    scene: new TitleLoadingScene(),
+    scene: new TitleLoadingScene(hooks),
   });
 }

@@ -27,8 +27,14 @@ const BIKE_X = 292;
 const BIKE_Y = 132;
 const BIKE_CELL = 2;
 
+export type GameScreenMobileHooks = {
+  orderIndex?: number;
+  onOrderComplete?: (orderIndex: number) => void;
+  onSfx?: (event: 'tap' | 'parcel' | 'merge' | 'install' | 'complete' | 'error') => void;
+};
+
 class GameScreenMobileScene extends Phaser.Scene {
-  constructor() { super('game-screen-mobile'); }
+  constructor(private readonly hooks: GameScreenMobileHooks = {}) { super('game-screen-mobile'); }
 
   private rows = 7;
   private columns = 6;
@@ -62,7 +68,8 @@ class GameScreenMobileScene extends Phaser.Scene {
   create() {
     this.cameras.main.setBackgroundColor('#c78452');
     this.startedAt = this.time.now;
-    this.goals = ORDERS[0].map((goal) => ({ ...goal }));
+    this.orderIndex = Math.abs(this.hooks.orderIndex ?? 0) % ORDERS.length;
+    this.goals = ORDERS[this.orderIndex].map((goal) => ({ ...goal }));
     this.cellSize = Math.floor(Math.min(368 / this.columns, 364 / this.rows));
     this.boardLeft = Math.floor((390 - this.columns * this.cellSize) / 2);
     this.drawBackdrop();
@@ -178,6 +185,7 @@ class GameScreenMobileScene extends Phaser.Scene {
   }
 
   private handleParcelButton(type: PartType) {
+    this.hooks.onSfx?.('tap');
     const parcel = this.parcels.get(type) ?? { state: 'idle' as const, readyAt: 0 };
     if (parcel.state === 'delivering') {
       this.refreshUi(`${this.partName(type)} 택배가 배송 중입니다. 도착하면 같은 버튼으로 개봉하세요.`);
@@ -200,6 +208,7 @@ class GameScreenMobileScene extends Phaser.Scene {
         : `${this.partName(type)} 상자를 개봉했습니다. 보드에서 Lv.1 부품의 배치 위치를 선택하세요. 같은 Lv.1 부품 위에 놓으면 바로 머지됩니다.`);
       return;
     }
+    this.hooks.onSfx?.('parcel');
     this.parcels.set(type, { state: 'delivering', readyAt: this.time.now + PARCEL_DELIVERY_MS });
     this.refreshUi(`${this.partName(type)} 택배를 주문했습니다. ${(PARCEL_DELIVERY_MS / 1000).toFixed(1)}초 뒤 도착합니다.`);
   }
@@ -257,6 +266,7 @@ class GameScreenMobileScene extends Phaser.Scene {
       this.generatorPlacementActive = false;
       this.consumePendingParcel();
       this.merges += 1;
+      this.hooks.onSfx?.('merge');
       this.refreshControls();
       this.refreshUi(`${this.partName(clicked.type)} Lv.1을 같은 위치에 놓아 Lv.2로 머지했습니다.`);
       return;
@@ -276,6 +286,7 @@ class GameScreenMobileScene extends Phaser.Scene {
         return;
       }
       this.refreshUi('같은 종류·같은 레벨끼리만 머지할 수 있습니다.');
+      this.hooks.onSfx?.('error');
       return;
     }
     if (this.selectedPiece) {
@@ -327,6 +338,7 @@ class GameScreenMobileScene extends Phaser.Scene {
     this.pieces.push(this.makePiece(target.type, target.row, target.column, target.rotation, target.level + 1));
     this.selectedPiece = undefined;
     this.merges += 1;
+    this.hooks.onSfx?.('merge');
     this.refreshControls();
     this.refreshUi(`${this.partName(target.type)} Lv.${target.level + 1} 머지 성공!`);
   }
@@ -399,6 +411,7 @@ class GameScreenMobileScene extends Phaser.Scene {
         marker.destroy();
         next.goal.installing = false;
         next.goal.delivered = true;
+        this.hooks.onSfx?.('install');
         this.installingPart = false;
         const installed = this.goals.filter((goal) => goal.delivered).length;
         this.info.setText(`${part.name} 장착 완료 · 조립 ${installed}/${this.goals.length}`);
@@ -413,7 +426,12 @@ class GameScreenMobileScene extends Phaser.Scene {
   private completeOrder() {
     if (this.orderCompleting) return;
     this.orderCompleting = true;
-    this.info.setText('주문 완료! 모든 부품이 장착되어 자전거를 납품했습니다. 잠시 후 다음 주문이 도착합니다.');
+    this.hooks.onSfx?.('complete');
+    this.info.setText('주문 완료! 모든 부품이 장착되어 자전거를 납품했습니다. 정산 화면으로 이동합니다.');
+    if (this.hooks.onOrderComplete) {
+      this.time.delayedCall(900, () => this.hooks.onOrderComplete?.(this.orderIndex));
+      return;
+    }
     this.time.delayedCall(1600, () => {
       this.orderCompleting = false;
       this.orderIndex = (this.orderIndex + 1) % 2;
@@ -479,7 +497,7 @@ class GameScreenMobileScene extends Phaser.Scene {
   private partName(type: PartType) { return PARTS.find((part) => part.type === type)!.name; }
 }
 
-export function startGameScreenMobilePrototype(parent: string) {
+export function startGameScreenMobilePrototype(parent: string, hooks: GameScreenMobileHooks = {}) {
   return new Phaser.Game({
     type: Phaser.AUTO,
     parent,
@@ -487,6 +505,6 @@ export function startGameScreenMobilePrototype(parent: string) {
     height: 810,
     backgroundColor: '#c78452',
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    scene: new GameScreenMobileScene(),
+    scene: new GameScreenMobileScene(hooks),
   });
 }
