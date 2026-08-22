@@ -15,6 +15,7 @@ export type HomeDesignHooks = {
   completedOrders?: number;
   onPlay?: () => void;
   onCollection?: () => void;
+  onShowcase?: () => void;
   onProfile?: () => void;
   onSettings?: () => void;
   onSfx?: (event: 'tap') => void;
@@ -74,7 +75,10 @@ class WarmPixelGarageScene extends Phaser.Scene {
 
     this.button(38, 205, 54, 48, 'EVENT\n3', () => this.notify('이벤트 준비 중'));
     this.button(38, 263, 54, 48, 'RANK\n#18', () => this.notify('랭킹 준비 중'));
-    this.button(352, 205, 54, 48, 'TOUR\nD2', () => this.notify('투어 준비 중'));
+    this.button(352, 205, 54, 48, '전시\n보기', () => {
+      this.hooks.onSfx?.('tap');
+      this.hooks.onShowcase ? this.hooks.onShowcase() : this.notify('Garage 전시 화면');
+    });
     this.button(352, 263, 54, 48, '조립\n2/4', () => this.notify('조립 현황'));
     this.button(352, 321, 54, 48, 'STATUS\nLv.12', () => this.notify('견습 정비사 Lv.12'));
 

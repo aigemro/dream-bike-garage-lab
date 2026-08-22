@@ -54,6 +54,7 @@ export class MvpReleaseIntegrationController {
   private readonly audio = new ReleaseAudio();
   private state = this.loadState();
   private screen: ReleaseScreen = 'title';
+  private selectedBikeId = 'dream-road';
   private rewardApplied = false;
   private readonly stageId = `mvp-release-stage-${Math.random().toString(36).slice(2)}`;
 
@@ -120,6 +121,7 @@ export class MvpReleaseIntegrationController {
         completedOrders: this.state.completedOrders,
         onPlay: () => this.show(this.state.tutorialDone ? 'game' : 'guide'),
         onCollection: () => this.show('catalog'),
+        onShowcase: () => this.show('showcase'),
         onProfile: () => this.show('profile'),
         onSettings: () => this.show('settings'),
         onSfx: (event) => this.play(event),
@@ -168,7 +170,12 @@ export class MvpReleaseIntegrationController {
       const mode: BikeCollectionDesignMode = screen === 'catalog' ? 'warm-catalog' : screen === 'showcase' ? 'warm-showcase' : 'warm-dream-growth';
       this.game = startBikeCollectionDesignPrototype(this.stageId, mode, {
         coins: this.state.coins,
+        initialBikeId: this.selectedBikeId,
         onHome: () => this.show('home'),
+        onCatalog: () => this.show('catalog'),
+        onShowcase: () => this.show('showcase'),
+        onDreamGrowth: () => this.show('dream'),
+        onBikeDetail: (bikeId) => { this.selectedBikeId = bikeId; this.show('dream'); },
         onCoinsChange: (coins) => { this.state.coins = coins; this.saveState(); this.refreshShell(); },
         onSfx: (event) => this.play(event === 'reward' ? 'reward' : event),
       });
