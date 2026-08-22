@@ -7,7 +7,12 @@ export type BikeCollectionDesignMode = 'warm-catalog' | 'warm-showcase' | 'warm-
 
 export type BikeCollectionDesignHooks = {
   coins?: number;
+  initialBikeId?: string;
   onHome?: () => void;
+  onCatalog?: () => void;
+  onShowcase?: () => void;
+  onDreamGrowth?: () => void;
+  onBikeDetail?: (bikeId: string) => void;
   onCoinsChange?: (coins: number) => void;
   onSfx?: (event: 'tap' | 'reward' | 'error') => void;
 };
@@ -73,6 +78,7 @@ class BikeCollectionDesignScene extends Phaser.Scene {
     super('bike-collection-design');
     this.mode = mode;
     this.coins = hooks.coins ?? this.coins;
+    if (hooks.initialBikeId && this.bikes.some((bike) => bike.id === hooks.initialBikeId)) this.selected = hooks.initialBikeId;
     this.toast =
       mode === 'warm-catalog' ? '도감 칸을 눌러 자전거 정보를 확인해 보세요.'
       : mode === 'warm-showcase' ? '보관 선반에서 자전거를 고른 뒤 전시대를 눌러 배치하세요.'
@@ -141,10 +147,22 @@ class BikeCollectionDesignScene extends Phaser.Scene {
     if (this.mode === 'warm-showcase') this.renderShowcase();
     if (this.mode === 'warm-dream-growth') this.renderDreamGrowth();
 
-    this.pixelRect(195, 744, 366, 44, 0xfff1c6, P.wood, 14);
-    this.label(195, 744, this.toast, 10, '#5d3b34', true).setOrigin(.5).setDepth(15);
-    this.pixelRect(195, 787, 366, 32, P.wood, P.ink, 18);
-    this.label(195, 787, 'DREAM BIKE GARAGE · WARM PIXEL COLLECTION', 8, '#fff1c6', true).setOrigin(.5).setDepth(19);
+    this.pixelRect(195, 720, 366, 28, 0xfff1c6, P.wood, 14);
+    this.label(195, 720, this.toast, 8, '#5d3b34', true).setOrigin(.5).setDepth(15);
+    this.button(72, 754, 112, 30, 'A · 도감', () => this.openCollectionMode('warm-catalog'), this.mode === 'warm-catalog');
+    this.button(195, 754, 112, 30, 'B · 전시', () => this.openCollectionMode('warm-showcase'), this.mode === 'warm-showcase');
+    this.button(318, 754, 112, 30, 'C · 상세·성장', () => this.openCollectionMode('warm-dream-growth'), this.mode === 'warm-dream-growth');
+    this.pixelRect(195, 793, 366, 24, P.wood, P.ink, 18);
+    this.label(195, 793, 'DREAM BIKE GARAGE · WARM PIXEL COLLECTION', 8, '#fff1c6', true).setOrigin(.5).setDepth(19);
+  }
+
+  private openCollectionMode(mode: BikeCollectionDesignMode) {
+    this.hooks.onSfx?.('tap');
+    const callback = mode === 'warm-catalog' ? this.hooks.onCatalog
+      : mode === 'warm-showcase' ? this.hooks.onShowcase
+      : this.hooks.onDreamGrowth;
+    if (callback) callback();
+    else { this.mode = mode; this.render(); }
   }
 
   // A안: 24칸 도감 그리드 + 하단 상세 카드
@@ -185,11 +203,24 @@ class BikeCollectionDesignScene extends Phaser.Scene {
     this.label(28, 656, `${target.category} · ${target.grade}`, 9, '#8e5136', true).setDepth(9);
     this.label(28, 671, target.owned ? target.name : `??? ${target.name}`, 14, target.owned ? '#3b2531' : '#7b5140', true).setDepth(9);
     this.label(28, 693, target.owned ? `보유 중 · ${target.hint}` : target.hint, 10, target.owned ? '#3f7851' : '#a14a38', true).setDepth(9);
-    if (!target.owned) this.button(322, 682, 108, 42, '획득 연출\n미리보기', () => {
-      target.owned = true;
-      this.hooks.onSfx?.('reward');
-      this.notify(`${target.name} 획득! 도감 ${this.ownedCount()} / 24 달성.`);
-    });
+    if (target.owned) {
+      this.button(322, 682, 108, 42, '상세·성장\n보기', () => {
+        this.hooks.onSfx?.('tap');
+        if (this.hooks.onBikeDetail) this.hooks.onBikeDetail(target.id);
+        else { this.mode = 'warm-dream-growth'; this.render(); }
+      }, true);
+    } else {
+      this.button(322, 665, 108, 28, '상세 보기', () => {
+        this.hooks.onSfx?.('tap');
+        if (this.hooks.onBikeDetail) this.hooks.onBikeDetail(target.id);
+        else { this.mode = 'warm-dream-growth'; this.render(); }
+      });
+      this.button(322, 700, 108, 28, '획득 미리보기', () => {
+        target.owned = true;
+        this.hooks.onSfx?.('reward');
+        this.notify(`${target.name} 획득! 도감 ${this.ownedCount()} / 24 달성.`);
+      });
+    }
   }
 
   // B안: 전시대 배치 + 보관 선반
@@ -251,7 +282,7 @@ class BikeCollectionDesignScene extends Phaser.Scene {
     const total = Object.values(this.dreamStats).reduce((sum, value) => sum + value, 0);
     const stage = total >= 10 ? 3 : total >= 7 ? 2 : 1;
     const gradeName = stage === 3 ? '드림' : stage === 2 ? '고급' : '중급';
-    const dream = this.bikes.find((bike) => bike.id === 'dream-road')!;
+    const dream = this.bikes.find((bike) => bike.id === this.selected) ?? this.bikes.find((bike) => bike.id === 'dream-road')!;
 
     this.label(24, 130, 'MY DREAM BIKE', 8, '#6e473b', true);
     this.label(24, 144, dream.name, 15, '#3b2531', true);
@@ -297,7 +328,7 @@ class BikeCollectionDesignScene extends Phaser.Scene {
       else this.label(300, y, 'MAX', 12, '#a16028', true).setOrigin(.5).setDepth(6);
     });
 
-    this.label(195, 706, `COLLECTION ${this.ownedCount()} / 24 · 도감·전시 화면은 A·B안에서 비교합니다`, 8, '#7b5140', true).setOrigin(.5);
+    this.label(195, 696, `COLLECTION ${this.ownedCount()} / 24 · A 도감과 B 전시로 언제든 이동할 수 있습니다`, 8, '#7b5140', true).setOrigin(.5);
   }
 
   // 홈 A안 축약 프리뷰: 자전거 탭 → 수집 화면 진입 흐름만 검증
