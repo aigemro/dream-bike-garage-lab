@@ -1,6 +1,6 @@
 # Dream Bike Garage Lab 프로토타입 지도
 
-> 기준일: 2026-08-18
+> 기준일: 2026-08-22
 > 대상: `aigemro/dream-bike-garage-lab`
 
 이 문서는 Dream Bike Garage Lab에서 진행 중인 기술 실험을 **트랙 → 프로토타입 → 비교·결정** 구조로 한눈에 확인하기 위한 공식 지도입니다. 새로운 방안이 생기면 기존 안을 덮어쓰지 않고 해당 트랙 아래에 Prototype을 추가합니다.
@@ -73,43 +73,56 @@ mindmap
         1차 구현 완료
       보드 크기·잠금 칸 검증
         6×7 vs 7×9 vs 잠금 해제형
-        허브 등록 완료
+        1차 데모 구현
       향후 후보
         연쇄·콤보 머지
         제한 시간 머지
         가변 보드·장애물
     부품 수급
       A 즉시 생성 버튼형
-        허브 등록 완료
+        1차 데모 구현
       B 택배 상자 개봉형
-        허브 등록 완료
+        1차 데모 구현
       C 쿨다운·충전식 생성기형
-        허브 등록 완료
+        1차 데모 구현
     메타 성장 · 수집
       A 자전거 도감형
-        이슈 준비
+        1차 데모 구현
       B Garage 전시·성장형
-        이슈 준비
+        1차 데모 구현
+      C 드림 바이크 집중 성장형
+        1차 데모 구현
       향후 후보
-        드림 바이크 단일 성장
         부품 컬렉션
         시즌·한정 모델
+    주문 목표 · 반복 플레이
+      A 순환 주문 세트
+        1차 데모 구현
+      향후 후보
+        B 조건부 분기 주문
+        C 주문 선택형
+    보드 막힘 · 복구
+      A 1회 무료 정리
+        1차 데모 구현
+      향후 후보
+        B 코인 정리
+        C 주문 부품 교환
     조립 · 완성 연출
-      A 조립 슬롯 직접 배치
-        이슈 준비
-      B 조건 충족 즉시 자동 조립
-        이슈 준비
+      A 조건 충족 즉시 자동 조립
+        1차 데모 구현
+      B 조립 슬롯 직접 배치
+        1차 데모 구현
       향후 후보
         단계별 조립 연출
         완성차 실루엣 주문
         복수 주문 우선순위
     보상 · 성장
       A 고정 급여·직선 성장
-        허브 등록 완료
+        1차 데모 구현
       B 성과 보너스·성장 선택
-        허브 등록 완료
+        1차 데모 구현
       C 소프트 타이머·시간 vs 품질
-        허브 등록 완료
+        1차 데모 구현
       향후 후보
         컬렉션 해금
         드림 바이크 성장 분기
@@ -192,26 +205,30 @@ mindmap
   root((Platform & Technology))
     입력 방식
       A 탭 선택·탭 이동
-        이슈 준비
+        1차 데모 구현
       B 직접 드래그 앤 드롭
-        이슈 준비
+        1차 데모 구현
       C 탭·드래그 하이브리드
-        이슈 준비
+        1차 데모 구현
     반응형 화면
       A 전체 화면 FIT
-        이슈 준비
+        허브 등록 · 준비 중
       B 영역 재배치
-        이슈 준비
+        허브 등록 · 준비 중
       C Safe Area 적응형
-        이슈 준비
+        허브 등록 · 준비 중
     저장 · 상태 복구
-      저장 방식 비교
-        localStorage
-        IndexedDB
-        서버 저장
+      A localStorage
+        1차 데모 구현
+      B IndexedDB
+        1차 데모 구현
+      C 통합 상태 자동 저장·복구
+        1차 데모 구현
+      향후 후보
+        서버 동기화 하이브리드
       앱 라이프사이클
-        백그라운드 복귀
-        중단 상태 복구
+        백그라운드 자동 저장 C안 결합
+        WebView 실기기 판정 잔여
     앱인토스 · 운영
       SDK · 로그인
       결제 · 광고
@@ -225,16 +242,17 @@ mindmap
 | MVP Core Play | 머지 코어 | A: 자유 보드 2-to-1 | 개발 중 | 웹브라우저 중심 레이아웃 PR 검토 및 플레이 테스트 | [#10](https://github.com/aigemro/dream-bike-garage-lab/issues/10), [PR #30](https://github.com/aigemro/dream-bike-garage-lab/pull/30), [PR #40](https://github.com/aigemro/dream-bike-garage-lab/pull/40) |
 | MVP Core Play | 머지 코어 | B: 주문 목표 중심 2-to-1 | 검토 준비 | 주문 카드 시각화 후 A/C와 목표 이해도 비교 | [#13](https://github.com/aigemro/dream-bike-garage-lab/issues/13), [PR #31](https://github.com/aigemro/dream-bike-garage-lab/pull/31) |
 | MVP Core Play | 머지 코어 | C: 자유 보드 + 주문 가이드 | 검토 준비 | 가이드 강도와 자유도의 균형 비교 | [#25](https://github.com/aigemro/dream-bike-garage-lab/issues/25), [PR #26](https://github.com/aigemro/dream-bike-garage-lab/pull/26) |
-| MVP Core Play | 머지 코어 | 보드 크기·잠금 칸 검증 | 준비 (허브 등록) | 비교 데모 구현, 메인 8/13(M0) 보드 크기 결정 지원 | [#74](https://github.com/aigemro/dream-bike-garage-lab/issues/74) |
+| MVP Core Play | 머지 코어 | 보드 크기·잠금 칸 검증 | 개발 중 (1차 데모) | 6×7/7×9/잠금 해제형 비교 플레이 테스트, 메인 보드 크기 결정 지원 | [#74](https://github.com/aigemro/dream-bike-garage-lab/issues/74) |
 | MVP Core Play | 부품 수급 | A: 즉시 생성 버튼형 | 개발 중 (1차 데모) | 동일 조건(5×4 보드, Lv.3 ×2 목표)에서 B/C와 템포 비교 플레이 테스트 | [#70](https://github.com/aigemro/dream-bike-garage-lab/issues/70), [#71](https://github.com/aigemro/dream-bike-garage-lab/issues/71) |
 | MVP Core Play | 부품 수급 | B: 택배 상자 개봉형 | 개발 중 (1차 데모) | 개봉 연출의 만족감과 템포 저하 비교 플레이 테스트 | [#72](https://github.com/aigemro/dream-bike-garage-lab/issues/72) |
 | MVP Core Play | 부품 수급 | C: 쿨다운·충전식 생성기형 | 개발 중 (1차 데모) | 장르 표준 생성기의 주문 단위 세션 부합 플레이 테스트 | [#73](https://github.com/aigemro/dream-bike-garage-lab/issues/73) |
-| Meta Progression | 수집 | A: 자전거 도감형 | 준비 | 최소 도감 화면과 획득 피드백 정의 | [#14](https://github.com/aigemro/dream-bike-garage-lab/issues/14) |
-| Meta Progression | 수집 | B: Garage 전시·성장형 | 준비 | 전시와 성장 중 핵심 소유감 검증 | [#12](https://github.com/aigemro/dream-bike-garage-lab/issues/12) |
+| Meta Progression | 수집 | A: 자전거 도감형 | 개발 중 (1차 데모) | 도감 화면·획득 피드백의 수집 동기 비교 플레이 테스트 | [#14](https://github.com/aigemro/dream-bike-garage-lab/issues/14) |
+| Meta Progression | 수집 | B: Garage 전시·성장형 | 개발 중 (1차 데모) | 전시와 성장 중 핵심 소유감 검증 | [#12](https://github.com/aigemro/dream-bike-garage-lab/issues/12) |
+| Meta Progression | 수집 | C: 드림 바이크 집중 성장형 | 개발 중 (1차 데모) | 한 대 집중 성장의 애착·목표 명확성 비교 | [#60](https://github.com/aigemro/dream-bike-garage-lab/issues/60) |
 | MVP Core Play | 조립·완성 연출 | A: 조건 충족 즉시 자동 조립 | 검토 준비 | 캐주얼 템포와 조립 성취감 비교 | [#17](https://github.com/aigemro/dream-bike-garage-lab/issues/17) |
 | MVP Core Play | 조립·완성 연출 | B: 조립 슬롯 직접 배치 | 검토 준비 | 직접 배치의 조립감과 추가 피로 비교 | [#18](https://github.com/aigemro/dream-bike-garage-lab/issues/18) |
-| Meta Progression | 보상·성장 | A/B | 준비 (허브 등록) | 고정 급여와 성과 보너스의 반복 동기 비교 데모 구현 | [#20](https://github.com/aigemro/dream-bike-garage-lab/issues/20), [#21](https://github.com/aigemro/dream-bike-garage-lab/issues/21) |
-| Meta Progression | 보상·성장 | C: 소프트 타이머·시간 vs 품질 | 준비 (허브 등록) | 시간 보너스 vs 품질 보너스 선택의 재미 검증 (차별화 지점) 데모 구현 | [#75](https://github.com/aigemro/dream-bike-garage-lab/issues/75) |
+| Meta Progression | 보상·성장 | A/B | 개발 중 (1차 데모) | 고정 급여와 성과 보너스의 반복 동기 비교 플레이 테스트 | [#20](https://github.com/aigemro/dream-bike-garage-lab/issues/20), [#21](https://github.com/aigemro/dream-bike-garage-lab/issues/21) |
+| Meta Progression | 보상·성장 | C: 소프트 타이머·시간 vs 품질 | 개발 중 (1차 데모) | 시간 보너스 vs 품질 보너스 선택의 재미 검증 (차별화 지점) | [#75](https://github.com/aigemro/dream-bike-garage-lab/issues/75) |
 | Meta Progression | 메인 홈·플레이 화면 | A/B/C/D/E | 검토 준비 | 통합형 3안, 일반 Garage D안, 회의 배치 기반 Garage E안 비교 | [#87](https://github.com/aigemro/dream-bike-garage-lab/issues/87), [#95](https://github.com/aigemro/dream-bike-garage-lab/issues/95), [#96](https://github.com/aigemro/dream-bike-garage-lab/issues/96), [#97](https://github.com/aigemro/dream-bike-garage-lab/issues/97), [#100](https://github.com/aigemro/dream-bike-garage-lab/issues/100), [#102](https://github.com/aigemro/dream-bike-garage-lab/issues/102) |
 | Meta Progression | 레벨 디자인·해금 | A/B/C | 개발 중 | 초반 10레벨 공개 순서와 진행 속도 비교 | [#106](https://github.com/aigemro/dream-bike-garage-lab/issues/106) |
 | Meta Progression | 직급·커리어 | A/B/C | 개발 중 | 자동·과제·복합 승진 조건 비교 | [#107](https://github.com/aigemro/dream-bike-garage-lab/issues/107) |
@@ -253,9 +271,9 @@ mindmap
 | Art & Audio | 배경음악·공간 분위기 | A: 포근한 Garage 칩튠 루프 | 개발 중 (1차 데모) | HOME/WORK 변주·전환·반복 피로·오디오 생명주기 검증 | [#128](https://github.com/aigemro/dream-bike-garage-lab/issues/128), [#136](https://github.com/aigemro/dream-bike-garage-lab/issues/136) |
 | Art & Audio | 효과음·조작 피드백 | A: 부드러운 공방 조작 피드백 | 개발 중 (1차 데모) | 핵심 행동 6종 구분감·조립감·연속 입력 피로 검증 | [#129](https://github.com/aigemro/dream-bike-garage-lab/issues/129), [#137](https://github.com/aigemro/dream-bike-garage-lab/issues/137) |
 | Release Integration | MVP 핵심 기능 통합 | 머지 코어 C안 + 택배 수급 + 장착·조립 | 개발 중 (1차 데모) | C안 실제 화면 기반 택배 수급·단계별 자동 장착·주문 완료 전이 검증 | [#113](https://github.com/aigemro/dream-bike-garage-lab/issues/113), [#114](https://github.com/aigemro/dream-bike-garage-lab/issues/114), [통합 검토](MVP_CORE_LOOP_INTEGRATION_REVIEW.md) |
-| Platform | 입력 방식 | A/B/C | 허브 반영 중 | 탭·드래그·하이브리드를 같은 보드에서 비교 | [#33](https://github.com/aigemro/dream-bike-garage-lab/issues/33), [PR #39](https://github.com/aigemro/dream-bike-garage-lab/pull/39) |
-| Platform | 반응형 화면 | A/B/C | 허브 반영 중 | 모바일·태블릿·웹브라우저 조건별 비교 | [#4](https://github.com/aigemro/dream-bike-garage-lab/issues/4), [PR #39](https://github.com/aigemro/dream-bike-garage-lab/pull/39) |
-| Platform | 저장·복구 | 방식 후보 | 준비 | MVP 저장 범위와 WebView 복구 조건 정의 | [#3](https://github.com/aigemro/dream-bike-garage-lab/issues/3), [#5](https://github.com/aigemro/dream-bike-garage-lab/issues/5) |
+| Platform | 입력 방식 | A/B/C | 개발 중 (1차 데모) | 탭·드래그·하이브리드를 같은 보드에서 비교 플레이 테스트 | [#33](https://github.com/aigemro/dream-bike-garage-lab/issues/33), [PR #39](https://github.com/aigemro/dream-bike-garage-lab/pull/39) |
+| Platform | 반응형 화면 | A/B/C | 준비 (허브 등록) | 비교 데모 구현 후 모바일·태블릿·웹브라우저 조건별 비교 | [#4](https://github.com/aigemro/dream-bike-garage-lab/issues/4), [PR #39](https://github.com/aigemro/dream-bike-garage-lab/pull/39) |
+| Platform | 저장·복구 | A/B/C: localStorage·IndexedDB·통합 자동 저장 | 개발 중 (1차 데모) | 앱인토스 WebView 실기기 백그라운드·강제 종료 복구 판정 (#4·#117 연계) | [#3](https://github.com/aigemro/dream-bike-garage-lab/issues/3), [#5](https://github.com/aigemro/dream-bike-garage-lab/issues/5), [실험 문서](PERSISTENCE_EXPERIMENT.md) |
 | Platform | 앱인토스·운영 | 기반 이슈 | 준비 | SDK·로그인 이후 결제/광고/운영 순차 검증 | [#6](https://github.com/aigemro/dream-bike-garage-lab/issues/6), [#7](https://github.com/aigemro/dream-bike-garage-lab/issues/7), [#8](https://github.com/aigemro/dream-bike-garage-lab/issues/8) |
 
 상태는 `아이디어 → 준비 → 개발 중 → 검토 준비 → 검토 → 완료`로 관리하며, 결과는 `채택 / 조건부 채택 / 보류 / 폐기`로 별도 기록합니다.
