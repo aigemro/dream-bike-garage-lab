@@ -193,7 +193,7 @@ const tracks: Track[] = [
     description: 'MVP 핵심 기능 통합의 기능·상태는 그대로 유지하고, 실제 주문·택배·머지·자동 장착 화면의 아트 스타일과 정보 전달만 비교합니다.',
     variants: [
       { id: 'warm-pixel-garage', label: 'A안', title: 'MVP 통합 따뜻한 생활형 픽셀 Garage', description: '홈 A안의 목재 공방·크림 종이 UI·따뜻한 부품 팔레트를 #114 통합 플레이 화면에 적용합니다.', status: '체험 가능', question: '따뜻한 Garage 생활감이 주문·택배·보드·장착 상태의 가독성을 유지하면서 홈에서 작업 화면으로 자연스럽게 이어지는가?', controls: '주문 목표 확인 → 필요한 택배 주문·개봉 → 보드 배치·2-to-1 머지 → 고객 자전거 자동 장착 흐름을 진행하며 #114 기능 화면과 표현 차이를 확인합니다.', gameScreenDesignDemo: 'warm-pixel-game-garage', issueNumber: 166, documentId: 'game-screen-design-warm-pixel' },
-      { id: 'warm-pixel-mobile', label: 'B안', title: '모바일 세로 따뜻한 픽셀 Garage', description: '같은 #114 통합 규칙을 홈 A안과 동일한 390×810 세로 화면에 주문 카드 → 머지 보드 → 택배 선반 순서로 재배치합니다.', status: '체험 가능', question: '모바일 세로 폭에서 주문·보드·택배 3영역이 스크롤 없이 읽히고 홈 A안과 같은 Garage로 이어지는가?', controls: '하단 택배 선반에서 주문·개봉 → 보드 배치·2-to-1 머지 → 자동 장착 흐름을 세로 화면 기준으로 진행하고, A안(브라우저 가로)과 시선 흐름·터치 크기를 비교합니다.', gameScreenDesignDemo: 'warm-pixel-game-mobile', issueNumber: 177, documentId: 'game-screen-design-warm-mobile' },
+      { id: 'warm-pixel-mobile', label: 'B안', title: '모바일 세로 따뜻한 픽셀 Garage', description: '같은 #114 통합 규칙을 홈 A안과 동일한 390×810 세로 화면에 주문 카드 → 머지 보드 → 택배 선반 순서로 재배치합니다.', status: '체험 가능', question: '모바일 세로 폭에서 주문·보드·택배 3영역이 스크롤 없이 읽히고 홈 A안과 같은 Garage로 이어지는가?', controls: '하단 택배 선반에서 주문·개봉 → 보드 배치·2-to-1 머지 → 자동 장착을 진행합니다. 잘못 고른 부품이나 수동 배치는 보드 아래 선택 취소 버튼으로 해제합니다.', gameScreenDesignDemo: 'warm-pixel-game-mobile', issueNumber: 177, documentId: 'game-screen-design-warm-mobile' },
     ],
   },
   {
@@ -270,7 +270,7 @@ const tracks: Track[] = [
         description: '부품별 점유 크기와 회전·이동을 이용해 공간을 설계한 뒤 같은 부품을 합치는 2차 구현안입니다.',
         status: '체험 가능',
         question: '모바일에서도 가장 단순한 입력만으로 머지 규칙을 쉽게 이해할 수 있는가?',
-        controls: '− / +로 보드 크기를 바꾸고 부품을 골라 배치합니다. 부품을 다시 누르면 회전하며, 선택 후 이동·머지할 수 있습니다.',
+        controls: '− / +로 보드 크기를 바꾸고 부품을 골라 배치합니다. 부품을 다시 누르면 회전하며, 선택 후 이동·머지하거나 상단 버튼으로 선택 취소할 수 있습니다.',
         demo: 'free', issueNumber: 10, documentId: 'merge-free-board',
       },
       {
@@ -290,7 +290,7 @@ const tracks: Track[] = [
         description: '자유로운 선행 제작은 유지하면서 현재 주문에 필요한 부품만 최소한으로 안내합니다.',
         status: '체험 가능',
         question: '자유 보드의 공간 관리 재미와 주문 목표의 명확성을 함께 확보할 수 있는가?',
-        controls: '원하는 부품을 자유롭게 만들되, 빛나는 목표 표시와 다음 행동 힌트를 참고합니다.',
+        controls: '원하는 부품을 자유롭게 만들되, 빛나는 목표 표시와 다음 행동 힌트를 참고합니다. 잘못 고른 부품은 상단 선택 취소 버튼으로 해제합니다.',
         demo: 'guided', issueNumber: 25, documentId: 'merge-guided',
       },
       {
@@ -315,7 +315,7 @@ const tracks: Track[] = [
       { id: 'instant-button', label: 'A안', title: '즉시 생성 버튼형', description: '생성 버튼을 누르면 부품이 지연 없이 보드에 추가되는 현행 기준선입니다.', status: '체험 가능', question: '지연 없는 공급이 머지 플레이 템포를 가장 잘 유지하는가?', controls: '부품 생성 버튼으로 Lv.1 부품을 추가하고, 부품 탭 → 같은 레벨 탭으로 머지해 Lv.3 부품 2개를 만듭니다.', supplyDemo: 'instant', issueNumber: 71, documentId: 'supply-instant' },
       { id: 'parcel-box', label: 'B안', title: '택배 상자 개봉형', description: '주문한 부품이 택배 상자로 도착하고 상자를 개봉해 부품을 얻습니다.', status: '체험 가능', question: '개봉 연출의 기대감이 템포 저하보다 큰 가치를 주는가?', controls: '부품 주문 → 배송 대기 → 상자 개봉으로 부품을 받고, 같은 목표(Lv.3 ×2)까지의 템포를 A안과 비교합니다.', supplyDemo: 'parcel', issueNumber: 72, documentId: 'supply-parcel' },
       { id: 'cooldown-generator', label: 'C안', title: '쿨다운·충전식 생성기형', description: '충전량이 있는 생성기를 탭해 부품을 뽑고 쿨다운 후 다시 충전되는 장르 표준 방식입니다.', status: '체험 가능', question: '장르 표준 생성기가 주문 단위의 짧은 세션 구조와 잘 맞는가?', controls: '생성기 가동으로 충전량을 소모해 부품을 뽑고, 쿨다운 재충전을 관리하며 같은 목표까지 진행합니다.', supplyDemo: 'generator', issueNumber: 73, documentId: 'supply-generator' },
-      { id: 'auto-placement', label: 'D안', title: '배치 미리보기·자동 배치 토글형', description: '수동 배치에는 부품 모양 미리보기를 제공하고, 체크 시 배송 완료 부품을 첫 번째 빈 공간에 자동으로 넣습니다.', status: '체험 가능', question: '선택형 자동 배치가 택배의 반복 클릭을 줄이면서 보드 공간 판단과 수동 배치 이해도를 유지하는가?', controls: '택배 선반의 자동 배치 체크박스를 OFF/ON으로 바꾸고, 수동 미리보기와 배송 완료 즉시 배치·공간 부족 보존 상태를 비교합니다.', gameScreenDesignDemo: 'warm-pixel-game-mobile', issueNumber: 196, documentId: 'supply-auto-placement' },
+      { id: 'auto-placement', label: 'D안', title: '배치 미리보기·자동 배치 토글형', description: '수동 배치에는 부품 모양 미리보기를 제공하고, 체크 시 배송 완료 부품을 첫 번째 빈 공간에 자동으로 넣습니다.', status: '체험 가능', question: '선택형 자동 배치가 택배의 반복 클릭을 줄이면서 보드 공간 판단과 수동 배치 이해도를 유지하는가?', controls: '자동 배치 체크박스를 OFF/ON으로 바꾸고 수동·자동 배치를 비교합니다. 수동 배치는 보드 아래 선택 취소로 해제해도 도착 상자가 유지됩니다.', gameScreenDesignDemo: 'warm-pixel-game-mobile', issueNumber: 196, documentId: 'supply-auto-placement' },
     ],
   },
   {
@@ -400,8 +400,8 @@ const tracks: Track[] = [
     description: '검증된 기능과 최종 화면 디자인·오디오를 하나의 모바일 수직 슬라이스로 연결해 메인 프로젝트 이전 준비 상태를 확인합니다.',
     issueNumber: 113,
     variants: [
-      { id: 'vertical-slice', label: '릴리스 통합안', title: '최종 디자인·오디오 MVP 수직 슬라이스', description: '홈 A안 시각 언어를 전체 화면에 적용하고, 배치 미리보기·선택형 택배 자동 배치·자전거 수집 A/B/C·오디오를 하나의 저장 상태로 연결합니다.', status: '체험 가능', question: '첫 실행부터 주문·머지·조립·납품·성장·수집·재진입까지 화면과 상태가 끊기지 않고 하나의 MVP로 이해되는가?', controls: 'TAP TO START → 홈 PLAY → 택배 선반 자동 배치 ON/OFF → 수동 미리보기 또는 배송 완료 즉시 배치 → 머지·자동 장착 → 급여 봉투를 진행합니다.', releaseIntegrationDemo: 'vertical-slice', issueNumber: 192, documentId: 'mvp-release-vertical-slice' },
-      { id: 'core-features', label: '통합안', title: '머지 코어 C안 + 택배 수급 + 장착·조립', description: 'C안의 자유 배치 보드와 주문 가이드를 그대로 사용하고, 카테고리 택배 수급과 목표 부품의 단계별 자동 장착을 직접 연결합니다.', status: '체험 가능', question: 'C안 보드·주문 가이드 위에서 택배 수급과 장착·조립이 상태 유실이나 진행 막힘 없이 한 주문의 완료까지 이어지는가?', controls: '필요 카테고리 택배 주문 → 배송 대기 → 상자 개봉 → 보드 배치·회전 → 2→1 머지 → 목표 완성 시 부품별 자동 장착 → 주문 완료 순서로 진행합니다.', demo: 'integrated', issueNumber: 114, documentId: 'mvp-integration-core-features' },
+      { id: 'vertical-slice', label: '릴리스 통합안', title: '최종 디자인·오디오 MVP 수직 슬라이스', description: '홈 A안 시각 언어를 전체 화면에 적용하고, 배치 미리보기·선택형 택배 자동 배치·자전거 수집 A/B/C·오디오를 하나의 저장 상태로 연결합니다.', status: '체험 가능', question: '첫 실행부터 주문·머지·조립·납품·성장·수집·재진입까지 화면과 상태가 끊기지 않고 하나의 MVP로 이해되는가?', controls: 'TAP TO START → 홈 PLAY → 택배 자동 배치 ON/OFF → 수동/자동 배치 → 머지·자동 장착 → 급여 봉투를 진행합니다. 수동 선택은 선택 취소로 안전하게 해제할 수 있습니다.', releaseIntegrationDemo: 'vertical-slice', issueNumber: 192, documentId: 'mvp-release-vertical-slice' },
+      { id: 'core-features', label: '통합안', title: '머지 코어 C안 + 택배 수급 + 장착·조립', description: 'C안의 자유 배치 보드와 주문 가이드를 그대로 사용하고, 카테고리 택배 수급과 목표 부품의 단계별 자동 장착을 직접 연결합니다.', status: '체험 가능', question: 'C안 보드·주문 가이드 위에서 택배 수급과 장착·조립이 상태 유실이나 진행 막힘 없이 한 주문의 완료까지 이어지는가?', controls: '필요 카테고리 택배 주문 → 배송 → 개봉 → 배치·회전·선택 취소 → 2→1 머지 → 자동 장착 → 주문 완료 순서로 진행합니다.', demo: 'integrated', issueNumber: 114, documentId: 'mvp-integration-core-features' },
     ],
   },
 ];
