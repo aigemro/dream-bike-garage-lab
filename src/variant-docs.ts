@@ -71,6 +71,7 @@ import doc69 from '../docs/variants/guide-overlay-bubble.md?raw';
 import doc70 from '../docs/variants/settings-drawer.md?raw';
 import doc71 from '../docs/variants/title-loading-signboard.md?raw';
 import doc72 from '../docs/variants/mvp-release-vertical-slice.md?raw';
+import doc73 from '../docs/variants/supply-auto-placement.md?raw';
 
 const variantDocs: Record<string, string> = {
   'merge-free-board': doc0,
@@ -146,6 +147,7 @@ const variantDocs: Record<string, string> = {
   'settings-drawer': doc70,
   'title-loading-signboard': doc71,
   'mvp-release-vertical-slice': doc72,
+  'supply-auto-placement': doc73,
 };
 
 export default variantDocs;

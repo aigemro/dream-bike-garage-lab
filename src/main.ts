@@ -315,6 +315,7 @@ const tracks: Track[] = [
       { id: 'instant-button', label: 'A안', title: '즉시 생성 버튼형', description: '생성 버튼을 누르면 부품이 지연 없이 보드에 추가되는 현행 기준선입니다.', status: '체험 가능', question: '지연 없는 공급이 머지 플레이 템포를 가장 잘 유지하는가?', controls: '부품 생성 버튼으로 Lv.1 부품을 추가하고, 부품 탭 → 같은 레벨 탭으로 머지해 Lv.3 부품 2개를 만듭니다.', supplyDemo: 'instant', issueNumber: 71, documentId: 'supply-instant' },
       { id: 'parcel-box', label: 'B안', title: '택배 상자 개봉형', description: '주문한 부품이 택배 상자로 도착하고 상자를 개봉해 부품을 얻습니다.', status: '체험 가능', question: '개봉 연출의 기대감이 템포 저하보다 큰 가치를 주는가?', controls: '부품 주문 → 배송 대기 → 상자 개봉으로 부품을 받고, 같은 목표(Lv.3 ×2)까지의 템포를 A안과 비교합니다.', supplyDemo: 'parcel', issueNumber: 72, documentId: 'supply-parcel' },
       { id: 'cooldown-generator', label: 'C안', title: '쿨다운·충전식 생성기형', description: '충전량이 있는 생성기를 탭해 부품을 뽑고 쿨다운 후 다시 충전되는 장르 표준 방식입니다.', status: '체험 가능', question: '장르 표준 생성기가 주문 단위의 짧은 세션 구조와 잘 맞는가?', controls: '생성기 가동으로 충전량을 소모해 부품을 뽑고, 쿨다운 재충전을 관리하며 같은 목표까지 진행합니다.', supplyDemo: 'generator', issueNumber: 73, documentId: 'supply-generator' },
+      { id: 'auto-placement', label: 'D안', title: '배치 미리보기·자동 배치 토글형', description: '수동 배치에는 부품 모양 미리보기를 제공하고, 체크 시 배송 완료 부품을 첫 번째 빈 공간에 자동으로 넣습니다.', status: '체험 가능', question: '선택형 자동 배치가 택배의 반복 클릭을 줄이면서 보드 공간 판단과 수동 배치 이해도를 유지하는가?', controls: '택배 선반의 자동 배치 체크박스를 OFF/ON으로 바꾸고, 수동 미리보기와 배송 완료 즉시 배치·공간 부족 보존 상태를 비교합니다.', gameScreenDesignDemo: 'warm-pixel-game-mobile', issueNumber: 196, documentId: 'supply-auto-placement' },
     ],
   },
   {
@@ -399,7 +400,7 @@ const tracks: Track[] = [
     description: '검증된 기능과 최종 화면 디자인·오디오를 하나의 모바일 수직 슬라이스로 연결해 메인 프로젝트 이전 준비 상태를 확인합니다.',
     issueNumber: 113,
     variants: [
-      { id: 'vertical-slice', label: '릴리스 통합안', title: '최종 디자인·오디오 MVP 수직 슬라이스', description: '홈 A안 시각 언어를 타이틀·홈·플레이·정산·프로필·설정에 적용하고, 자전거 수집 A/B/C 전체와 BGM·효과음을 하나의 저장 상태로 연결합니다.', status: '체험 가능', question: '첫 실행부터 주문·머지·조립·납품·성장·수집·재진입까지 화면과 상태가 끊기지 않고 하나의 MVP로 이해되는가?', controls: 'TAP TO START → 홈 PLAY → 첫 안내 → 택배 주문·머지·자동 장착 → 급여 봉투 → 홈/다음 주문을 진행합니다. 상단 바로가기로 수집 A/B/C·프로필·설정과 오디오 상태도 확인합니다.', releaseIntegrationDemo: 'vertical-slice', issueNumber: 192, documentId: 'mvp-release-vertical-slice' },
+      { id: 'vertical-slice', label: '릴리스 통합안', title: '최종 디자인·오디오 MVP 수직 슬라이스', description: '홈 A안 시각 언어를 전체 화면에 적용하고, 배치 미리보기·선택형 택배 자동 배치·자전거 수집 A/B/C·오디오를 하나의 저장 상태로 연결합니다.', status: '체험 가능', question: '첫 실행부터 주문·머지·조립·납품·성장·수집·재진입까지 화면과 상태가 끊기지 않고 하나의 MVP로 이해되는가?', controls: 'TAP TO START → 홈 PLAY → 택배 선반 자동 배치 ON/OFF → 수동 미리보기 또는 배송 완료 즉시 배치 → 머지·자동 장착 → 급여 봉투를 진행합니다.', releaseIntegrationDemo: 'vertical-slice', issueNumber: 192, documentId: 'mvp-release-vertical-slice' },
       { id: 'core-features', label: '통합안', title: '머지 코어 C안 + 택배 수급 + 장착·조립', description: 'C안의 자유 배치 보드와 주문 가이드를 그대로 사용하고, 카테고리 택배 수급과 목표 부품의 단계별 자동 장착을 직접 연결합니다.', status: '체험 가능', question: 'C안 보드·주문 가이드 위에서 택배 수급과 장착·조립이 상태 유실이나 진행 막힘 없이 한 주문의 완료까지 이어지는가?', controls: '필요 카테고리 택배 주문 → 배송 대기 → 상자 개봉 → 보드 배치·회전 → 2→1 머지 → 목표 완성 시 부품별 자동 장착 → 주문 완료 순서로 진행합니다.', demo: 'integrated', issueNumber: 114, documentId: 'mvp-integration-core-features' },
     ],
   },

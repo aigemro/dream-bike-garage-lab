@@ -116,6 +116,6 @@ body:has(.variant-detail-page) .site-footer { display: none; }
 .release-stage::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, rgba(87,48,68,.2), transparent 28%, transparent 72%, rgba(87,48,68,.2)); }
 .release-stage { position: relative; }
 .release-stage canvas { position: relative; z-index: 1; box-shadow: 0 0 0 6px rgba(87,48,68,.22), 0 16px 32px rgba(59,37,49,.24); }
-.release-stage canvas { display: block !important; width: auto !important; height: 100% !important; max-width: 100%; max-height: 100%; margin: 0 auto !important; aspect-ratio: 390 / 810; }
+.release-stage canvas { display: block !important; flex: 0 0 auto; width: auto !important; height: 100% !important; max-width: 100%; max-height: 100%; margin: 0 !important; left: auto !important; top: auto !important; aspect-ratio: 390 / 810; }
 .release-flow-footer { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 9px 12px; background: #fff1c6; color: #573044; font-size: 10px; border-top: 3px solid #3b2531; }
 @media (max-width: 600px) { .release-flow-header { align-items: flex-start; flex-direction: column; gap: 8px; padding: 8px 10px; }.release-state { justify-content: flex-start; }.release-flow-nav { justify-content: flex-start; max-height: 72px; overflow: hidden; padding: 6px; }.release-flow-footer { display: none; } }
