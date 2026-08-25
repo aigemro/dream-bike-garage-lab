@@ -90,6 +90,8 @@ mindmap
         1차 데모 구현
       C 쿨다운·충전식 생성기형
         1차 데모 구현
+      D 배치 미리보기·자동 배치 토글형
+        1차 데모 구현
     메타 성장 · 수집
       A 자전거 도감형
         1차 데모 구현
@@ -289,6 +291,7 @@ mindmap
 | MVP Core Play | 부품 수급 | A: 즉시 생성 버튼형 | 개발 중 (1차 데모) | 동일 조건(5×4 보드, Lv.3 ×2 목표)에서 B/C와 템포 비교 플레이 테스트 | [#70](https://github.com/aigemro/dream-bike-garage-lab/issues/70), [#71](https://github.com/aigemro/dream-bike-garage-lab/issues/71) |
 | MVP Core Play | 부품 수급 | B: 택배 상자 개봉형 | 개발 중 (1차 데모) | 개봉 연출의 만족감과 템포 저하 비교 플레이 테스트 | [#72](https://github.com/aigemro/dream-bike-garage-lab/issues/72) |
 | MVP Core Play | 부품 수급 | C: 쿨다운·충전식 생성기형 | 개발 중 (1차 데모) | 장르 표준 생성기의 주문 단위 세션 부합 플레이 테스트 | [#73](https://github.com/aigemro/dream-bike-garage-lab/issues/73) |
+| MVP Core Play | 부품 수급 | D: 배치 미리보기·자동 배치 토글형 | 개발 중 (1차 데모) | 수동 배치 이해도·배송 완료 후 추가 클릭·공간 부족 보존 비교 | [#196](https://github.com/aigemro/dream-bike-garage-lab/issues/196), [실험 문서](variants/supply-auto-placement.md) |
 | Meta Progression | 수집 | A: 자전거 도감형 | 개발 중 (1차 데모) | 도감 화면·획득 피드백의 수집 동기 비교 플레이 테스트 | [#14](https://github.com/aigemro/dream-bike-garage-lab/issues/14) |
 | Meta Progression | 수집 | B: Garage 전시·성장형 | 개발 중 (1차 데모) | 전시와 성장 중 핵심 소유감 검증 | [#12](https://github.com/aigemro/dream-bike-garage-lab/issues/12) |
 | Meta Progression | 수집 | C: 드림 바이크 집중 성장형 | 개발 중 (1차 데모) | 한 대 집중 성장의 애착·목표 명확성 비교 | [#60](https://github.com/aigemro/dream-bike-garage-lab/issues/60) |
