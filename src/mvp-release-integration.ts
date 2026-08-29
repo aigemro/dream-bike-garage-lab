@@ -13,8 +13,9 @@ import {
   GROWTH_STORAGE_KEY,
   ORDER_METAS,
   applyDreamUpgrade,
-  applyOrderUnlock,
+  applyOrderDelivery,
   computeNextGoal,
+  craftedBikeCount,
   createCollectionProgress,
   createDreamGrowth,
   dreamGradeName,
@@ -22,13 +23,12 @@ import {
   dreamTotalLevel,
   markBikeSeen,
   orderMetaAt,
-  ownedBikeCount,
   parseCollectionProgress,
   parseDreamGrowth,
   serializeCollectionProgress,
   serializeDreamGrowth,
   type DreamStatKey,
-  type OrderUnlockResult,
+  type OrderDeliveryResult,
 } from './meta-progress';
 import { CATALOG_SIZE, catalogBikeById } from './bike-catalog';
 import { ORDERS } from './merge-prototype';
@@ -85,7 +85,7 @@ export class MvpReleaseIntegrationController {
   private collection = this.loadCollection();
   // 드림 바이크 성장 상태 (#203): 급여 투자 결과가 저장·복구되는 최소 성장 루프
   private growth = this.loadGrowth();
-  private lastUnlock?: OrderUnlockResult;
+  private lastDelivery?: OrderDeliveryResult;
   private rewardApplied = false;
   private readonly stageId = `mvp-release-stage-${Math.random().toString(36).slice(2)}`;
 
@@ -178,8 +178,8 @@ export class MvpReleaseIntegrationController {
         },
         onOrderComplete: (orderIndex) => {
           this.state.completedOrders += 1;
-          // 납품한 주문에 매핑된 자전거를 컬렉션에 해금하고, 결과를 정산 화면에 전달한다 (#201)
-          this.lastUnlock = applyOrderUnlock(this.collection, orderIndex);
+          // 납품한 주문의 자전거 이해도를 올리고, 결과(등록 여부 포함)를 정산 화면에 전달한다 (#221)
+          this.lastDelivery = applyOrderDelivery(this.collection, orderIndex);
           this.saveCollection();
           this.saveState();
           this.show('reward');
@@ -198,8 +198,15 @@ export class MvpReleaseIntegrationController {
         reward,
         orderName: orderMeta?.name,
         bikeCategory: orderMeta?.bikeCategory,
-        unlockedBike: this.lastUnlock?.unlockedBike
-          ? { name: this.lastUnlock.unlockedBike.name, grade: this.lastUnlock.unlockedBike.grade, isNew: this.lastUnlock.isNew }
+        understanding: this.lastDelivery?.bike
+          ? {
+              bikeName: this.lastDelivery.bike.name,
+              grade: this.lastDelivery.bike.grade,
+              before: this.lastDelivery.before,
+              after: this.lastDelivery.after,
+              registeredNow: this.lastDelivery.registeredNow,
+              alreadyRegistered: this.lastDelivery.alreadyRegistered,
+            }
           : undefined,
         nextOrder: nextMeta
           ? { name: nextMeta.name, parts: ORDERS[nextIndex]?.length ?? 4, reward: nextMeta.reward }
@@ -223,7 +230,10 @@ export class MvpReleaseIntegrationController {
         coins: this.state.coins,
         initialBikeId: this.collection.selectedBikeId,
         // 실제 컬렉션 진행 데이터 연결 (#201): 보유·신규 발견·전시 슬롯을 단일 상태로 공유
-        ownedBikeIds: [...this.collection.ownedBikeIds],
+        // 보유(전시·성장)는 완성 자전거 기준, 등록·이해도는 도감 상태 표시용 (#221)
+        ownedBikeIds: [...this.collection.craftedBikeIds],
+        registeredBikeIds: [...this.collection.registeredBikeIds],
+        understandingByBikeId: { ...this.collection.understandingByBikeId },
         newBikeIds: [...this.collection.newBikeIds],
         showcaseSlots: [...this.collection.showcaseSlots],
         onShowcaseChange: (slots) => { this.collection.showcaseSlots = slots; this.saveCollection(); },
@@ -269,7 +279,7 @@ export class MvpReleaseIntegrationController {
         this.state = { ...DEFAULT_STATE };
         this.collection = createCollectionProgress();
         this.growth = createDreamGrowth();
-        this.lastUnlock = undefined;
+        this.lastDelivery = undefined;
         localStorage.removeItem(STORAGE_KEY);
         localStorage.removeItem(COLLECTION_STORAGE_KEY);
         localStorage.removeItem(GROWTH_STORAGE_KEY);
@@ -298,18 +308,15 @@ export class MvpReleaseIntegrationController {
     const hero = catalogBikeById(this.collection.selectedBikeId) ?? catalogBikeById('dream-road')!;
     // 대표 자전거가 성장 대상(드림 바이크)이면 강화 등급을, 아니면 도감 등급을 표시한다
     const isGrowthTarget = hero.id === this.growth.targetBikeId;
-    const remainingOrders = goal.kind === 'unlock'
-      ? ((goal.orderIndex - this.state.orderIndex + ORDER_METAS.length) % ORDER_METAS.length) + 1
-      : 0;
     return {
-      ownedCount: ownedBikeCount(this.collection),
+      ownedCount: craftedBikeCount(this.collection),
       catalogSize: CATALOG_SIZE,
       orderName: orderMeta.name,
       orderCategory: orderMeta.bikeCategory,
       orderReward: orderMeta.reward,
-      nextGoalLabel: goal.kind === 'unlock' ? goal.bikeName : goal.kind === 'upgrade' ? `${goal.stat} 강화` : '주문 반복 플레이',
-      nextGoalHint: goal.kind === 'unlock'
-        ? (remainingOrders === 1 ? '이번 주문 납품 시 해금' : `주문 ${remainingOrders}건 남음`)
+      nextGoalLabel: goal.kind === 'understand' ? goal.bikeName : goal.kind === 'upgrade' ? `${goal.stat} 강화` : '주문 반복 플레이',
+      nextGoalHint: goal.kind === 'understand'
+        ? `이해도 ${goal.understanding}% · 납품 ${goal.deliveriesLeft}회 남음`
         : goal.kind === 'upgrade'
           ? `강화 비용 ${goal.cost.toLocaleString()}코인`
           : '모든 목표 달성 · 급여를 모아보세요',
