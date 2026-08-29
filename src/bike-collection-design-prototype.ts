@@ -3,6 +3,7 @@
 import Phaser from 'phaser';
 import { drawPixelBike, addPixelBikeImage, makeWarmColorway, bikeCategoryFromKorean } from './bike-pixel-sprite';
 import { CATALOG_BIKES } from './bike-catalog';
+import { dreamUpgradeCost } from './meta-progress';
 
 export type BikeCollectionDesignMode = 'warm-catalog' | 'warm-showcase' | 'warm-dream-growth';
 
@@ -15,6 +16,15 @@ export type BikeCollectionDesignHooks = {
   showcaseSlots?: Array<string | null>;
   onShowcaseChange?: (slots: Array<string | null>) => void;
   onBikeSeen?: (bikeId: string) => void;
+  // 드림 바이크 성장 연동 (#203): 지정 시 강화 수치와 코인 차감을 컨트롤러가 원자적으로 처리합니다.
+  dreamStats?: Record<'성능' | '스타일' | '희귀도', number>;
+  onDreamUpgrade?: (stat: '성능' | '스타일' | '희귀도') => {
+    ok: boolean;
+    reason?: 'coins' | 'max';
+    coins: number;
+    stats: Record<'성능' | '스타일' | '희귀도', number>;
+    stageUp?: boolean;
+  };
   onHome?: () => void;
   onCatalog?: () => void;
   onShowcase?: () => void;
@@ -71,6 +81,7 @@ class BikeCollectionDesignScene extends Phaser.Scene {
         .map((slot) => (slot && owned.has(slot) ? slot : null));
     }
     this.newIds = new Set(hooks.newBikeIds ?? []);
+    if (hooks.dreamStats) this.dreamStats = { ...hooks.dreamStats };
     if (hooks.initialBikeId && this.bikes.some((bike) => bike.id === hooks.initialBikeId)) this.selected = hooks.initialBikeId;
     this.toast =
       mode === 'warm-catalog' ? '도감 칸을 눌러 자전거 정보를 확인해 보세요.'
@@ -315,7 +326,7 @@ class BikeCollectionDesignScene extends Phaser.Scene {
     (Object.keys(this.dreamStats) as Array<keyof typeof this.dreamStats>).forEach((key, index) => {
       const level = this.dreamStats[key];
       const y = 450 + index * 78;
-      const cost = 350 * level;
+      const cost = dreamUpgradeCost(level); // 강화 비용 규칙 단일 출처 (#203)
       this.pixelRect(195, y, 350, 64, 0xffe6a8, P.wood, 5);
       this.label(40, y - 22, key, 12, '#3b2531', true).setDepth(6);
       for (let dot = 0; dot < 4; dot++) {
@@ -323,6 +334,23 @@ class BikeCollectionDesignScene extends Phaser.Scene {
       }
       this.label(160, y + 5, `Lv.${level} / 4`, 9, level === 4 ? '#a16028' : '#7b5140', true).setDepth(6);
       if (level < 4) this.button(300, y, 104, 40, `강화 ${cost}`, () => {
+        // 통합 모드: 코인 차감·강화 반영·저장을 컨트롤러가 하나의 처리로 수행하고 결과만 표시한다 (#203)
+        if (this.hooks.onDreamUpgrade) {
+          const result = this.hooks.onDreamUpgrade(key);
+          this.coins = result.coins;
+          this.dreamStats = { ...result.stats };
+          if (!result.ok) {
+            this.hooks.onSfx?.('error');
+            this.notify(result.reason === 'max' ? '이미 최대 단계입니다.' : '코인이 부족합니다. 주문을 완료해 급여를 받으세요.');
+            return;
+          }
+          this.hooks.onSfx?.('reward');
+          const nextTotal = Object.values(this.dreamStats).reduce((sum, value) => sum + value, 0);
+          this.notify(result.stageUp && nextTotal >= 10 ? '드림 등급 달성! 나만의 드림 바이크 완성.'
+            : result.stageUp ? '고급 등급 달성! 외형 강조가 추가됐습니다.'
+            : `${key} 강화 완료 · 남은 코인 ${this.coins.toLocaleString()}`);
+          return;
+        }
         if (this.coins < cost) { this.hooks.onSfx?.('error'); this.notify('코인이 부족합니다. 주문을 완료해 급여를 받으세요.'); return; }
         this.coins -= cost;
         this.hooks.onCoinsChange?.(this.coins);

@@ -10,18 +10,24 @@ import { startSettingsDrawerPrototype } from './settings-design';
 import { ReleaseAudio, type ReleaseAudioRoom, type ReleaseSfxEvent } from './release-audio';
 import {
   COLLECTION_STORAGE_KEY,
+  GROWTH_STORAGE_KEY,
+  applyDreamUpgrade,
   applyOrderUnlock,
   createCollectionProgress,
+  createDreamGrowth,
   markBikeSeen,
   orderMetaAt,
   parseCollectionProgress,
+  parseDreamGrowth,
   serializeCollectionProgress,
+  serializeDreamGrowth,
+  type DreamStatKey,
   type OrderUnlockResult,
 } from './meta-progress';
 
 type ReleaseScreen = 'title' | 'home' | 'guide' | 'game' | 'reward' | 'catalog' | 'showcase' | 'dream' | 'profile' | 'settings';
 type ReleaseState = {
-  version: 1;
+  version: 2;
   coins: number;
   completedOrders: number;
   orderIndex: number;
@@ -33,9 +39,10 @@ type ReleaseState = {
 };
 
 const STORAGE_KEY = 'dbg-lab-mvp-release-integration-v1';
+// v2: 시작 코인을 0으로 바꿔 첫 주문 급여 → 드림 바이크 강화의 인과관계가 보이게 한다 (#203)
 const DEFAULT_STATE: ReleaseState = {
-  version: 1,
-  coins: 2480,
+  version: 2,
+  coins: 0,
   completedOrders: 0,
   orderIndex: 0,
   tutorialDone: false,
@@ -68,6 +75,8 @@ export class MvpReleaseIntegrationController {
   private screen: ReleaseScreen = 'title';
   // 컬렉션 진행 상태 (#201 해금 → #204 저장·복구): 새로고침·재진입 후에도 동일하게 복구된다
   private collection = this.loadCollection();
+  // 드림 바이크 성장 상태 (#203): 급여 투자 결과가 저장·복구되는 최소 성장 루프
+  private growth = this.loadGrowth();
   private lastUnlock?: OrderUnlockResult;
   private rewardApplied = false;
   private readonly stageId = `mvp-release-stage-${Math.random().toString(36).slice(2)}`;
@@ -205,6 +214,25 @@ export class MvpReleaseIntegrationController {
         showcaseSlots: [...this.collection.showcaseSlots],
         onShowcaseChange: (slots) => { this.collection.showcaseSlots = slots; this.saveCollection(); },
         onBikeSeen: (bikeId) => { markBikeSeen(this.collection, bikeId); this.saveCollection(); },
+        // 드림 바이크 강화 (#203): 코인 차감과 강화 반영을 한 번에 적용·저장하고 결과만 화면에 돌려준다
+        dreamStats: { ...this.growth.stats },
+        onDreamUpgrade: (stat: DreamStatKey) => {
+          const result = applyDreamUpgrade(this.growth, this.state.coins, stat);
+          if (result.ok) {
+            this.growth = result.growth;
+            this.state.coins = result.coins;
+            this.saveGrowth();
+            this.saveState();
+            this.refreshShell();
+          }
+          return {
+            ok: result.ok,
+            reason: result.ok ? undefined : result.reason,
+            coins: result.coins,
+            stats: { ...(result.ok ? result.growth : this.growth).stats },
+            stageUp: result.ok ? result.stageUp : false,
+          };
+        },
         onHome: () => this.show('home'),
         onCatalog: () => this.show('catalog'),
         onShowcase: () => this.show('showcase'),
@@ -226,9 +254,11 @@ export class MvpReleaseIntegrationController {
       onReset: () => {
         this.state = { ...DEFAULT_STATE };
         this.collection = createCollectionProgress();
+        this.growth = createDreamGrowth();
         this.lastUnlock = undefined;
         localStorage.removeItem(STORAGE_KEY);
         localStorage.removeItem(COLLECTION_STORAGE_KEY);
+        localStorage.removeItem(GROWTH_STORAGE_KEY);
         window.setTimeout(() => this.show('title'), 0);
       },
       onToggle: (key, value) => {
@@ -271,7 +301,7 @@ export class MvpReleaseIntegrationController {
   private loadState(): ReleaseState {
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null') as Partial<ReleaseState> | null;
-      if (!saved || saved.version !== 1) return { ...DEFAULT_STATE };
+      if (!saved || saved.version !== 2) return { ...DEFAULT_STATE };
       return { ...DEFAULT_STATE, ...saved };
     } catch {
       return { ...DEFAULT_STATE };
@@ -293,6 +323,19 @@ export class MvpReleaseIntegrationController {
 
   private saveCollection() {
     localStorage.setItem(COLLECTION_STORAGE_KEY, serializeCollectionProgress(this.collection));
+  }
+
+  // 드림 바이크 성장 저장·복구 (#203): 검증·보정 규칙은 meta-progress가 담당
+  private loadGrowth() {
+    try {
+      return parseDreamGrowth(localStorage.getItem(GROWTH_STORAGE_KEY));
+    } catch {
+      return createDreamGrowth();
+    }
+  }
+
+  private saveGrowth() {
+    localStorage.setItem(GROWTH_STORAGE_KEY, serializeDreamGrowth(this.growth));
   }
 }
 
