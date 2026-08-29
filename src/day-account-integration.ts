@@ -113,11 +113,8 @@ export class DayAccountIntegrationController {
     this.parent.innerHTML = `
       <section class="release-integration-shell day-account-shell">
         <header class="release-flow-header day-account-header">
-          <div><span>DAY · ACCOUNT RELEASE LAB</span><strong id="day-account-screen-label"></strong></div>
+          <div><span>LAB TEST CONTROLS</span><strong id="day-account-screen-label"></strong></div>
           <div class="release-state day-account-state">
-            <span id="day-account-day"></span>
-            <strong id="day-account-timer"></strong>
-            <span id="day-account-wallet"></span>
             <button id="day-account-audio" type="button"></button>
             <button id="day-account-end" type="button">Lab · Day 종료</button>
             <button id="day-account-logout" type="button">로그아웃</button>
@@ -216,6 +213,7 @@ export class DayAccountIntegrationController {
         getDaySummary: () => ({
           dayNumber: this.state?.currentDayState.dayNumber ?? 1,
           remainingMs: this.state?.currentDayState.remainingMs ?? 0,
+          durationMs: DAY_DURATION_MS,
           earnings: this.state?.currentDayState.earnings ?? 0,
         }),
         onAutoPlacementChange: (enabled) => {
@@ -525,16 +523,10 @@ export class DayAccountIntegrationController {
 
   private refreshShell() {
     const label = this.parent.querySelector<HTMLElement>('#day-account-screen-label');
-    const dayLabel = this.parent.querySelector<HTMLElement>('#day-account-day');
-    const timer = this.parent.querySelector<HTMLElement>('#day-account-timer');
-    const wallet = this.parent.querySelector<HTMLElement>('#day-account-wallet');
     const audio = this.parent.querySelector<HTMLButtonElement>('#day-account-audio');
     const end = this.parent.querySelector<HTMLButtonElement>('#day-account-end');
     const logout = this.parent.querySelector<HTMLButtonElement>('#day-account-logout');
     if (label) label.textContent = SCREEN_LABELS[this.screen];
-    if (dayLabel) dayLabel.textContent = this.state ? `DAY ${this.state.currentDayState.dayNumber} · ${this.state.currentDayState.status.toUpperCase()}` : 'NO SESSION';
-    if (timer) timer.textContent = this.state ? formatTime(this.state.currentDayState.remainingMs) : '--:--';
-    if (wallet) wallet.textContent = this.state ? `${this.profile?.nickname ?? ''} · COIN ${this.state.coins.toLocaleString()}` : '계정 선택 필요';
     if (audio) {
       audio.textContent = this.state?.settings.bgm === false ? '♫ OFF' : '♫ ON';
       audio.disabled = !this.state;
