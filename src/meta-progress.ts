@@ -39,6 +39,8 @@ export type CollectionProgress = {
   registeredBikeIds: string[];
   // 완성(보유 · 전시/성장 가능) 자전거
   craftedBikeIds: string[];
+  // 제작 중인 자전거별 장착 부품 목록 (#222)
+  craftPartsByBikeId: Record<string, CraftPartType[]>;
   // 등록 후 아직 도감에서 확인하지 않은 신규 자전거
   newBikeIds: string[];
   selectedBikeId: string;
@@ -51,6 +53,7 @@ export function createCollectionProgress(): CollectionProgress {
     understandingByBikeId: { [first]: UNDERSTANDING_MAX },
     registeredBikeIds: [...INITIAL_OWNED_BIKE_IDS],
     craftedBikeIds: [...INITIAL_OWNED_BIKE_IDS],
+    craftPartsByBikeId: {},
     newBikeIds: [],
     selectedBikeId: first,
     showcaseSlots: [first, null, null],
@@ -107,6 +110,58 @@ export function markBikeSeen(progress: CollectionProgress, bikeId: string) {
 // 수집 수는 완성(보유) 기준으로 센다.
 export function craftedBikeCount(progress: CollectionProgress): number {
   return new Set(progress.craftedBikeIds).size;
+}
+
+// ── Garage 자전거 만들기 (#222) ──
+// 도감에 등록된 자전거에 급여로 부품을 하나씩 장착하고, 4종을 모두 장착하면 완성(보유)으로 승격한다.
+// 부품 종류는 머지 보드의 부품 그룹과 같은 개념이며, 비용 합계 1,000은 첫 주문 급여와 맞춘 검증용 수치다.
+
+export type CraftPartType = 'frame' | 'wheel' | 'drivetrain' | 'handlebar';
+export const CRAFT_PARTS: Array<{ type: CraftPartType; name: string; cost: number }> = [
+  { type: 'frame', name: '프레임', cost: 400 },
+  { type: 'wheel', name: '휠셋', cost: 300 },
+  { type: 'drivetrain', name: '구동계', cost: 200 },
+  { type: 'handlebar', name: '핸들바', cost: 100 },
+];
+export const CRAFT_PART_TYPES: CraftPartType[] = CRAFT_PARTS.map((part) => part.type);
+
+export function installedCraftParts(progress: CollectionProgress, bikeId: string): CraftPartType[] {
+  // 완성 자전거는 항상 부품 4종이 모두 장착된 상태로 본다
+  if (isBikeCrafted(progress, bikeId)) return [...CRAFT_PART_TYPES];
+  return [...(progress.craftPartsByBikeId[bikeId] ?? [])];
+}
+
+// 다음에 장착할 부품 (CRAFT_PARTS 순서 기준). 완성됐거나 제작 대상이 아니면 undefined.
+export function nextCraftPart(progress: CollectionProgress, bikeId: string) {
+  if (!isBikeRegistered(progress, bikeId) || isBikeCrafted(progress, bikeId)) return undefined;
+  const installed = installedCraftParts(progress, bikeId);
+  return CRAFT_PARTS.find((part) => !installed.includes(part.type));
+}
+
+export type CraftResult =
+  | { ok: true; coins: number; part: CraftPartType; installedParts: CraftPartType[]; completed: boolean }
+  | { ok: false; reason: 'coins' | 'not-registered' | 'already-crafted' | 'already-installed' | 'unknown'; coins: number };
+
+// 코인 차감과 부품 장착을 함께 적용합니다. 실패 시 어느 쪽도 변하지 않습니다(원자적 처리).
+// 부품 4종이 모두 장착되면 완성(보유)으로 승격합니다.
+export function applyCraftPart(progress: CollectionProgress, coins: number, bikeId: string, part: CraftPartType): CraftResult {
+  const meta = CRAFT_PARTS.find((item) => item.type === part);
+  if (!meta || !catalogBikeById(bikeId)) return { ok: false, reason: 'unknown', coins };
+  if (isBikeCrafted(progress, bikeId)) return { ok: false, reason: 'already-crafted', coins };
+  if (!isBikeRegistered(progress, bikeId)) return { ok: false, reason: 'not-registered', coins };
+  const installed = progress.craftPartsByBikeId[bikeId] ?? [];
+  if (installed.includes(part)) return { ok: false, reason: 'already-installed', coins };
+  if (coins < meta.cost) return { ok: false, reason: 'coins', coins };
+
+  const nextInstalled = [...installed, part];
+  const completed = CRAFT_PART_TYPES.every((type) => nextInstalled.includes(type));
+  if (completed) {
+    delete progress.craftPartsByBikeId[bikeId];
+    progress.craftedBikeIds.push(bikeId);
+  } else {
+    progress.craftPartsByBikeId[bikeId] = nextInstalled;
+  }
+  return { ok: true, coins: coins - meta.cost, part, installedParts: nextInstalled, completed };
 }
 
 // ── 컬렉션 진행 저장·복구 (#204) ──
@@ -183,6 +238,23 @@ export function sanitizeCollectionProgress(data: Partial<CollectionProgress>): C
   }
   registered.forEach((id) => { understanding[id] = UNDERSTANDING_MAX; });
 
+  // 제작 진행: 등록·미완성 자전거의 유효한 부품만 유지, 4종이 모두 장착돼 있으면 완성으로 승격 (#222)
+  const craftParts: Record<string, CraftPartType[]> = {};
+  const rawCraftParts = data.craftPartsByBikeId;
+  if (rawCraftParts && typeof rawCraftParts === 'object') {
+    Object.entries(rawCraftParts).forEach(([id, value]) => {
+      if (!catalogBikeById(id) || crafted.includes(id) || !registered.includes(id)) return;
+      const parts = [...new Set(Array.isArray(value) ? value : [])]
+        .filter((part): part is CraftPartType => typeof part === 'string' && CRAFT_PART_TYPES.includes(part as CraftPartType));
+      if (parts.length === 0) return;
+      if (CRAFT_PART_TYPES.every((type) => parts.includes(type))) {
+        crafted.push(id);
+        return;
+      }
+      craftParts[id] = parts;
+    });
+  }
+
   const news = [...new Set(Array.isArray(data.newBikeIds) ? data.newBikeIds : [])]
     .filter((id): id is string => typeof id === 'string' && registered.includes(id));
 
@@ -201,6 +273,7 @@ export function sanitizeCollectionProgress(data: Partial<CollectionProgress>): C
     understandingByBikeId: understanding,
     registeredBikeIds: registered,
     craftedBikeIds: crafted,
+    craftPartsByBikeId: craftParts,
     newBikeIds: news,
     selectedBikeId: selected,
     showcaseSlots: slots,
@@ -301,16 +374,34 @@ export function sanitizeDreamGrowth(data: Partial<DreamGrowth>): DreamGrowth {
   return { targetBikeId, stats };
 }
 
-// ── 다음 목표 결정 규칙 (#205 → #221 이해도 모델 개편) ──
-// 우선순위: 1) 이해도가 100%가 아닌 자전거의 주문 납품 → 2) 강화 가능한 드림 바이크 파츠
-// → 3) 모두 달성 시 반복 주문 안내. 등록·미완성 자전거의 부품 제작 목표는 #222에서 추가합니다.
+// ── 다음 목표 결정 규칙 (#205 → #221·#222 개편) ──
+// 우선순위: 1) 등록·미완성 자전거의 부품 제작 (등록 직후 만들기 체험으로 바로 연결)
+// → 2) 이해도가 100%가 아닌 자전거의 주문 납품 → 3) 강화 가능한 드림 바이크 파츠
+// → 4) 모두 달성 시 반복 주문 안내.
 
 export type NextGoal =
   | { kind: 'understand'; orderIndex: number; orderName: string; bikeId: string; bikeName: string; understanding: number; deliveriesLeft: number }
+  | { kind: 'craft'; bikeId: string; bikeName: string; partName: string; cost: number; installedCount: number; totalParts: number }
   | { kind: 'upgrade'; stat: DreamStatKey; cost: number }
   | { kind: 'repeat' };
 
 export function computeNextGoal(collection: CollectionProgress, growth: DreamGrowth): NextGoal {
+  // 등록됐지만 아직 완성하지 못한 자전거의 다음 부품 제작 (#222)
+  const craftTargetId = collection.registeredBikeIds.find((id) => !isBikeCrafted(collection, id));
+  if (craftTargetId) {
+    const part = nextCraftPart(collection, craftTargetId);
+    if (part) {
+      return {
+        kind: 'craft',
+        bikeId: craftTargetId,
+        bikeName: catalogBikeById(craftTargetId)?.name ?? craftTargetId,
+        partName: part.name,
+        cost: part.cost,
+        installedCount: installedCraftParts(collection, craftTargetId).length,
+        totalParts: CRAFT_PART_TYPES.length,
+      };
+    }
+  }
   const nextStudy = ORDER_METAS.find((meta) => !isBikeRegistered(collection, meta.bikeId));
   if (nextStudy) {
     const bike = catalogBikeById(nextStudy.bikeId);
