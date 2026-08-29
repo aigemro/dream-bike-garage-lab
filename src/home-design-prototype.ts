@@ -22,8 +22,9 @@ export type HomeProgressData = {
   nextGoalHint: string;
   // Garage 성장 게이지 (0~100)
   growthPercent: number;
-  // 컬렉션에서 선택한 대표 자전거와 드림 바이크 성장 반영
+  // 컬렉션에서 선택한 대표 자전거(완성 자전거)와 성장 상태 반영 — 클릭 시 성장 화면 진입 (#223)
   heroBike: {
+    id: string;
     name: string;
     category: '로드' | 'MTB' | '그래블' | '미니벨로';
     color: number;
@@ -50,6 +51,8 @@ export type HomeDesignHooks = {
   onSettings?: () => void;
   // 제작 중 자전거 만들기 진입 (#222)
   onCraft?: (bikeId: string) => void;
+  // Garage 대표 자전거 클릭 → 성장 화면 진입 (#223)
+  onHeroBike?: (bikeId: string) => void;
   onSfx?: (event: 'tap') => void;
 };
 
@@ -148,6 +151,14 @@ class WarmPixelGarageScene extends Phaser.Scene {
     if (progress) {
       this.pixelRect(300, 202, 78, 26, progress.heroBike.stage >= 3 ? P.gold : 0xffe6a8, P.wood, 13);
       this.label(300, 202, `${progress.heroBike.grade} 등급`, 10, progress.heroBike.stage >= 3 ? '#a14a38' : '#5d3b34', true).setOrigin(.5).setDepth(14);
+      // 대표 자전거 클릭 → 성장 화면 진입 (#223)
+      this.label(195, 246, '▼ 자전거를 눌러 성장', 9, '#a14a38', true).setOrigin(.5).setDepth(14);
+      this.add.rectangle(195, 350, 240, 150, 0xffffff, 0.001)
+        .setDepth(15).setInteractive({ useHandCursor: true })
+        .on('pointerdown', () => {
+          this.hooks.onSfx?.('tap');
+          this.hooks.onHeroBike ? this.hooks.onHeroBike(progress.heroBike.id) : this.notify(`${progress.heroBike.name} 성장 화면`);
+        });
     }
 
     this.pixelRect(195, 478, 222, 72, 0xffe6a8, P.wood, 13);

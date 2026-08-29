@@ -10,13 +10,14 @@ import {
   ORDER_METAS,
   UNDERSTANDING_MAX,
   applyCraftPart,
-  applyDreamUpgrade,
+  applyBikeUpgrade,
+  bikeStats,
   applyOrderDelivery,
   bikeUnderstanding,
   computeNextGoal,
   craftedBikeCount,
   createCollectionProgress,
-  createDreamGrowth,
+  createGrowthProgress,
   dreamGradeName,
   dreamUpgradeCost,
   isBikeCrafted,
@@ -24,25 +25,25 @@ import {
   markBikeSeen,
   orderMetaAt,
   parseCollectionProgress,
-  parseDreamGrowth,
+  parseGrowthProgress,
   serializeCollectionProgress,
-  serializeDreamGrowth,
+  serializeGrowthProgress,
   type CollectionProgress,
-  type DreamGrowth,
+  type GrowthProgress,
 } from './meta-progress';
 
 // 컨트롤러의 저장·복구를 모사한 인메모리 localStorage
 function makeStorage() {
   const store = new Map<string, string>();
   return {
-    save(collection: CollectionProgress, growth: DreamGrowth) {
+    save(collection: CollectionProgress, growth: GrowthProgress) {
       store.set('collection', serializeCollectionProgress(collection));
-      store.set('growth', serializeDreamGrowth(growth));
+      store.set('growth', serializeGrowthProgress(growth));
     },
     reload() {
       return {
         collection: parseCollectionProgress(store.get('collection') ?? null),
-        growth: parseDreamGrowth(store.get('growth') ?? null),
+        growth: parseGrowthProgress(store.get('growth') ?? null),
       };
     },
     corruptCollection() { store.set('collection', '{broken-json'); },
@@ -56,7 +57,7 @@ describe('메타 루프 E2E: 새 게임 → 이해도 학습 → 등록 → 성�
 
     // 1. 새 게임 시작 (코인 0 · 등록·완성은 드림 바이크 1대)
     let collection = createCollectionProgress();
-    let growth = createDreamGrowth();
+    let growth = createGrowthProgress();
     let coins = 0;
     let completedOrders = 0;
     let orderIndex = 0;
@@ -87,7 +88,7 @@ describe('메타 루프 E2E: 새 게임 → 이해도 학습 → 등록 → 성�
     expect(craftedBikeCount(collection)).toBe(1);
 
     // 6. 급여로 드림 바이크 강화 (코인 2,000 → 1,650)
-    const upgrade = applyDreamUpgrade(growth, coins, '성능');
+    const upgrade = applyBikeUpgrade(collection, growth, coins, 'dream-road', '성능');
     expect(upgrade.ok).toBe(true);
     if (upgrade.ok) { growth = upgrade.growth; coins = upgrade.coins; }
     storage.save(collection, growth);
@@ -136,17 +137,17 @@ describe('메타 루프 E2E: 새 게임 → 이해도 학습 → 등록 → 성�
     while (computeNextGoal(collection, growth).kind === 'upgrade') {
       const goal = computeNextGoal(collection, growth);
       if (goal.kind !== 'upgrade') break;
-      const result = applyDreamUpgrade(growth, 99_999, goal.stat);
+      const result = applyBikeUpgrade(collection, growth, 99_999, goal.bikeId, goal.stat);
       expect(result.ok).toBe(true);
       if (result.ok) growth = result.growth;
     }
-    expect(dreamGradeName(growth)).toBe('드림');
+    expect(dreamGradeName(bikeStats(growth, 'dream-road'))).toBe('드림');
     expect(computeNextGoal(collection, growth)).toEqual({ kind: 'repeat' });
   });
 
   it('보상 중복·빠른 연속 입력에도 상태 불일치가 없다', () => {
     const collection = createCollectionProgress();
-    let growth = createDreamGrowth();
+    let growth = createGrowthProgress();
 
     // 등록 후 같은 주문을 빠르게 재납품해도 등록 목록은 한 번만 반영된다
     applyOrderDelivery(collection, 0);
@@ -158,21 +159,21 @@ describe('메타 루프 E2E: 새 게임 → 이해도 학습 → 등록 → 성�
 
     // 코인이 한 번 강화분만 있을 때 연타해도 두 번째는 원자적으로 거부된다
     let coins = dreamUpgradeCost(1);
-    const firstUpgrade = applyDreamUpgrade(growth, coins, '성능');
+    const firstUpgrade = applyBikeUpgrade(collection, growth, coins, 'dream-road', '성능');
     expect(firstUpgrade.ok).toBe(true);
     if (firstUpgrade.ok) { growth = firstUpgrade.growth; coins = firstUpgrade.coins; }
-    const secondUpgrade = applyDreamUpgrade(growth, coins, '성능');
+    const secondUpgrade = applyBikeUpgrade(collection, growth, coins, 'dream-road', '성능');
     expect(secondUpgrade.ok).toBe(false);
     expect(secondUpgrade.coins).toBe(0);
-    expect(growth.stats.성능).toBe(2);
+    expect(bikeStats(growth, 'dream-road').성능).toBe(2);
   });
 
   it('저장 손상 후에도 진행 불가 없이 복구되고 나머지 저장은 유지된다', () => {
     const storage = makeStorage();
     const collection = createCollectionProgress();
-    let growth = createDreamGrowth();
+    let growth = createGrowthProgress();
     applyOrderDelivery(collection, 0);
-    const upgraded = applyDreamUpgrade(growth, 1000, '스타일');
+    const upgraded = applyBikeUpgrade(collection, growth, 1000, 'dream-road', '스타일');
     if (upgraded.ok) growth = upgraded.growth;
     storage.save(collection, growth);
 
@@ -187,14 +188,14 @@ describe('메타 루프 E2E: 새 게임 → 이해도 학습 → 등록 → 성�
     const storage = makeStorage();
     const collection = createCollectionProgress();
     [0, 0, 1, 1].forEach((index) => applyOrderDelivery(collection, index));
-    let growth = createDreamGrowth();
-    growth.stats = { 성능: DREAM_STAT_MAX_LEVEL, 스타일: 2, 희귀도: 2 };
+    let growth = createGrowthProgress();
+    growth.statsByBikeId['dream-road'] = { 성능: DREAM_STAT_MAX_LEVEL, 스타일: 2, 희귀도: 2 };
     storage.save(collection, growth);
 
     storage.reset();
     const fresh = storage.reload();
     expect(fresh.collection).toEqual(createCollectionProgress());
-    expect(fresh.growth).toEqual(createDreamGrowth());
+    expect(fresh.growth).toEqual(createGrowthProgress());
     expect(craftedBikeCount(fresh.collection)).toBe(1);
     expect(CATALOG_SIZE).toBe(24);
   });

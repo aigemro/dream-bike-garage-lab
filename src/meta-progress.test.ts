@@ -11,27 +11,27 @@ import {
   UNDERSTANDING_MAX,
   UNDERSTANDING_PER_DELIVERY,
   applyCraftPart,
-  applyDreamUpgrade,
+  applyBikeUpgrade,
   applyOrderDelivery,
   bikeUnderstanding,
   computeNextGoal,
   craftedBikeCount,
   nextCraftPart,
   createCollectionProgress,
-  createDreamGrowth,
+  bikeStats,
+  createGrowthProgress,
   dreamGradeName,
-  dreamStage,
   dreamUpgradeCost,
   isBikeCrafted,
   isBikeRegistered,
   markBikeSeen,
   orderMetaAt,
   parseCollectionProgress,
-  parseDreamGrowth,
+  parseGrowthProgress,
   sanitizeCollectionProgress,
-  sanitizeDreamGrowth,
+  sanitizeGrowthProgress,
   serializeCollectionProgress,
-  serializeDreamGrowth,
+  serializeGrowthProgress,
 } from './meta-progress';
 
 describe('주문 메타 매핑', () => {
@@ -190,99 +190,125 @@ describe('컬렉션 저장·복구 (#204 · v2 스키마)', () => {
   });
 });
 
-describe('드림 바이크 성장 (#203)', () => {
-  it('첫 주문 급여(1,000코인)로 최소 한 단계 강화할 수 있다', () => {
-    const growth = createDreamGrowth();
+describe('자전거 성장 (#203 → #223 완성 자전거별)', () => {
+  it('첫 주문 급여(1,000코인)로 시작 자전거를 최소 한 단계 강화할 수 있다', () => {
+    const collection = createCollectionProgress();
+    const growth = createGrowthProgress();
     const firstReward = ORDER_METAS[0].reward;
-    expect(dreamUpgradeCost(growth.stats.성능)).toBeLessThanOrEqual(firstReward);
-    const result = applyDreamUpgrade(growth, firstReward, '성능');
+    expect(dreamUpgradeCost(bikeStats(growth, 'dream-road').성능)).toBeLessThanOrEqual(firstReward);
+    const result = applyBikeUpgrade(collection, growth, firstReward, 'dream-road', '성능');
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.growth.stats.성능).toBe(2);
+      expect(result.stats.성능).toBe(2);
       expect(result.coins).toBe(firstReward - dreamUpgradeCost(1));
     }
   });
 
-  it('코인이 부족하면 차감도 강화도 발생하지 않는다', () => {
-    const growth = createDreamGrowth();
-    const result = applyDreamUpgrade(growth, 100, '성능');
-    expect(result.ok).toBe(false);
-    expect(result.coins).toBe(100);
-    expect(growth.stats.성능).toBe(1);
-    if (!result.ok) expect(result.reason).toBe('coins');
+  it('완성하지 않은 자전거는 성장할 수 없다', () => {
+    const collection = createCollectionProgress();
+    [0, 0].forEach((index) => applyOrderDelivery(collection, index)); // 어반 로드 등록(미완성)
+    const result = applyBikeUpgrade(collection, createGrowthProgress(), 9_999, 'urban-road', '성능');
+    expect(result).toMatchObject({ ok: false, reason: 'not-crafted', coins: 9_999 });
   });
 
-  it('최대 단계에서는 강화가 거부된다', () => {
-    const growth = createDreamGrowth();
-    growth.stats.성능 = DREAM_STAT_MAX_LEVEL;
-    const result = applyDreamUpgrade(growth, 99_999, '성능');
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.reason).toBe('max');
+  it('코인 부족·최대 단계는 원자적으로 거부된다', () => {
+    const collection = createCollectionProgress();
+    const growth = createGrowthProgress();
+    expect(applyBikeUpgrade(collection, growth, 100, 'dream-road', '성능')).toMatchObject({ ok: false, reason: 'coins', coins: 100 });
+    growth.statsByBikeId['dream-road'] = { 성능: DREAM_STAT_MAX_LEVEL, 스타일: 1, 희귀도: 1 };
+    expect(applyBikeUpgrade(collection, growth, 99_999, 'dream-road', '성능')).toMatchObject({ ok: false, reason: 'max' });
+  });
+
+  it('자전거별 성장 단계가 독립 관리된다', () => {
+    const collection = createCollectionProgress();
+    [0, 0].forEach((index) => applyOrderDelivery(collection, index));
+    CRAFT_PART_TYPES.forEach((part) => applyCraftPart(collection, 9_999, 'urban-road', part));
+    let growth = createGrowthProgress();
+    const result = applyBikeUpgrade(collection, growth, 9_999, 'urban-road', '스타일');
+    expect(result.ok).toBe(true);
+    if (result.ok) growth = result.growth;
+    expect(bikeStats(growth, 'urban-road').스타일).toBe(2);
+    expect(bikeStats(growth, 'dream-road').스타일).toBe(1);
   });
 
   it('합계 7·10 도달 시 등급이 상승하고 stageUp이 보고된다', () => {
-    let growth = createDreamGrowth();
-    expect(dreamStage(growth)).toBe(1);
-    let coins = 99_999;
+    const collection = createCollectionProgress();
+    let growth = createGrowthProgress();
     let stageUps = 0;
     for (const stat of ['성능', '스타일', '희귀도', '성능', '스타일', '희귀도', '성능'] as const) {
-      const result = applyDreamUpgrade(growth, coins, stat);
+      const result = applyBikeUpgrade(collection, growth, 99_999, 'dream-road', stat);
       expect(result.ok).toBe(true);
       if (result.ok) {
         growth = result.growth;
-        coins = result.coins;
         if (result.stageUp) stageUps += 1;
       }
     }
-    expect(dreamGradeName(growth)).toBe('드림');
+    expect(dreamGradeName(bikeStats(growth, 'dream-road'))).toBe('드림');
     expect(stageUps).toBe(2);
   });
 });
 
-describe('드림 바이크 성장 저장·복구 (#203)', () => {
-  it('직렬화 왕복·손상 복구·값 보정이 동작한다', () => {
-    let growth = createDreamGrowth();
-    const upgraded = applyDreamUpgrade(growth, 1000, '희귀도');
+describe('자전거 성장 저장·복구 (#223 · v2 스키마)', () => {
+  it('직렬화 왕복·손상 복구·버전 처리·값 보정이 동작한다', () => {
+    const collection = createCollectionProgress();
+    let growth = createGrowthProgress();
+    const upgraded = applyBikeUpgrade(collection, growth, 1000, 'dream-road', '희귀도');
     if (upgraded.ok) growth = upgraded.growth;
-    expect(parseDreamGrowth(serializeDreamGrowth(growth))).toEqual(growth);
-    expect(parseDreamGrowth('{broken')).toEqual(createDreamGrowth());
-    const wrongVersion = JSON.stringify({ version: GROWTH_SCHEMA_VERSION + 1, stats: { 성능: 4 } });
-    expect(parseDreamGrowth(wrongVersion)).toEqual(createDreamGrowth());
-    const fixed = sanitizeDreamGrowth({ targetBikeId: 'deleted-bike', stats: { 성능: 99, 스타일: -3, 희귀도: 2.7 } });
-    expect(fixed).toEqual({ targetBikeId: 'dream-road', stats: { 성능: DREAM_STAT_MAX_LEVEL, 스타일: 1, 희귀도: 2 } });
+    expect(parseGrowthProgress(serializeGrowthProgress(growth))).toEqual(growth);
+    expect(parseGrowthProgress('{broken')).toEqual(createGrowthProgress());
+    const unknown = JSON.stringify({ version: GROWTH_SCHEMA_VERSION + 1 });
+    expect(parseGrowthProgress(unknown)).toEqual(createGrowthProgress());
+    const fixed = sanitizeGrowthProgress({
+      statsByBikeId: {
+        'deleted-bike': { 성능: 2, 스타일: 2, 희귀도: 2 },
+        'urban-road': { 성능: 99, 스타일: -3, 희귀도: 2.7 },
+      },
+    });
+    expect(fixed.statsByBikeId['deleted-bike']).toBeUndefined();
+    expect(fixed.statsByBikeId['urban-road']).toEqual({ 성능: DREAM_STAT_MAX_LEVEL, 스타일: 1, 희귀도: 2 });
+  });
+
+  it('v1(단일 드림 바이크) 저장은 대상 자전거의 스탯으로 승계된다', () => {
+    const v1 = JSON.stringify({ version: 1, targetBikeId: 'dream-road', stats: { 성능: 3, 스타일: 2, 희귀도: 1 } });
+    const migrated = parseGrowthProgress(v1);
+    expect(migrated.statsByBikeId['dream-road']).toEqual({ 성능: 3, 스타일: 2, 희귀도: 1 });
   });
 });
 
 describe('다음 목표 결정 규칙 (#205 → #221 개편)', () => {
   it('시작 상태에서는 첫 주문 자전거의 이해도 학습이 다음 목표다', () => {
-    const goal = computeNextGoal(createCollectionProgress(), createDreamGrowth());
+    const goal = computeNextGoal(createCollectionProgress(), createGrowthProgress());
     expect(goal).toMatchObject({ kind: 'understand', orderIndex: 0, bikeId: 'urban-road', understanding: 0, deliveriesLeft: 2 });
   });
 
   it('납품 1회 후에는 남은 납품 횟수가 줄어든다', () => {
     const collection = createCollectionProgress();
     applyOrderDelivery(collection, 0);
-    const goal = computeNextGoal(collection, createDreamGrowth());
+    const goal = computeNextGoal(collection, createGrowthProgress());
     expect(goal).toMatchObject({ kind: 'understand', orderIndex: 0, understanding: 50, deliveriesLeft: 1 });
   });
 
   it('등록 직후에는 제작이 우선하고, 완성하면 다음 미등록 자전거 학습으로 넘어간다', () => {
     const collection = createCollectionProgress();
     [0, 0].forEach((index) => applyOrderDelivery(collection, index));
-    expect(computeNextGoal(collection, createDreamGrowth())).toMatchObject({ kind: 'craft', bikeId: 'urban-road' });
+    expect(computeNextGoal(collection, createGrowthProgress())).toMatchObject({ kind: 'craft', bikeId: 'urban-road' });
     CRAFT_PART_TYPES.forEach((part) => applyCraftPart(collection, 9_999, 'urban-road', part));
-    expect(computeNextGoal(collection, createDreamGrowth())).toMatchObject({ kind: 'understand', orderIndex: 1, bikeId: 'trail-mtb' });
+    expect(computeNextGoal(collection, createGrowthProgress())).toMatchObject({ kind: 'understand', orderIndex: 1, bikeId: 'trail-mtb' });
   });
 
   it('3종 모두 등록되면 제작 → 완성 후 강화 → 모두 최대면 반복 안내로 전환된다', () => {
     const collection = createCollectionProgress();
     [0, 0, 1, 1, 2, 2].forEach((index) => applyOrderDelivery(collection, index));
-    const growth = createDreamGrowth();
+    const growth = createGrowthProgress();
     // 등록·미완성 자전거가 있으므로 제작이 최우선 목표
     expect(computeNextGoal(collection, growth)).toMatchObject({ kind: 'craft', bikeId: 'urban-road' });
     ORDER_METAS.forEach((meta) => CRAFT_PART_TYPES.forEach((part) => applyCraftPart(collection, 9_999, meta.bikeId, part)));
-    expect(computeNextGoal(collection, growth)).toMatchObject({ kind: 'upgrade' });
-    growth.stats = { 성능: DREAM_STAT_MAX_LEVEL, 스타일: DREAM_STAT_MAX_LEVEL, 희귀도: DREAM_STAT_MAX_LEVEL };
+    // 완성 자전거 중 첫 자전거(시작 자전거)의 강화가 안내된다
+    expect(computeNextGoal(collection, growth)).toMatchObject({ kind: 'upgrade', bikeId: 'dream-road' });
+    // 완성 자전거 4대를 모두 최대 단계로 올리면 반복 안내로 전환된다
+    collection.craftedBikeIds.forEach((id) => {
+      growth.statsByBikeId[id] = { 성능: DREAM_STAT_MAX_LEVEL, 스타일: DREAM_STAT_MAX_LEVEL, 희귀도: DREAM_STAT_MAX_LEVEL };
+    });
     expect(computeNextGoal(collection, growth)).toEqual({ kind: 'repeat' });
   });
 });
@@ -366,7 +392,7 @@ describe('Garage 자전거 만들기 (#222)', () => {
 
   it('다음 목표: 등록·미완성 자전거가 있으면 제작이 강화보다 우선한다', () => {
     const progress = registerUrban();
-    const goal = computeNextGoal(progress, createDreamGrowth());
+    const goal = computeNextGoal(progress, createGrowthProgress());
     expect(goal).toMatchObject({ kind: 'craft', bikeId: 'urban-road', partName: '프레임', cost: 400, installedCount: 0, totalParts: 4 });
   });
 });

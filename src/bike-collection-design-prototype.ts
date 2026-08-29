@@ -32,7 +32,7 @@ export type BikeCollectionDesignHooks = {
   dreamStats?: Record<'성능' | '스타일' | '희귀도', number>;
   onDreamUpgrade?: (stat: '성능' | '스타일' | '희귀도') => {
     ok: boolean;
-    reason?: 'coins' | 'max';
+    reason?: 'coins' | 'max' | 'not-crafted';
     coins: number;
     stats: Record<'성능' | '스타일' | '희귀도', number>;
     stageUp?: boolean;
@@ -344,6 +344,21 @@ class BikeCollectionDesignScene extends Phaser.Scene {
       this.renderCrafting(selectedBike);
       return;
     }
+    // 미등록 자전거는 성장·제작 불가: 이해도 학습 안내만 표시 (#223)
+    if (this.hooks.ownedBikeIds && selectedBike && !selectedBike.owned && !this.registeredIds.has(selectedBike.id)) {
+      const progress = this.understanding[selectedBike.id] ?? 0;
+      this.label(24, 130, 'LOCKED BIKE', 8, '#6e473b', true);
+      this.label(24, 144, `??? ${selectedBike.name}`, 15, '#7b5140', true);
+      this.add.ellipse(195, 344, 220, 28, 0x6e473b, .28).setDepth(1);
+      addPixelBikeImage(this, 195, 300, 3, {
+        category: bikeCategoryFromKorean(selectedBike.category), silhouette: { body: 0x8a6a52, ink: 0x4a3328 }, depth: 2,
+      });
+      this.label(195, 400, `이해도 ${progress}%`, 14, '#3f7851', true).setOrigin(.5);
+      this.add.rectangle(24, 428, 342, 10, P.darkWood).setOrigin(0, .5);
+      if (progress > 0) this.add.rectangle(24, 428, 342 * progress / 100, 10, P.green).setOrigin(0, .5);
+      this.label(195, 456, '주문을 납품해 이해도 100%를 달성하면 도감에 등록됩니다', 9, '#5d3b34', true).setOrigin(.5);
+      return;
+    }
     const total = Object.values(this.dreamStats).reduce((sum, value) => sum + value, 0);
     const stage = total >= 10 ? 3 : total >= 7 ? 2 : 1;
     const gradeName = stage === 3 ? '드림' : stage === 2 ? '고급' : '중급';
@@ -389,7 +404,9 @@ class BikeCollectionDesignScene extends Phaser.Scene {
           this.dreamStats = { ...result.stats };
           if (!result.ok) {
             this.hooks.onSfx?.('error');
-            this.notify(result.reason === 'max' ? '이미 최대 단계입니다.' : '코인이 부족합니다. 주문을 완료해 급여를 받으세요.');
+            this.notify(result.reason === 'max' ? '이미 최대 단계입니다.'
+              : result.reason === 'not-crafted' ? '부품 제작을 완료해 자전거를 완성한 뒤 성장할 수 있습니다.'
+              : '코인이 부족합니다. 주문을 완료해 급여를 받으세요.');
             return;
           }
           this.hooks.onSfx?.('reward');
