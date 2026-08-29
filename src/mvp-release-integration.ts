@@ -11,12 +11,18 @@ import { ReleaseAudio, type ReleaseAudioRoom, type ReleaseSfxEvent } from './rel
 import {
   COLLECTION_STORAGE_KEY,
   GROWTH_STORAGE_KEY,
+  ORDER_METAS,
   applyDreamUpgrade,
   applyOrderUnlock,
+  computeNextGoal,
   createCollectionProgress,
   createDreamGrowth,
+  dreamGradeName,
+  dreamStage,
+  dreamTotalLevel,
   markBikeSeen,
   orderMetaAt,
+  ownedBikeCount,
   parseCollectionProgress,
   parseDreamGrowth,
   serializeCollectionProgress,
@@ -24,6 +30,8 @@ import {
   type DreamStatKey,
   type OrderUnlockResult,
 } from './meta-progress';
+import { CATALOG_SIZE, catalogBikeById } from './bike-catalog';
+import { ORDERS } from './merge-prototype';
 
 type ReleaseScreen = 'title' | 'home' | 'guide' | 'game' | 'reward' | 'catalog' | 'showcase' | 'dream' | 'profile' | 'settings';
 type ReleaseState = {
@@ -142,6 +150,7 @@ export class MvpReleaseIntegrationController {
       this.game = startHomeDesignPrototype(this.stageId, 'warm-pixel-garage', {
         coins: this.state.coins,
         completedOrders: this.state.completedOrders,
+        progress: this.buildHomeProgress(),
         onPlay: () => this.show(this.state.tutorialDone ? 'game' : 'guide'),
         onCollection: () => this.show('catalog'),
         onShowcase: () => this.show('showcase'),
@@ -182,6 +191,8 @@ export class MvpReleaseIntegrationController {
     if (screen === 'reward') {
       const orderMeta = orderMetaAt(this.state.orderIndex);
       const reward = orderMeta?.reward ?? 1000 + this.state.orderIndex * 400;
+      const nextIndex = (this.state.orderIndex + 1) % ORDER_METAS.length;
+      const nextMeta = orderMetaAt(nextIndex);
       this.game = startRewardSettlementPrototype(this.stageId, {
         initialCoins: this.state.coins,
         reward,
@@ -189,6 +200,9 @@ export class MvpReleaseIntegrationController {
         bikeCategory: orderMeta?.bikeCategory,
         unlockedBike: this.lastUnlock?.unlockedBike
           ? { name: this.lastUnlock.unlockedBike.name, grade: this.lastUnlock.unlockedBike.grade, isNew: this.lastUnlock.isNew }
+          : undefined,
+        nextOrder: nextMeta
+          ? { name: nextMeta.name, parts: ORDERS[nextIndex]?.length ?? 4, reward: nextMeta.reward }
           : undefined,
         onReward: (coins) => {
           if (this.rewardApplied) return;
@@ -271,9 +285,43 @@ export class MvpReleaseIntegrationController {
     });
   }
 
+  // 주문 3종을 순서대로 순환하고, 마지막 주문 이후에는 처음부터 반복 플레이한다 (#205)
   private advanceOrder() {
-    this.state.orderIndex = (this.state.orderIndex + 1) % 2;
+    this.state.orderIndex = (this.state.orderIndex + 1) % ORDER_METAS.length;
     this.saveState();
+  }
+
+  // 홈 화면에 표시할 메타 루프 진행 요약 (#205): 다음 목표 규칙은 meta-progress가 담당
+  private buildHomeProgress() {
+    const orderMeta = orderMetaAt(this.state.orderIndex) ?? ORDER_METAS[0];
+    const goal = computeNextGoal(this.collection, this.growth);
+    const hero = catalogBikeById(this.collection.selectedBikeId) ?? catalogBikeById('dream-road')!;
+    // 대표 자전거가 성장 대상(드림 바이크)이면 강화 등급을, 아니면 도감 등급을 표시한다
+    const isGrowthTarget = hero.id === this.growth.targetBikeId;
+    const remainingOrders = goal.kind === 'unlock'
+      ? ((goal.orderIndex - this.state.orderIndex + ORDER_METAS.length) % ORDER_METAS.length) + 1
+      : 0;
+    return {
+      ownedCount: ownedBikeCount(this.collection),
+      catalogSize: CATALOG_SIZE,
+      orderName: orderMeta.name,
+      orderCategory: orderMeta.bikeCategory,
+      orderReward: orderMeta.reward,
+      nextGoalLabel: goal.kind === 'unlock' ? goal.bikeName : goal.kind === 'upgrade' ? `${goal.stat} 강화` : '주문 반복 플레이',
+      nextGoalHint: goal.kind === 'unlock'
+        ? (remainingOrders === 1 ? '이번 주문 납품 시 해금' : `주문 ${remainingOrders}건 남음`)
+        : goal.kind === 'upgrade'
+          ? `강화 비용 ${goal.cost.toLocaleString()}코인`
+          : '모든 목표 달성 · 급여를 모아보세요',
+      growthPercent: Math.round((dreamTotalLevel(this.growth) - 3) / 9 * 100),
+      heroBike: {
+        name: hero.name,
+        category: hero.category,
+        color: hero.color,
+        grade: isGrowthTarget ? dreamGradeName(this.growth) : hero.grade,
+        stage: isGrowthTarget ? dreamStage(this.growth) : 1 as const,
+      },
+    };
   }
 
   private play(event: ReleaseSfxEvent) {

@@ -26,6 +26,8 @@ export type RewardSettlementHooks = {
   orderName?: string;
   bikeCategory?: BikeCategory;
   unlockedBike?: { name: string; grade: string; isNew: boolean };
+  // 다음 주문 예고 (#205): 실제 주문 순환에 맞춰 동적으로 표시
+  nextOrder?: { name: string; parts: number; reward: number };
   onNext?: () => void;
   onHome?: () => void;
   onReward?: (coins: number) => void;
@@ -160,8 +162,9 @@ class RewardSettlementScene extends Phaser.Scene {
     const card = this.add.rectangle(195, 706, 374, 116, CREAM).setStrokeStyle(4, BROWN).setDepth(8).setAlpha(0);
     const tag = this.add.rectangle(64, 662, 88, 22, 0xc95746).setStrokeStyle(2, BORDER).setDepth(9).setAlpha(0);
     const tagText = this.add.text(64, 662, 'NEXT ORDER', { fontFamily: FONT, fontSize: '9px', color: '#fff1c6', fontStyle: 'bold' }).setOrigin(0.5).setDepth(10).setAlpha(0);
-    const title = this.add.text(24, 672, '트레일 MTB', { fontFamily: FONT, fontSize: '14px', color: INK, fontStyle: 'bold' }).setDepth(9).setAlpha(0);
-    const detail = this.add.text(24, 692, '부품 4종 · 예상 급여 1,400코인', { fontFamily: FONT, fontSize: '10px', color: MUTED }).setDepth(9).setAlpha(0);
+    const next = this.hooks.nextOrder;
+    const title = this.add.text(24, 672, next?.name ?? '트레일 MTB', { fontFamily: FONT, fontSize: '14px', color: INK, fontStyle: 'bold' }).setDepth(9).setAlpha(0);
+    const detail = this.add.text(24, 692, `부품 ${next?.parts ?? 4}종 · 예상 급여 ${(next?.reward ?? 1400).toLocaleString()}코인`, { fontFamily: FONT, fontSize: '10px', color: MUTED }).setDepth(9).setAlpha(0);
     const nextButton = this.add.rectangle(286, 736, 156, 40, 0x5e9a67).setStrokeStyle(3, BORDER).setInteractive({ useHandCursor: true }).setDepth(9).setAlpha(0);
     const nextText = this.add.text(286, 736, '▶ 다음 주문 시작', { fontFamily: FONT, fontSize: '12px', color: '#fff1c6', fontStyle: 'bold' }).setOrigin(0.5).setDepth(10).setAlpha(0);
     const homeButton = this.add.rectangle(104, 736, 140, 40, GOLD).setStrokeStyle(3, BORDER).setInteractive({ useHandCursor: true }).setDepth(9).setAlpha(0);

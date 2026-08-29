@@ -252,3 +252,40 @@ describe('드림 바이크 성장 저장·복구 (#203)', () => {
     expect(result.stats).toEqual({ 성능: DREAM_STAT_MAX_LEVEL, 스타일: 1, 희귀도: 2 });
   });
 });
+
+describe('다음 목표 결정 규칙 (#205)', () => {
+  it('시작 상태에서는 첫 주문의 해금 자전거가 다음 목표다', async () => {
+    const { computeNextGoal, createDreamGrowth: createGrowth } = await import('./meta-progress');
+    const goal = computeNextGoal(createCollectionProgress(), createGrowth());
+    expect(goal).toMatchObject({ kind: 'unlock', orderIndex: 0, bikeId: 'urban-road' });
+  });
+
+  it('주문 완료로 해금이 진행되면 다음 미해금 자전거로 목표가 자동 갱신된다', async () => {
+    const { computeNextGoal, createDreamGrowth: createGrowth } = await import('./meta-progress');
+    const collection = createCollectionProgress();
+    applyOrderUnlock(collection, 0);
+    expect(computeNextGoal(collection, createGrowth())).toMatchObject({ kind: 'unlock', orderIndex: 1, bikeId: 'trail-mtb' });
+    applyOrderUnlock(collection, 1);
+    expect(computeNextGoal(collection, createGrowth())).toMatchObject({ kind: 'unlock', orderIndex: 2, bikeId: 'aero-sprinter' });
+  });
+
+  it('주문 3종의 자전거를 모두 해금하면 가장 낮은 파츠 강화가 다음 목표다', async () => {
+    const { computeNextGoal, createDreamGrowth: createGrowth, dreamUpgradeCost: cost } = await import('./meta-progress');
+    const collection = createCollectionProgress();
+    [0, 1, 2].forEach((index) => applyOrderUnlock(collection, index));
+    const growth = createGrowth();
+    growth.stats.성능 = 3;
+    growth.stats.희귀도 = 2;
+    const goal = computeNextGoal(collection, growth);
+    expect(goal).toMatchObject({ kind: 'upgrade', stat: '스타일', cost: cost(1) });
+  });
+
+  it('해금·강화를 모두 달성하면 반복 주문을 안내한다', async () => {
+    const { computeNextGoal, createDreamGrowth: createGrowth } = await import('./meta-progress');
+    const collection = createCollectionProgress();
+    [0, 1, 2].forEach((index) => applyOrderUnlock(collection, index));
+    const growth = createGrowth();
+    growth.stats = { 성능: DREAM_STAT_MAX_LEVEL, 스타일: DREAM_STAT_MAX_LEVEL, 희귀도: DREAM_STAT_MAX_LEVEL };
+    expect(computeNextGoal(collection, growth)).toEqual({ kind: 'repeat' });
+  });
+});
