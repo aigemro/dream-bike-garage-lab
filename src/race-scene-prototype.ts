@@ -5,6 +5,7 @@
 // B안 lane-board: 트랙 전체를 8레인 전광판으로 중계하는 관람 뷰
 import Phaser from 'phaser';
 import { addPixelBikeImage, drawPixelBike, makeWarmColorway, type BikeCategory } from './bike-pixel-sprite';
+import { drawPixelMap, type PixelCharacterRole } from './art-character-pixel';
 import type { BikeStats } from './meta-progress';
 import { dreamGradeName } from './meta-progress';
 import {
@@ -66,31 +67,85 @@ const RIDER_GEOM: Record<BikeCategory, { axle: number; hip: [number, number]; ha
   minivelo: { axle: 30, hip: [22, 6], hand: [42, 6], crank: [30, 32] },
 };
 
-const RIDER_SKIN = 0xf2c77e;
-const RIDER_PANTS = 0x573044;
-const RIDER_PANTS_FAR = 0x41202f;
-const RIDER_SHOE = 0x302936;
-const RIDER_SHOE_FAR = 0x241f28;
 // 페달 회전 반경(그리드 단위)과 이동 픽셀 → 크랭크 회전량 환산 계수
 const PEDAL_RADIUS_UNITS = 3.5;
 const PEDAL_PX_PER_RADIAN = 12;
 
-// 채널별 밝기 보정: 프레임색에서 저지(상의) 색을 파생합니다.
-function lighten(color: number, factor: number): number {
-  const r = Math.min(255, Math.round(((color >> 16) & 0xff) * factor));
-  const g = Math.min(255, Math.round(((color >> 8) & 0xff) * factor));
-  const b = Math.min(255, Math.round((color & 0xff) * factor));
-  return (r << 16) | (g << 8) | b;
-}
+// ─── 착좌 라이더 픽셀맵 (art-character-pixel 문법·팔레트 재사용) ───────
+// 게임 필드 캐릭터(정비사·점장·고객)의 3등신 스타일을 옆모습 착좌 자세로 그립니다.
+// 팔은 차종별 핸들바 위치가 달라 절차 드로잉으로, 다리는 페달링 애니메이션으로 분리합니다.
+// 문자: K 잉크 / S·T 피부 / E·W 눈 / B 홍조 / F 머리 / U·u 머리쓰개(반다나·캡·머리) / O·o 상의 / Q 바지
+const RIDER_MAP: string[] = [
+  '.............KKKKKK......',
+  '...........KKUUUUUUKK....',
+  '..........KUuUUUUUUUUK...',
+  '..........KFFSSSSSSSSSK..',
+  '.........KFFSSSSSEESSSK..',
+  '.........KFFSSSSSEWSBBK..',
+  '..........KSSSSSSSSSSK...',
+  '...........KSSSSSSSSK....',
+  '............KKTSSTKK.....',
+  '..........KKOOSSOOKK.....',
+  '.........KOOOOOOOOOK.....',
+  '........KOOOOOOOOOK......',
+  '.......KOOOOOOOOK........',
+  '......KOOOOOOOK..........',
+  '.....KOOOOOOK............',
+  '....KOOoOOK..............',
+  '...KQQOOOK...............',
+  '...KQQQQK................',
+  '...KQQQQK................',
+  '....KKKK.................',
+];
+// 엉덩이 기준 셀(맵 좌표): 이 셀의 중심이 안장 위 hip 포인트에 오도록 배치합니다.
+const RIDER_MAP_HIP = { col: 6, row: 17 };
+// 어깨 기준 셀: 절차 드로잉 팔의 시작점
+const RIDER_MAP_SHOULDER = { col: 16, row: 10 };
+
+type RiderLegend = Record<string, number>;
+// art-character-pixel의 역할별 팔레트에서 발췌 (잉크·피부·눈·홍조는 BASE_LEGEND와 동일)
+const RIDER_BASE_LEGEND: RiderLegend = {
+  K: 0x3b2531, S: 0xeeb07c, T: 0xd18a54, B: 0xe58a66, E: 0x2c1c26, W: 0xfff8df,
+};
+const RIDER_LEGENDS: Record<PixelCharacterRole, RiderLegend> = {
+  // 정비사: 크림 반다나 + 갈색 머리 + 초록 작업복 + 작업 바지
+  정비사: { ...RIDER_BASE_LEGEND, U: 0xfff1c6, u: 0xe8c98d, F: 0x77492f, O: 0x5e9a67, o: 0x477a50, Q: 0x6b4534 },
+  // 점장: 회갈색 머리 + 짙은 조끼 + 슬랙스
+  점장: { ...RIDER_BASE_LEGEND, U: 0x8d7a68, u: 0xa8988a, F: 0x8d7a68, O: 0x573044, o: 0x41202f, Q: 0x4a3542 },
+  // 고객: 빨간 캡 + 짙은 앞머리 + 파란 재킷 + 청바지
+  고객: { ...RIDER_BASE_LEGEND, U: 0xc95746, u: 0xa63f31, F: 0x4f3527, O: 0x4e8092, o: 0x3a6274, Q: 0x3f4a63 },
+};
+// 다리(페달링)·손 색: 역할별 바지·신발 팔레트
+const RIDER_LEG_COLORS: Record<PixelCharacterRole, { pants: number; pantsFar: number; shoe: number; shoeFar: number }> = {
+  정비사: { pants: 0x6b4534, pantsFar: 0x53341f, shoe: 0x352c3c, shoeFar: 0x241f28 },
+  점장: { pants: 0x4a3542, pantsFar: 0x38222f, shoe: 0x6b4226, shoeFar: 0x4d2c15 },
+  고객: { pants: 0x3f4a63, pantsFar: 0x2e3850, shoe: 0x352c3c, shoeFar: 0x241f28 },
+};
+const RIDER_SKIN = 0xeeb07c;
+
+// 바퀴 스포크 오버레이: 자전거 텍스처의 바퀴 중심(그리드 좌표)과 스포크 반경(그리드 단위).
+// 베이크된 스포크 위(프레임 아래)에 회전 이미지를 얹어 바퀴가 도는 것처럼 보이게 합니다.
+const WHEEL_GEOM: Record<BikeCategory, { rear: [number, number]; front: [number, number]; spokeUnits: number }> = {
+  road: { rear: [14, 27], front: [50, 27], spokeUnits: 6.5 },
+  gravel: { rear: [14, 27], front: [50, 27], spokeUnits: 6.5 },
+  mtb: { rear: [14, 27], front: [50, 27], spokeUnits: 6 },
+  city: { rear: [14, 27], front: [50, 27], spokeUnits: 6.5 },
+  minivelo: { rear: [16, 30], front: [48, 30], spokeUnits: 3.5 },
+};
 
 type RacerView = {
   data: RacerResult;
   container: Phaser.GameObjects.Container;
   dot: Phaser.GameObjects.Rectangle;
   progress: number;
+  // 라이더 역할(게임 캐릭터): 다리·의상 팔레트 결정
+  role: PixelCharacterRole;
   // 사이드뷰 페달링 라이더 (lane-board에는 없음)
   farLegs?: Phaser.GameObjects.Graphics;
   nearLegs?: Phaser.GameObjects.Graphics;
+  // 회전 스포크 오버레이
+  wheels?: Phaser.GameObjects.Image[];
+  spokeRadius?: number;
   pedalAngle: number;
   lastProgress: number;
 };
@@ -333,29 +388,31 @@ class RaceScene extends Phaser.Scene {
     this.worldMarkers.push({ progress: 1, objects: [finishPost, finishFlag, finishLabel] });
 
     // 참가자: 텍스처 캐시 경로(addPixelBikeImage)로 8대 동시 렌더링.
-    // 라이더는 안장에 앉은 자세로 그리고, 다리(원경/근경)는 매 프레임 크랭크 각도에 맞춰 다시 그립니다.
+    // 라이더는 게임 캐릭터(정비사·점장·고객) 픽셀맵의 착좌 자세로 그리고,
+    // 다리(원경/근경)는 매 프레임 크랭크 각도에 맞춰 다시 그립니다.
     this.result!.racers.forEach((racer, index) => {
+      const role: PixelCharacterRole = racer.isPlayer ? '정비사' : index % 2 === 0 ? '고객' : '점장';
       const container = this.add.container(PLAYER_X, ROAD_Y + (racer.isPlayer ? 0 : (index % 3) - 1)).setDepth(racer.isPlayer ? 7 : 6);
       const farLegs = this.add.graphics();
       container.add(farLegs);
+      const spin = this.addWheelSpokes(container, racer.category, 2);
       const bike = addPixelBikeImage(this, 0, 0, 2, { category: racer.category, colorway: makeWarmColorway(racer.frameColor) });
       container.add(bike);
-      const body = this.add.graphics();
-      this.paintRiderBody(body, racer, 2);
-      container.add(body);
+      this.buildRiderBody(container, racer, role, 2);
       const nearLegs = this.add.graphics();
       container.add(nearLegs);
       if (racer.isPlayer) {
-        const tag = this.add.rectangle(0, -84, 36, 18, RED).setStrokeStyle(2, BORDER);
-        const tagText = this.add.text(0, -84, '나', this.style(10, CREAM_TEXT, true)).setOrigin(0.5);
+        const tag = this.add.rectangle(0, -90, 36, 18, RED).setStrokeStyle(2, BORDER);
+        const tagText = this.add.text(0, -90, '나', this.style(10, CREAM_TEXT, true)).setOrigin(0.5);
         container.add([tag, tagText]);
       } else {
-        container.add(this.add.text(0, -78, racer.name, this.style(8, INK, true)).setOrigin(0.5));
+        container.add(this.add.text(0, -84, racer.name, this.style(8, INK, true)).setOrigin(0.5));
       }
       this.tweens.add({ targets: container, y: '-=2', duration: 240 + index * 22, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       const view: RacerView = {
-        data: racer, container, dot: this.add.rectangle(0, 0, 1, 1, 0, 0), progress: 0,
-        farLegs, nearLegs, pedalAngle: index * 2.1, lastProgress: 0,
+        data: racer, container, dot: this.add.rectangle(0, 0, 1, 1, 0, 0), progress: 0, role,
+        farLegs, nearLegs, wheels: spin.wheels, spokeRadius: spin.spokeRadius,
+        pedalAngle: index * 2.1, lastProgress: 0,
       };
       this.drawRiderLegs(view);
       this.views.push(view);
@@ -392,10 +449,15 @@ class RaceScene extends Phaser.Scene {
       }
 
       const container = this.add.container(trackFrom, laneY + laneHeight - 12).setDepth(racer.isPlayer ? 6 : 5);
+      const spin = this.addWheelSpokes(container, racer.category, 1);
       const bike = addPixelBikeImage(this, 0, 0, 1, { category: racer.category, colorway: makeWarmColorway(racer.frameColor) });
       container.add(bike);
       this.tweens.add({ targets: container, y: '-=1.5', duration: 220 + index * 18, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-      this.views.push({ data: racer, container, dot: this.add.rectangle(0, 0, 1, 1, 0, 0), progress: 0, pedalAngle: 0, lastProgress: 0 });
+      this.views.push({
+        data: racer, container, dot: this.add.rectangle(0, 0, 1, 1, 0, 0), progress: 0,
+        role: racer.isPlayer ? '정비사' : index % 2 === 0 ? '고객' : '점장',
+        wheels: spin.wheels, spokeRadius: spin.spokeRadius, pedalAngle: 0, lastProgress: 0,
+      });
     });
 
     // 레인 좌표 갱신에 쓰는 상수 저장
@@ -466,6 +528,7 @@ class RaceScene extends Phaser.Scene {
     const player = this.views.find((view) => view.data.isPlayer)!;
     const leaderProgress = Math.max(...this.views.map((view) => view.progress));
 
+    this.updateRiderMotion();
     if (this.mode === 'side-follow') this.updateSideView(player);
     else this.updateLaneBoard();
 
@@ -510,38 +573,58 @@ class RaceScene extends Phaser.Scene {
     return { x: (point[0] - 32) * cell, y: (point[1] - RIDER_GEOM[category].axle) * cell };
   }
 
-  // 안장에 앉아 핸들바를 잡은 상반신 (정적 1회 드로잉)
-  private paintRiderBody(g: Phaser.GameObjects.Graphics, racer: RacerResult, cell: number) {
+  // 게임 캐릭터(정비사·점장·고객) 픽셀맵을 착좌 자세로 배치합니다 (정적 1회 드로잉).
+  // 팔은 차종별 핸들바(그립) 위치가 달라 픽셀맵에 굽지 않고 절차 드로잉으로 잇습니다.
+  private buildRiderBody(container: Phaser.GameObjects.Container, racer: RacerResult, role: PixelCharacterRole, cell: number) {
     const geom = RIDER_GEOM[racer.category];
     const hip = this.riderPoint(racer.category, geom.hip, cell);
     const hand = this.riderPoint(racer.category, geom.hand, cell);
-    const shoulder = this.riderPoint(racer.category, [33, -1], cell);
-    const jersey = racer.isPlayer ? CREAM : lighten(racer.frameColor, 1.3);
-    const helmet = racer.isPlayer ? RED : lighten(racer.frameColor, 0.6);
-    // 몸통: 안장에서 어깨로 앞으로 기운 착좌 자세
-    g.lineStyle(3.4 * cell, jersey);
-    g.lineBetween(hip.x, hip.y, shoulder.x, shoulder.y);
-    // 엉덩이(팬츠): 안장 접점
-    g.fillStyle(RIDER_PANTS);
-    g.fillRect(hip.x - 2 * cell, hip.y - 1.5 * cell, 4.5 * cell, 3 * cell);
-    // 팔: 어깨→핸들바, 손은 그립 위
-    g.lineStyle(1.8 * cell, jersey);
-    g.lineBetween(shoulder.x, shoulder.y + cell, hand.x, hand.y);
-    g.fillStyle(RIDER_SKIN);
-    g.fillRect(hand.x - cell, hand.y - cell, 2 * cell, 2 * cell);
-    // 어깨 관절: 몸통·팔·목을 잇는 블록
-    g.fillStyle(jersey);
-    g.fillRect(shoulder.x - 1.5 * cell, shoulder.y - 1.5 * cell, 3 * cell, 3 * cell);
-    // 머리 + 헬멧 (어깨 위에 붙여 그림)
-    const headX = shoulder.x + 0.5 * cell;
-    const headY = shoulder.y - 6.5 * cell;
-    g.fillStyle(RIDER_SKIN);
-    g.fillRect(headX, headY, 5 * cell, 5 * cell);
-    g.fillStyle(helmet);
-    g.fillRect(headX - cell, headY - 2 * cell, 6.5 * cell, 2.6 * cell);
-    g.fillRect(headX + 4.5 * cell, headY + 0.4 * cell, 1.6 * cell, 1 * cell); // 헬멧 챙
-    g.lineStyle(2, BORDER);
-    g.strokeRect(headX - cell, headY - 2 * cell, 6.5 * cell, 7 * cell);
+    const legend = RIDER_LEGENDS[role];
+    // 픽셀맵의 엉덩이 기준 셀 중심이 hip 포인트에 오도록 bottom 앵커 좌표를 역산
+    const mapWidth = Math.max(...RIDER_MAP.map((row) => row.length));
+    const gx = hip.x - (-(mapWidth * cell) / 2 + RIDER_MAP_HIP.col * cell + cell / 2);
+    const gy = hip.y - (-(RIDER_MAP.length * cell) + RIDER_MAP_HIP.row * cell + cell / 2);
+    const body = drawPixelMap(this, gx, gy, RIDER_MAP, legend, cell, 0, 'bottom');
+    const shoulder = {
+      x: gx + (-(mapWidth * cell) / 2 + RIDER_MAP_SHOULDER.col * cell + cell / 2),
+      y: gy + (-(RIDER_MAP.length * cell) + RIDER_MAP_SHOULDER.row * cell + cell / 2),
+    };
+    const arm = this.add.graphics();
+    arm.lineStyle(2 * cell, legend.O);
+    arm.lineBetween(shoulder.x, shoulder.y + cell, hand.x, hand.y);
+    arm.fillStyle(RIDER_SKIN);
+    arm.fillRect(hand.x - cell, hand.y - cell, 2 * cell, 2 * cell);
+    container.add([body, arm]);
+  }
+
+  // 바퀴 중심에 회전 스포크 오버레이를 추가합니다. 텍스처는 반경 단위로 캐시되고,
+  // 자전거 텍스처 아래(프레임·타이어 뒤)에 깔려 바퀴 안쪽에서만 보입니다.
+  private addWheelSpokes(container: Phaser.GameObjects.Container, category: BikeCategory, cell: number): { wheels: Phaser.GameObjects.Image[]; spokeRadius: number } {
+    const geom = WHEEL_GEOM[category];
+    const radius = Math.max(4, Math.round(geom.spokeUnits * cell));
+    const key = `race-spokes-${radius}`;
+    if (!this.textures.exists(key)) {
+      const g = this.add.graphics();
+      g.lineStyle(Math.max(2, cell), 0xd9c197, 1);
+      for (let index = 0; index < 3; index += 1) {
+        const angle = (Math.PI / 3) * index + Math.PI / 6;
+        g.lineBetween(
+          radius + Math.cos(angle) * (radius - 1), radius + Math.sin(angle) * (radius - 1),
+          radius - Math.cos(angle) * (radius - 1), radius - Math.sin(angle) * (radius - 1),
+        );
+      }
+      g.fillStyle(0xa39985, 1);
+      g.fillCircle(radius, radius, Math.max(2, cell));
+      g.generateTexture(key, radius * 2, radius * 2);
+      g.destroy();
+    }
+    const axle = RIDER_GEOM[category].axle;
+    const wheels = [geom.rear, geom.front].map((point) => {
+      const image = this.add.image((point[0] - 32) * cell, (point[1] - axle) * cell, key);
+      container.add(image);
+      return image;
+    });
+    return { wheels, spokeRadius: radius };
   }
 
   // 크랭크 각도에 맞춰 원경/근경 다리를 다시 그립니다 (라이더당 드로잉 6개 수준)
@@ -573,20 +656,30 @@ class RaceScene extends Phaser.Scene {
       g.fillStyle(shoe);
       g.fillRect(pedal.x - 1.6 * cell, pedal.y - 0.9 * cell, 3.4 * cell, 1.8 * cell);
     };
-    drawLeg(farLegs, view.pedalAngle + Math.PI, RIDER_PANTS_FAR, RIDER_SHOE_FAR);
-    drawLeg(nearLegs, view.pedalAngle, RIDER_PANTS, RIDER_SHOE);
+    const colors = RIDER_LEG_COLORS[view.role];
+    drawLeg(farLegs, view.pedalAngle + Math.PI, colors.pantsFar, colors.shoeFar);
+    drawLeg(nearLegs, view.pedalAngle, colors.pants, colors.shoe);
   }
 
-  private updateSideView(player: RacerView) {
-    // 페달링: 실제 이동량에 비례해 크랭크를 돌립니다 (슬로모션·완주 후 관성도 자연히 반영)
+  // 페달링·바퀴 회전: 실제 이동량에 비례해 돌립니다 (슬로모션·완주 후 관성도 자연히 반영)
+  private updateRiderMotion() {
     this.views.forEach((view) => {
       const moved = view.progress - view.lastProgress;
       view.lastProgress = view.progress;
-      if (moved > 0) {
-        view.pedalAngle += (moved * SPREAD_PX) / PEDAL_PX_PER_RADIAN;
+      if (moved <= 0) return;
+      const movedPx = moved * SPREAD_PX;
+      if (view.wheels && view.spokeRadius) {
+        const rotation = movedPx / (view.spokeRadius * 1.4);
+        view.wheels.forEach((wheel) => { wheel.rotation += rotation; });
+      }
+      if (view.farLegs) {
+        view.pedalAngle += movedPx / PEDAL_PX_PER_RADIAN;
         this.drawRiderLegs(view);
       }
     });
+  }
+
+  private updateSideView(player: RacerView) {
     const offset = player.progress * SPREAD_PX;
     if (this.hillFar) this.hillFar.x = -((offset * 0.22) % 540);
     if (this.hillNear) this.hillNear.x = -((offset * 0.45) % 360);
