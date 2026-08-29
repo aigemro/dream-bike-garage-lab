@@ -605,7 +605,7 @@ class GameScreenMobileScene extends Phaser.Scene {
     }
     this.time.delayedCall(1600, () => {
       this.orderCompleting = false;
-      this.orderIndex = (this.orderIndex + 1) % 2;
+      this.orderIndex = (this.orderIndex + 1) % ORDERS.length;
       this.goals = ORDERS[this.orderIndex].map((goal) => ({ ...goal }));
       this.startedAt = this.time.now;
       this.drawOrderBike();

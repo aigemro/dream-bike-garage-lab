@@ -221,3 +221,33 @@ export function sanitizeDreamGrowth(data: Partial<DreamGrowth>): DreamGrowth {
   });
   return { targetBikeId, stats };
 }
+
+// ── 다음 목표 결정 규칙 (#205) ──
+// 우선순위: 1) 아직 해금하지 못한 자전거를 주는 다음 주문 → 2) 강화 가능한 드림 바이크 파츠
+// → 3) 모두 달성 시 반복 주문 안내. 목표 달성 시 홈 화면이 이 규칙으로 다음 목표를 자동 갱신합니다.
+
+export type NextGoal =
+  | { kind: 'unlock'; orderIndex: number; orderName: string; bikeId: string; bikeName: string }
+  | { kind: 'upgrade'; stat: DreamStatKey; cost: number }
+  | { kind: 'repeat' };
+
+export function computeNextGoal(collection: CollectionProgress, growth: DreamGrowth): NextGoal {
+  const nextUnlock = ORDER_METAS.find((meta) => !collection.ownedBikeIds.includes(meta.unlockBikeId));
+  if (nextUnlock) {
+    const bike = catalogBikeById(nextUnlock.unlockBikeId);
+    return {
+      kind: 'unlock',
+      orderIndex: nextUnlock.orderIndex,
+      orderName: nextUnlock.name,
+      bikeId: nextUnlock.unlockBikeId,
+      bikeName: bike?.name ?? nextUnlock.unlockBikeId,
+    };
+  }
+  const upgradable = DREAM_STAT_KEYS.filter((key) => growth.stats[key] < DREAM_STAT_MAX_LEVEL);
+  if (upgradable.length > 0) {
+    // 가장 낮은 단계의 파츠부터 안내해 성장 격차를 줄입니다
+    const stat = upgradable.reduce((lowest, key) => (growth.stats[key] < growth.stats[lowest] ? key : lowest));
+    return { kind: 'upgrade', stat, cost: dreamUpgradeCost(growth.stats[stat]) };
+  }
+  return { kind: 'repeat' };
+}
