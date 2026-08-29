@@ -33,7 +33,7 @@ export type GameScreenMobileHooks = {
   orderIndex?: number;
   autoPlacement?: boolean;
   continuousOrders?: boolean;
-  getDaySummary?: () => { dayNumber: number; remainingMs: number; earnings: number };
+  getDaySummary?: () => { dayNumber: number; remainingMs: number; durationMs: number; earnings: number };
   onAutoPlacementChange?: (enabled: boolean) => void;
   onOrderComplete?: (orderIndex: number) => void | { reward: number; totalDayIncome: number };
   onSfx?: (event: 'tap' | 'parcel' | 'merge' | 'install' | 'complete' | 'error') => void;
@@ -77,7 +77,11 @@ class GameScreenMobileScene extends Phaser.Scene {
   private autoPlacementToggle?: Phaser.GameObjects.Rectangle;
   private autoPlacementCheck?: Phaser.GameObjects.Text;
   private autoPlacementState?: Phaser.GameObjects.Text;
-  private daySummary?: Phaser.GameObjects.Text;
+  private dayBadgeText?: Phaser.GameObjects.Text;
+  private dayTimerText?: Phaser.GameObjects.Text;
+  private dayIncomeText?: Phaser.GameObjects.Text;
+  private dayTimerPanel?: Phaser.GameObjects.Rectangle;
+  private dayTimerFill?: Phaser.GameObjects.Rectangle;
 
   create() {
     this.cameras.main.setBackgroundColor('#c78452');
@@ -98,9 +102,15 @@ class GameScreenMobileScene extends Phaser.Scene {
   update() {
     const summary = this.hooks.getDaySummary?.();
     this.metrics.setText(summary ? '' : `${((this.time.now - this.startedAt) / 1000).toFixed(0)}s · 머지 ${this.merges}`);
-    if (summary && this.daySummary) {
+    if (summary && this.dayBadgeText && this.dayTimerText && this.dayIncomeText && this.dayTimerPanel && this.dayTimerFill) {
       const remainingSeconds = Math.max(0, Math.ceil(summary.remainingMs / 1000));
-      this.daySummary.setText(`DAY ${summary.dayNumber} · 00:${String(remainingSeconds).padStart(2, '0')} · 오늘 수입 ${summary.earnings.toLocaleString()}`);
+      const urgent = summary.remainingMs <= 3000;
+      const remainingRatio = Phaser.Math.Clamp(summary.remainingMs / Math.max(1, summary.durationMs), 0, 1);
+      this.dayBadgeText.setText(`DAY ${summary.dayNumber}`);
+      this.dayTimerText.setText(`00:${String(remainingSeconds).padStart(2, '0')}`).setColor(urgent ? '#fff1c6' : INK);
+      this.dayIncomeText.setText(`오늘 수입  ${summary.earnings.toLocaleString()}`);
+      this.dayTimerPanel.setFillStyle(urgent ? 0xc95746 : 0xf4b84a);
+      this.dayTimerFill.setDisplaySize(378 * remainingRatio, 4).setFillStyle(urgent ? 0xc95746 : 0x5e9a67);
     }
     this.tickParcels();
   }
@@ -114,12 +124,22 @@ class GameScreenMobileScene extends Phaser.Scene {
   }
 
   private drawHeader() {
-    this.add.rectangle(195, 30, 390, 60, CREAM).setStrokeStyle(4, BORDER).setDepth(8);
-    this.add.rectangle(56, 30, 76, 24, 0xc95746).setStrokeStyle(2, BORDER).setDepth(9);
-    this.add.text(56, 30, 'WORK', { fontFamily: FONT, fontSize: '11px', color: '#fff1c6', fontStyle: 'bold' }).setOrigin(0.5).setDepth(10);
-    this.add.text(104, 22, '두리 자전거 공방 · 작업대', { fontFamily: FONT, fontSize: '13px', color: INK, fontStyle: 'bold' }).setDepth(10);
+    const hasDayHud = Boolean(this.hooks.getDaySummary);
+    this.add.rectangle(195, hasDayHud ? 34 : 30, 390, hasDayHud ? 68 : 60, CREAM).setStrokeStyle(4, BORDER).setDepth(8);
+    this.add.rectangle(hasDayHud ? 46 : 56, hasDayHud ? 17 : 30, hasDayHud ? 68 : 76, hasDayHud ? 22 : 24, 0xc95746).setStrokeStyle(2, BORDER).setDepth(9);
+    this.add.text(hasDayHud ? 46 : 56, hasDayHud ? 17 : 30, 'WORK', { fontFamily: FONT, fontSize: '11px', color: '#fff1c6', fontStyle: 'bold' }).setOrigin(0.5).setDepth(10);
+    this.add.text(hasDayHud ? 88 : 104, hasDayHud ? 10 : 22, '두리 자전거 공방 · 작업대', { fontFamily: FONT, fontSize: hasDayHud ? '12px' : '13px', color: INK, fontStyle: 'bold' }).setDepth(10);
     this.metrics = this.add.text(382, 39, '', { fontFamily: FONT, fontSize: '10px', color: MUTED }).setOrigin(1, 0.5).setDepth(10);
-    this.daySummary = this.add.text(104, 40, 'DAY · 00:10 · 오늘 수입 0', { fontFamily: FONT, fontSize: '9px', color: MUTED, fontStyle: 'bold' }).setDepth(10);
+    if (!hasDayHud) return;
+
+    this.add.rectangle(48, 47, 72, 26, BROWN).setStrokeStyle(2, BORDER).setDepth(9);
+    this.dayBadgeText = this.add.text(48, 47, 'DAY 1', { fontFamily: FONT, fontSize: '12px', color: '#fff1c6', fontStyle: 'bold' }).setOrigin(0.5).setDepth(10);
+    this.dayTimerPanel = this.add.rectangle(132, 47, 84, 30, 0xf4b84a).setStrokeStyle(2, BORDER).setDepth(9);
+    this.dayTimerText = this.add.text(132, 47, '00:10', { fontFamily: FONT, fontSize: '17px', color: INK, fontStyle: 'bold' }).setOrigin(0.5).setDepth(10);
+    this.add.rectangle(280, 47, 196, 26, GOLD).setStrokeStyle(2, BROWN).setDepth(9);
+    this.dayIncomeText = this.add.text(280, 47, '오늘 수입  0', { fontFamily: FONT, fontSize: '11px', color: MUTED, fontStyle: 'bold' }).setOrigin(0.5).setDepth(10);
+    this.add.rectangle(6, 65, 378, 4, 0x573044).setOrigin(0, 0.5).setDepth(10);
+    this.dayTimerFill = this.add.rectangle(6, 65, 378, 4, 0x5e9a67).setOrigin(0, 0.5).setDepth(11);
   }
 
   private drawOrderCard() {
