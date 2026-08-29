@@ -1,6 +1,6 @@
 // 메타 루프 진행 로직 (순수 로직 · Phaser 비의존) — #200 트랙
-// 주문 완료 → 컬렉션 해금(#201)과 컬렉션 진행 저장·복구(#204)의 데이터 규칙을
-// 화면 코드와 분리해 단위 테스트 가능하게 관리합니다.
+// 주문 완료 → 컬렉션 해금(#201), 컬렉션 진행 저장·복구(#204),
+// 드림 바이크 성장·코인 소비(#203)의 데이터 규칙을 화면 코드와 분리해 단위 테스트 가능하게 관리합니다.
 
 import { catalogBikeById, type CatalogBike } from './bike-catalog';
 
@@ -126,4 +126,98 @@ export function sanitizeCollectionProgress(data: Partial<CollectionProgress>): C
   });
 
   return { ownedBikeIds: owned, newBikeIds: news, selectedBikeId: selected, showcaseSlots: slots };
+}
+
+// ── 드림 바이크 성장 (#203) ──
+// 기존 C안 화면의 강화 규칙(파츠 3종 · Lv.1~4 · 비용 350×레벨 · 합계 7/10에서 등급 상승)을
+// 화면 내부 값에서 분리해, 코인 차감과 강화 반영을 하나의 원자적 처리로 관리합니다.
+
+export type DreamStatKey = '성능' | '스타일' | '희귀도';
+export const DREAM_STAT_KEYS: DreamStatKey[] = ['성능', '스타일', '희귀도'];
+export const DREAM_STAT_MIN_LEVEL = 1;
+export const DREAM_STAT_MAX_LEVEL = 4;
+
+export type DreamGrowth = {
+  targetBikeId: string;
+  stats: Record<DreamStatKey, number>;
+};
+
+export function createDreamGrowth(): DreamGrowth {
+  return { targetBikeId: 'dream-road', stats: { 성능: 1, 스타일: 1, 희귀도: 1 } };
+}
+
+// 강화 비용: 현재 레벨 × 350 (명시적 데이터 — 밸런스 확정은 메인 담당)
+export function dreamUpgradeCost(level: number): number {
+  return 350 * level;
+}
+
+export function dreamTotalLevel(growth: DreamGrowth): number {
+  return DREAM_STAT_KEYS.reduce((sum, key) => sum + growth.stats[key], 0);
+}
+
+// 종합 성장 단계: 합계 10 이상 = 3단계(드림), 7 이상 = 2단계(고급), 그 외 1단계(중급)
+export function dreamStage(growth: DreamGrowth): 1 | 2 | 3 {
+  const total = dreamTotalLevel(growth);
+  return total >= 10 ? 3 : total >= 7 ? 2 : 1;
+}
+
+export function dreamGradeName(growth: DreamGrowth): '중급' | '고급' | '드림' {
+  const stage = dreamStage(growth);
+  return stage === 3 ? '드림' : stage === 2 ? '고급' : '중급';
+}
+
+export type DreamUpgradeResult =
+  | { ok: true; coins: number; growth: DreamGrowth; upgradedTo: number; stageUp: boolean }
+  | { ok: false; reason: 'coins' | 'max'; coins: number; growth: DreamGrowth };
+
+// 코인 차감과 레벨 상승을 함께 계산해 반환합니다. 실패 시 어느 쪽도 변하지 않습니다(원자적 처리).
+export function applyDreamUpgrade(growth: DreamGrowth, coins: number, stat: DreamStatKey): DreamUpgradeResult {
+  const level = growth.stats[stat];
+  if (level >= DREAM_STAT_MAX_LEVEL) return { ok: false, reason: 'max', coins, growth };
+  const cost = dreamUpgradeCost(level);
+  if (coins < cost) return { ok: false, reason: 'coins', coins, growth };
+  const beforeStage = dreamStage(growth);
+  const next: DreamGrowth = { ...growth, stats: { ...growth.stats, [stat]: level + 1 } };
+  return { ok: true, coins: coins - cost, growth: next, upgradedTo: level + 1, stageUp: dreamStage(next) > beforeStage };
+}
+
+// ── 드림 바이크 성장 저장·복구 (#203) — 컬렉션(#204)과 같은 버전·보정 규칙 구조 ──
+
+export const GROWTH_STORAGE_KEY = 'dbg-lab-meta-growth';
+export const GROWTH_SCHEMA_VERSION = 1;
+
+type SavedGrowth = { version: number } & Partial<DreamGrowth>;
+
+export function serializeDreamGrowth(growth: DreamGrowth): string {
+  return JSON.stringify({ version: GROWTH_SCHEMA_VERSION, ...growth } satisfies SavedGrowth);
+}
+
+export function parseDreamGrowth(raw: string | null | undefined): DreamGrowth {
+  if (!raw) return createDreamGrowth();
+  let saved: unknown;
+  try {
+    saved = JSON.parse(raw);
+  } catch {
+    return createDreamGrowth();
+  }
+  if (typeof saved !== 'object' || saved === null) return createDreamGrowth();
+  const data = saved as SavedGrowth;
+  if (data.version !== GROWTH_SCHEMA_VERSION) return createDreamGrowth();
+  return sanitizeDreamGrowth(data);
+}
+
+// 저장 데이터의 비정상 값(범위 밖 레벨, 소수·문자열, 미등록 대상 자전거)을 안전한 값으로 보정합니다.
+export function sanitizeDreamGrowth(data: Partial<DreamGrowth>): DreamGrowth {
+  const fallback = createDreamGrowth();
+  const targetBikeId = typeof data.targetBikeId === 'string' && catalogBikeById(data.targetBikeId)
+    ? data.targetBikeId
+    : fallback.targetBikeId;
+  const stats = { ...fallback.stats };
+  DREAM_STAT_KEYS.forEach((key) => {
+    const value = data.stats?.[key];
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      stats[key] = Math.min(DREAM_STAT_MAX_LEVEL, Math.max(DREAM_STAT_MIN_LEVEL, Math.floor(value)));
+    }
+  });
+  return { targetBikeId, stats };
 }

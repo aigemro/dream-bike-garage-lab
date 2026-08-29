@@ -3,15 +3,25 @@ import { describe, expect, it } from 'vitest';
 import { CATALOG_BIKES, catalogBikeById } from './bike-catalog';
 import {
   COLLECTION_SCHEMA_VERSION,
+  DREAM_STAT_MAX_LEVEL,
+  GROWTH_SCHEMA_VERSION,
   ORDER_METAS,
+  applyDreamUpgrade,
   applyOrderUnlock,
   createCollectionProgress,
+  createDreamGrowth,
+  dreamGradeName,
+  dreamStage,
+  dreamUpgradeCost,
   markBikeSeen,
   orderMetaAt,
   ownedBikeCount,
   parseCollectionProgress,
+  parseDreamGrowth,
   sanitizeCollectionProgress,
+  sanitizeDreamGrowth,
   serializeCollectionProgress,
+  serializeDreamGrowth,
 } from './meta-progress';
 
 describe('주문 메타 매핑', () => {
@@ -149,5 +159,96 @@ describe('신규 발견 확인 처리', () => {
     markBikeSeen(progress, 'urban-road');
     expect(progress.newBikeIds).not.toContain('urban-road');
     expect(progress.ownedBikeIds).toContain('urban-road');
+  });
+});
+
+describe('드림 바이크 성장 (#203)', () => {
+  it('첫 주문 급여(1,000코인)로 최소 한 단계 강화할 수 있다', () => {
+    const growth = createDreamGrowth();
+    const firstReward = ORDER_METAS[0].reward;
+    expect(dreamUpgradeCost(growth.stats.성능)).toBeLessThanOrEqual(firstReward);
+    const result = applyDreamUpgrade(growth, firstReward, '성능');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.growth.stats.성능).toBe(2);
+      expect(result.coins).toBe(firstReward - dreamUpgradeCost(1));
+    }
+  });
+
+  it('코인이 부족하면 차감도 강화도 발생하지 않는다', () => {
+    const growth = createDreamGrowth();
+    const result = applyDreamUpgrade(growth, 100, '성능');
+    expect(result.ok).toBe(false);
+    expect(result.coins).toBe(100);
+    expect(growth.stats.성능).toBe(1);
+    if (!result.ok) expect(result.reason).toBe('coins');
+  });
+
+  it('최대 단계에서는 강화가 거부된다', () => {
+    const growth = createDreamGrowth();
+    growth.stats.성능 = DREAM_STAT_MAX_LEVEL;
+    const result = applyDreamUpgrade(growth, 99_999, '성능');
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe('max');
+  });
+
+  it('강화 성공 시 코인 차감과 단계 증가가 함께 적용된다', () => {
+    let growth = createDreamGrowth();
+    let coins = 10_000;
+    const result = applyDreamUpgrade(growth, coins, '스타일');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.coins).toBe(coins - dreamUpgradeCost(1));
+      expect(result.growth.stats.스타일).toBe(2);
+      // 원본은 변경하지 않는다 (실패 시 어느 쪽도 변하지 않는 원자성 보장과 동일 원칙)
+      expect(growth.stats.스타일).toBe(1);
+    }
+  });
+
+  it('합계 7·10 도달 시 등급이 상승하고 stageUp이 보고된다', () => {
+    let growth = createDreamGrowth();
+    expect(dreamStage(growth)).toBe(1);
+    expect(dreamGradeName(growth)).toBe('중급');
+    let coins = 99_999;
+    let stageUps = 0;
+    // 성능→스타일→희귀도 순서로 반복 강화하며 등급 상승 시점을 확인
+    for (const stat of ['성능', '스타일', '희귀도', '성능', '스타일', '희귀도', '성능'] as const) {
+      const result = applyDreamUpgrade(growth, coins, stat);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        growth = result.growth;
+        coins = result.coins;
+        if (result.stageUp) stageUps += 1;
+      }
+    }
+    // 합계 10 → 드림 등급까지 두 번의 등급 상승
+    expect(dreamStage(growth)).toBe(3);
+    expect(dreamGradeName(growth)).toBe('드림');
+    expect(stageUps).toBe(2);
+  });
+});
+
+describe('드림 바이크 성장 저장·복구 (#203)', () => {
+  it('직렬화 → 복원 왕복 후 상태가 동일하다', () => {
+    let growth = createDreamGrowth();
+    const upgraded = applyDreamUpgrade(growth, 1000, '희귀도');
+    if (upgraded.ok) growth = upgraded.growth;
+    expect(parseDreamGrowth(serializeDreamGrowth(growth))).toEqual(growth);
+  });
+
+  it('저장 없음·손상 JSON·버전 불일치 시 기본값으로 복구된다', () => {
+    expect(parseDreamGrowth(null)).toEqual(createDreamGrowth());
+    expect(parseDreamGrowth('{broken')).toEqual(createDreamGrowth());
+    const wrongVersion = JSON.stringify({ version: GROWTH_SCHEMA_VERSION + 1, stats: { 성능: 4 } });
+    expect(parseDreamGrowth(wrongVersion)).toEqual(createDreamGrowth());
+  });
+
+  it('범위 밖 레벨과 미등록 대상 자전거는 안전한 값으로 보정된다', () => {
+    const result = sanitizeDreamGrowth({
+      targetBikeId: 'deleted-bike',
+      stats: { 성능: 99, 스타일: -3, 희귀도: 2.7 },
+    });
+    expect(result.targetBikeId).toBe('dream-road');
+    expect(result.stats).toEqual({ 성능: DREAM_STAT_MAX_LEVEL, 스타일: 1, 희귀도: 2 });
   });
 });
