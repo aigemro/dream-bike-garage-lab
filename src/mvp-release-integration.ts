@@ -8,6 +8,7 @@ import { startBikeCollectionDesignPrototype, type BikeCollectionDesignMode } fro
 import { startProfileDesignPrototype } from './profile-design-prototype';
 import { startSettingsDrawerPrototype } from './settings-design';
 import { ReleaseAudio, type ReleaseAudioRoom, type ReleaseSfxEvent } from './release-audio';
+import { applyOrderUnlock, createCollectionProgress, markBikeSeen, orderMetaAt, type OrderUnlockResult } from './meta-progress';
 
 type ReleaseScreen = 'title' | 'home' | 'guide' | 'game' | 'reward' | 'catalog' | 'showcase' | 'dream' | 'profile' | 'settings';
 type ReleaseState = {
@@ -56,7 +57,9 @@ export class MvpReleaseIntegrationController {
   private readonly audio = new ReleaseAudio();
   private state = this.loadState();
   private screen: ReleaseScreen = 'title';
-  private selectedBikeId = 'dream-road';
+  // 컬렉션 진행 상태 (#201): 이 단계에서는 세션 메모리로만 유지하고, 저장·복구는 #204에서 연결한다
+  private collection = createCollectionProgress();
+  private lastUnlock?: OrderUnlockResult;
   private rewardApplied = false;
   private readonly stageId = `mvp-release-stage-${Math.random().toString(36).slice(2)}`;
 
@@ -146,8 +149,10 @@ export class MvpReleaseIntegrationController {
           this.state.autoPlacement = enabled;
           this.saveState();
         },
-        onOrderComplete: () => {
+        onOrderComplete: (orderIndex) => {
           this.state.completedOrders += 1;
+          // 납품한 주문에 매핑된 자전거를 컬렉션에 해금하고, 결과를 정산 화면에 전달한다 (#201)
+          this.lastUnlock = applyOrderUnlock(this.collection, orderIndex);
           this.saveState();
           this.show('reward');
         },
@@ -156,10 +161,16 @@ export class MvpReleaseIntegrationController {
       return;
     }
     if (screen === 'reward') {
-      const reward = 1000 + this.state.orderIndex * 400;
+      const orderMeta = orderMetaAt(this.state.orderIndex);
+      const reward = orderMeta?.reward ?? 1000 + this.state.orderIndex * 400;
       this.game = startRewardSettlementPrototype(this.stageId, {
         initialCoins: this.state.coins,
         reward,
+        orderName: orderMeta?.name,
+        bikeCategory: orderMeta?.bikeCategory,
+        unlockedBike: this.lastUnlock?.unlockedBike
+          ? { name: this.lastUnlock.unlockedBike.name, grade: this.lastUnlock.unlockedBike.grade, isNew: this.lastUnlock.isNew }
+          : undefined,
         onReward: (coins) => {
           if (this.rewardApplied) return;
           this.rewardApplied = true;
@@ -177,12 +188,18 @@ export class MvpReleaseIntegrationController {
       const mode: BikeCollectionDesignMode = screen === 'catalog' ? 'warm-catalog' : screen === 'showcase' ? 'warm-showcase' : 'warm-dream-growth';
       this.game = startBikeCollectionDesignPrototype(this.stageId, mode, {
         coins: this.state.coins,
-        initialBikeId: this.selectedBikeId,
+        initialBikeId: this.collection.selectedBikeId,
+        // 실제 컬렉션 진행 데이터 연결 (#201): 보유·신규 발견·전시 슬롯을 단일 상태로 공유
+        ownedBikeIds: [...this.collection.ownedBikeIds],
+        newBikeIds: [...this.collection.newBikeIds],
+        showcaseSlots: [...this.collection.showcaseSlots],
+        onShowcaseChange: (slots) => { this.collection.showcaseSlots = slots; },
+        onBikeSeen: (bikeId) => markBikeSeen(this.collection, bikeId),
         onHome: () => this.show('home'),
         onCatalog: () => this.show('catalog'),
         onShowcase: () => this.show('showcase'),
         onDreamGrowth: () => this.show('dream'),
-        onBikeDetail: (bikeId) => { this.selectedBikeId = bikeId; this.show('dream'); },
+        onBikeDetail: (bikeId) => { this.collection.selectedBikeId = bikeId; this.show('dream'); },
         onCoinsChange: (coins) => { this.state.coins = coins; this.saveState(); this.refreshShell(); },
         onSfx: (event) => this.play(event === 'reward' ? 'reward' : event),
       });
@@ -196,7 +213,13 @@ export class MvpReleaseIntegrationController {
       toggles: { bgm: this.state.bgm, sfx: this.state.sfx, vibration: this.state.vibration },
       onHome: () => this.show('home'),
       onTutorial: () => { this.state.tutorialDone = false; this.saveState(); },
-      onReset: () => { this.state = { ...DEFAULT_STATE }; localStorage.removeItem(STORAGE_KEY); window.setTimeout(() => this.show('title'), 0); },
+      onReset: () => {
+        this.state = { ...DEFAULT_STATE };
+        this.collection = createCollectionProgress();
+        this.lastUnlock = undefined;
+        localStorage.removeItem(STORAGE_KEY);
+        window.setTimeout(() => this.show('title'), 0);
+      },
       onToggle: (key, value) => {
         this.state[key] = value;
         this.audio.setEnabled(this.state.bgm, this.state.sfx);

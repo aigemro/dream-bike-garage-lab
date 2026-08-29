@@ -7,6 +7,7 @@ import { drawPixelBike, drawPixelPartIcon, makeWarmColorway, bikePartAnchorOffse
 import { PARTS, ORDERS, type PartType, type Goal } from './merge-prototype';
 import { findFirstAvailablePlacement } from './auto-placement';
 import { cancelPartSelection } from './part-selection';
+import { orderMetaAt } from './meta-progress';
 
 type Point = { x: number; y: number };
 type Piece = { id: number; type: PartType; level: number; row: number; column: number; rotation: number; item: Phaser.GameObjects.Container };
@@ -21,7 +22,6 @@ const GOLD = 0xf6d995;
 const BORDER = 0x3b2531;
 const BROWN = 0x8e5136;
 const PART_COLORS: Record<PartType, number> = WARM_PART_COLORS; // 부품 아이콘과 같은 대표색 단일 출처
-const ORDER_NAMES = ['통학용 어반 로드', '트레일 MTB'];
 
 // 주문 카드 자전거 기준점 (x=자전거 가로 중앙, y=바퀴 축 높이 · 부품 장착 연출 목표 좌표의 기준)
 // 픽셀 자전거는 cell 2 기준 상단 y-38, 하단 y+20, 폭 약 108px → 카드(중심 y=138, 높이 140) 우측 절반에 들어맞는다.
@@ -134,9 +134,9 @@ class GameScreenMobileScene extends Phaser.Scene {
     this.refreshOrder();
   }
 
-  // 현재 주문에 맞는 자전거 카테고리 ('통학용 어반 로드' → city, '트레일 MTB' → mtb)
+  // 현재 주문에 맞는 자전거 카테고리 — 주문명·보상과 함께 meta-progress의 주문 메타를 단일 출처로 사용 (#201)
   private orderCategory(): BikeCategory {
-    return this.orderIndex === 1 ? 'mtb' : 'city';
+    return orderMetaAt(this.orderIndex)?.bikeCategory ?? 'city';
   }
 
   private drawOrderBike() {
@@ -617,7 +617,7 @@ class GameScreenMobileScene extends Phaser.Scene {
 
   private refreshOrder() {
     const installed = this.goals.filter((goal) => goal.delivered).length;
-    this.orderTitle.setText(ORDER_NAMES[this.orderIndex]);
+    this.orderTitle.setText(orderMetaAt(this.orderIndex)?.name ?? `주문 ${this.orderIndex + 1}`);
     this.orderProgress.setText(`장착 ${installed}/${this.goals.length} · 부품별 자동 장착`);
     this.goals.forEach((goal) => {
       const chip = this.goalChips.get(goal.type);
