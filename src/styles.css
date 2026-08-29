@@ -149,6 +149,9 @@ body:has(.variant-detail-page) .site-footer { display: none; }
 .mock-account-grid button span, .mock-account-grid button em { color: #79513d; font-size: 10px; font-style: normal; font-weight: 600; }
 .day-goal-grid > div, .settlement-grid > div, .profile-id-card > div, .profile-progress-grid > div { padding: 12px; border: 2px solid #8e5136; background: #f8deb0; }
 .day-goal-grid strong, .settlement-grid strong, .profile-id-card strong, .profile-progress-grid strong { display: block; margin-top: 5px; font-size: 13px; }
+.settlement-income { margin: 14px 0; padding: 14px; border: 3px solid #8e5136; background: #f4b84a; text-align: center; }
+.settlement-income span { display: block; color: #79513d; font-size: 10px; font-weight: 900; letter-spacing: .1em; }
+.settlement-income strong { display: block; margin-top: 6px; color: #573044; font-size: 22px; }
 .profile-id-card em { display: block; overflow-wrap: anywhere; margin-top: 4px; color: #9a6549; font-size: 9px; font-style: normal; }
 .day-account-eyebrow { color: #b0643e !important; font-size: 9px !important; font-weight: 900; letter-spacing: .13em; }
 .day-number-badge { display: inline-block; margin-bottom: 10px; padding: 7px 10px; background: #573044; color: #fff1c6; font-size: 15px; font-weight: 900; }
