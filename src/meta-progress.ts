@@ -1,6 +1,6 @@
 // 메타 루프 진행 로직 (순수 로직 · Phaser 비의존) — #200 트랙
-// 주문 완료 → 컬렉션 해금(#201)의 데이터 규칙을 화면 코드와 분리해 단위 테스트 가능하게 관리합니다.
-// 저장·복구는 후속 이슈(#204)에서 이 모듈의 상태 모델 위에 얹습니다.
+// 주문 완료 → 컬렉션 해금(#201)과 컬렉션 진행 저장·복구(#204)의 데이터 규칙을
+// 화면 코드와 분리해 단위 테스트 가능하게 관리합니다.
 
 import { catalogBikeById, type CatalogBike } from './bike-catalog';
 
@@ -71,4 +71,59 @@ export function markBikeSeen(progress: CollectionProgress, bikeId: string) {
 
 export function ownedBikeCount(progress: CollectionProgress): number {
   return new Set(progress.ownedBikeIds).size;
+}
+
+// ── 컬렉션 진행 저장·복구 (#204) ──
+// localStorage 접근은 호출 측(컨트롤러)이 담당하고, 이 모듈은 직렬화·검증·마이그레이션 규칙만 가집니다.
+
+export const COLLECTION_STORAGE_KEY = 'dbg-lab-meta-collection';
+export const COLLECTION_SCHEMA_VERSION = 1;
+const SHOWCASE_SLOT_COUNT = 3;
+
+type SavedCollection = { version: number } & Partial<CollectionProgress>;
+
+export function serializeCollectionProgress(progress: CollectionProgress): string {
+  return JSON.stringify({ version: COLLECTION_SCHEMA_VERSION, ...progress } satisfies SavedCollection);
+}
+
+// 저장 원본이 없거나(JSON 손상 포함) 스키마 버전이 다르면 기본값으로 복구합니다.
+// 버전이 맞아도 필드 단위로 검증해 삭제된 자전거 ID·중복·형식 이상을 방어합니다.
+export function parseCollectionProgress(raw: string | null | undefined): CollectionProgress {
+  if (!raw) return createCollectionProgress();
+  let saved: unknown;
+  try {
+    saved = JSON.parse(raw);
+  } catch {
+    return createCollectionProgress();
+  }
+  if (typeof saved !== 'object' || saved === null) return createCollectionProgress();
+  const data = saved as SavedCollection;
+  // 알 수 없는 구버전·신버전 스키마는 마이그레이션 규칙이 생길 때까지 기본값으로 시작합니다
+  if (data.version !== COLLECTION_SCHEMA_VERSION) return createCollectionProgress();
+  return sanitizeCollectionProgress(data);
+}
+
+// 저장 데이터의 비정상 값(미등록 ID, 중복, 잘못된 슬롯 수, 미보유 전시 등)을 안전한 값으로 보정합니다.
+export function sanitizeCollectionProgress(data: Partial<CollectionProgress>): CollectionProgress {
+  const fallback = createCollectionProgress();
+
+  const ownedRaw = Array.isArray(data.ownedBikeIds) ? data.ownedBikeIds : fallback.ownedBikeIds;
+  const owned = [...new Set(ownedRaw)].filter((id): id is string => typeof id === 'string' && Boolean(catalogBikeById(id)));
+  // 시작 보유 자전거는 항상 유지해 빈 컬렉션으로 인한 진행 불가를 막습니다
+  INITIAL_OWNED_BIKE_IDS.forEach((id) => { if (!owned.includes(id)) owned.unshift(id); });
+
+  const newRaw = Array.isArray(data.newBikeIds) ? data.newBikeIds : [];
+  const news = [...new Set(newRaw)].filter((id): id is string => typeof id === 'string' && owned.includes(id));
+
+  const selected = typeof data.selectedBikeId === 'string' && catalogBikeById(data.selectedBikeId)
+    ? data.selectedBikeId
+    : owned[0];
+
+  const slotsRaw = Array.isArray(data.showcaseSlots) ? data.showcaseSlots : fallback.showcaseSlots;
+  const slots = Array.from({ length: SHOWCASE_SLOT_COUNT }, (_, index) => {
+    const slot = slotsRaw[index];
+    return typeof slot === 'string' && owned.includes(slot) ? slot : null;
+  });
+
+  return { ownedBikeIds: owned, newBikeIds: news, selectedBikeId: selected, showcaseSlots: slots };
 }
