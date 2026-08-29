@@ -143,15 +143,16 @@ class GameScreenMobileScene extends Phaser.Scene {
   }
 
   private drawOrderCard() {
-    this.add.rectangle(195, 138, 374, 140, CREAM).setStrokeStyle(4, BROWN).setDepth(2);
-    this.add.rectangle(64, 78, 88, 22, 0xc95746).setStrokeStyle(2, BORDER).setDepth(3);
-    this.add.text(64, 78, 'NEW ORDER', { fontFamily: FONT, fontSize: '9px', color: '#fff1c6', fontStyle: 'bold' }).setOrigin(0.5).setDepth(4);
-    this.orderTitle = this.add.text(20, 94, '', { fontFamily: FONT, fontSize: '15px', color: INK, fontStyle: 'bold' }).setDepth(4);
-    this.orderProgress = this.add.text(20, 117, '', { fontFamily: FONT, fontSize: '10px', color: MUTED, fontStyle: 'bold' }).setDepth(4);
+    const dayHudOffset = this.hooks.getDaySummary ? 8 : 0;
+    this.add.rectangle(195, 138 + dayHudOffset, 374, 140, CREAM).setStrokeStyle(4, BROWN).setDepth(2);
+    this.add.rectangle(64, 78 + dayHudOffset, 88, 22, 0xc95746).setStrokeStyle(2, BORDER).setDepth(3);
+    this.add.text(64, 78 + dayHudOffset, 'NEW ORDER', { fontFamily: FONT, fontSize: '9px', color: '#fff1c6', fontStyle: 'bold' }).setOrigin(0.5).setDepth(4);
+    this.orderTitle = this.add.text(20, 94 + dayHudOffset, '', { fontFamily: FONT, fontSize: '15px', color: INK, fontStyle: 'bold' }).setDepth(4);
+    this.orderProgress = this.add.text(20, 117 + dayHudOffset, '', { fontFamily: FONT, fontSize: '10px', color: MUTED, fontStyle: 'bold' }).setDepth(4);
 
     this.goals.forEach((goal, index) => {
       const x = 42 + index * 46;
-      const y = 168;
+      const y = 168 + dayHudOffset;
       const panel = this.add.rectangle(x, y, 42, 40, GOLD).setStrokeStyle(2, PART_COLORS[goal.type]).setDepth(3);
       // 칩 위쪽은 부품 픽셀 아이콘, 아래쪽은 상태 텍스트
       drawPixelPartIcon(this, x, y - 9, 1.5, goal.type, { depth: 4 });
@@ -169,8 +170,9 @@ class GameScreenMobileScene extends Phaser.Scene {
 
   private drawOrderBike() {
     this.orderBike?.destroy();
+    const dayHudOffset = this.hooks.getDaySummary ? 8 : 0;
     const delivered = (type: PartType) => this.goals.find((goal) => goal.type === type)?.delivered ?? false;
-    this.orderBike = drawPixelBike(this, BIKE_X, BIKE_Y, BIKE_CELL, {
+    this.orderBike = drawPixelBike(this, BIKE_X, BIKE_Y + dayHudOffset, BIKE_CELL, {
       category: this.orderCategory(),
       colorway: makeWarmColorway(0xc95746),
       depth: 4,
@@ -186,7 +188,7 @@ class GameScreenMobileScene extends Phaser.Scene {
   // 픽셀 스프라이트 앵커(x=중앙, y=축) 기준 부품 위치 오프셋을 월드 좌표로 환산 (장착 연출 목표)
   private bikeAnchor(type: PartType): Point {
     const { dx, dy } = bikePartAnchorOffset(this.orderCategory(), type, BIKE_CELL);
-    return { x: BIKE_X + dx, y: BIKE_Y + dy };
+    return { x: BIKE_X + dx, y: BIKE_Y + (this.hooks.getDaySummary ? 8 : 0) + dy };
   }
 
   private drawBoard() {

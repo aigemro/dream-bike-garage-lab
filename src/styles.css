@@ -136,8 +136,12 @@ body:has(.variant-detail-page) .site-footer { display: none; }
 .day-account-stage { position: relative; width: 100%; height: 100%; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #c78452 url('./assets/release-side-art/garage-bikes.svg') center / cover no-repeat; }
 .day-account-stage::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: rgba(87,48,68,.18); }
 .day-account-stage canvas { position: relative; z-index: 1; display: block !important; flex: 0 0 auto; width: auto !important; height: 100% !important; max-width: 100%; max-height: 100%; margin: 0 !important; aspect-ratio: 390 / 810; box-shadow: 0 0 0 5px rgba(87,48,68,.22); }
-.day-account-panel { position: relative; z-index: 2; width: min(88%, 480px); max-height: 90%; overflow-y: auto; box-sizing: border-box; padding: 20px; border: 4px solid #3b2531; background: #fff1c6; box-shadow: 7px 8px 0 rgba(59,37,49,.3); }
-.day-account-panel h2, .day-account-panel h3 { margin: 0 0 10px; color: #573044; }
+.day-account-panel { position: relative; z-index: 2; width: min(360px, calc(100% - 28px)); max-height: calc(100% - 28px); overflow-y: auto; box-sizing: border-box; padding: 16px; border: 4px solid #3b2531; background: #fff1c6; box-shadow: 6px 7px 0 rgba(59,37,49,.3); }
+.day-account-panel h2, .day-account-panel h3 { margin: 0 0 9px; color: #573044; }
+.day-ready-panel h2, .day-settlement-panel h2 { font-size: 23px; line-height: 1.25; }
+.day-ready-panel, .day-settlement-panel { width: min(350px, calc(100% - 28px)); }
+.day-ready-panel .day-goal-grid, .day-settlement-panel .settlement-grid { gap: 7px; margin: 10px 0; }
+.day-ready-panel .day-goal-grid > div, .day-settlement-panel .settlement-grid > div { padding: 9px; }
 .day-account-panel p { margin: 7px 0; color: #79513d; font-size: 12px; line-height: 1.55; }
 .day-account-panel small { color: #9a6549; line-height: 1.45; }
 .day-account-panel button { margin: 6px 6px 0 0; }
@@ -149,14 +153,14 @@ body:has(.variant-detail-page) .site-footer { display: none; }
 .mock-account-grid button span, .mock-account-grid button em { color: #79513d; font-size: 10px; font-style: normal; font-weight: 600; }
 .day-goal-grid > div, .settlement-grid > div, .profile-id-card > div, .profile-progress-grid > div { padding: 12px; border: 2px solid #8e5136; background: #f8deb0; }
 .day-goal-grid strong, .settlement-grid strong, .profile-id-card strong, .profile-progress-grid strong { display: block; margin-top: 5px; font-size: 13px; }
-.settlement-income { margin: 14px 0; padding: 14px; border: 3px solid #8e5136; background: #f4b84a; text-align: center; }
+.settlement-income { margin: 10px 0; padding: 10px; border: 3px solid #8e5136; background: #f4b84a; text-align: center; }
 .settlement-income span { display: block; color: #79513d; font-size: 10px; font-weight: 900; letter-spacing: .1em; }
 .settlement-income strong { display: block; margin-top: 6px; color: #573044; font-size: 22px; }
 .profile-id-card em { display: block; overflow-wrap: anywhere; margin-top: 4px; color: #9a6549; font-size: 9px; font-style: normal; }
 .day-account-eyebrow { color: #b0643e !important; font-size: 9px !important; font-weight: 900; letter-spacing: .13em; }
-.day-number-badge { display: inline-block; margin-bottom: 10px; padding: 7px 10px; background: #573044; color: #fff1c6; font-size: 15px; font-weight: 900; }
+.day-number-badge { display: inline-block; margin-bottom: 8px; padding: 6px 9px; background: #573044; color: #fff1c6; font-size: 14px; font-weight: 900; }
 .day-account-message { padding: 8px 10px; border-left: 3px solid #f4b84a; background: #f8deb0; }
 .day-history-list { display: grid; gap: 6px; margin-top: 12px; }
 .day-history-list p { display: flex; justify-content: space-between; gap: 12px; margin: 0; padding: 8px 10px; border-left: 3px solid #f4b84a; background: #f8deb0; color: #79513d; font-size: 10px; }
 .day-account-footer { display: flex; justify-content: space-between; gap: 10px; padding: 7px 10px; background: #fff1c6; color: #79513d; border-top: 3px solid #3b2531; font-size: 9px; }
-@media (max-width: 600px) { .day-account-header { grid-template-columns: 1fr; padding: 7px 9px; }.day-account-state { justify-content: flex-start; }.day-account-state span { padding: 3px 5px; }.day-account-nav { padding: 5px 6px; }.day-account-panel { width: 94%; padding: 15px; }.mock-account-grid, .day-goal-grid, .settlement-grid, .profile-id-card, .profile-progress-grid { grid-template-columns: 1fr; }.day-account-footer { display: none; } }
+@media (max-width: 600px) { .day-account-header { grid-template-columns: 1fr; padding: 7px 9px; }.day-account-state { justify-content: flex-start; }.day-account-state span { padding: 3px 5px; }.day-account-nav { padding: 5px 6px; }.day-account-panel { width: min(360px, calc(100% - 20px)); padding: 14px; }.day-ready-panel, .day-settlement-panel { width: min(350px, calc(100% - 20px)); }.mock-account-grid, .profile-id-card, .profile-progress-grid { grid-template-columns: 1fr; }.day-ready-panel .day-goal-grid, .day-settlement-panel .settlement-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.day-account-footer { display: none; } }
