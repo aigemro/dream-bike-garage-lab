@@ -412,7 +412,7 @@ const tracks: Track[] = [
     description: '검증된 기능과 최종 화면 디자인·오디오를 하나의 모바일 수직 슬라이스로 연결해 메인 프로젝트 이전 준비 상태를 확인합니다.',
     issueNumber: 113,
     variants: [
-      { id: 'vertical-slice', label: '릴리스 통합안', title: '최종 디자인·오디오 MVP 수직 슬라이스', description: '홈 A안 시각 언어를 전체 화면에 적용하고, 배치 미리보기·선택형 택배 자동 배치·자전거 수집 A/B/C·오디오를 하나의 저장 상태로 연결합니다.', status: '체험 가능', question: '첫 실행부터 주문·머지·조립·납품·성장·수집·재진입까지 화면과 상태가 끊기지 않고 하나의 MVP로 이해되는가?', controls: 'TAP TO START → 홈 PLAY → 택배 자동 배치 ON/OFF → 수동/자동 배치 → 머지·자동 장착 → 급여 봉투를 진행합니다. 수동 선택은 선택 취소로 안전하게 해제할 수 있습니다.', releaseIntegrationDemo: 'vertical-slice', issueNumber: 192, documentId: 'mvp-release-vertical-slice' },
+      { id: 'vertical-slice', label: '릴리스 통합안', title: '최종 디자인·오디오 MVP 수직 슬라이스', description: '홈 A안 시각 언어를 전체 화면에 적용하고, 주문 완료→컬렉션 해금→드림 바이크 성장→홈 다음 목표로 이어지는 메타 루프를 저장·복구되는 하나의 진행 상태로 연결합니다.', status: '체험 가능', question: '첫 주문부터 다음 주문까지 급여·해금·성장·다음 목표가 끊기지 않고 반복 가능한 메타 루프로 이해되는가?', controls: 'TAP TO START → 홈 PLAY → 택배·머지·자동 장착 → 급여 봉투(신규 자전거 해금) → 도감·전시·성장 → 홈 NEXT GOAL 확인을 진행합니다. 새로고침 후에도 진행이 복구됩니다.', releaseIntegrationDemo: 'vertical-slice', issueNumber: 192, documentId: 'mvp-release-vertical-slice' },
       { id: 'core-features', label: '통합안', title: '머지 코어 C안 + 택배 수급 + 장착·조립', description: 'C안의 자유 배치 보드와 주문 가이드를 그대로 사용하고, 카테고리 택배 수급과 목표 부품의 단계별 자동 장착을 직접 연결합니다.', status: '체험 가능', question: 'C안 보드·주문 가이드 위에서 택배 수급과 장착·조립이 상태 유실이나 진행 막힘 없이 한 주문의 완료까지 이어지는가?', controls: '필요 카테고리 택배 주문 → 배송 → 개봉 → 배치·회전·선택 취소 → 2→1 머지 → 자동 장착 → 주문 완료 순서로 진행합니다.', demo: 'integrated', issueNumber: 114, documentId: 'mvp-integration-core-features' },
     ],
   },
