@@ -3,7 +3,7 @@
 // 납품 → 급여 → 성장 게이지 → 다음 주문 예고의 폐곡선을 한 화면으로 잇는다.
 // 보상 수치·성장 비용 규칙은 결정하지 않는다 (#19·#116 담당).
 import Phaser from 'phaser';
-import { drawPixelBike, makeWarmColorway } from './bike-pixel-sprite';
+import { drawPixelBike, makeWarmColorway, type BikeCategory } from './bike-pixel-sprite';
 import { drawFieldCharacter } from './art-character-pixel';
 
 const FONT = '"Arial Rounded MT Bold", "Noto Sans KR", sans-serif';
@@ -22,6 +22,10 @@ const GAUGE_TO = 0.62;
 export type RewardSettlementHooks = {
   initialCoins?: number;
   reward?: number;
+  // 릴리스 통합용 실제 주문 데이터 (#201): 납품 주문명·자전거 종류·컬렉션 해금 결과
+  orderName?: string;
+  bikeCategory?: BikeCategory;
+  unlockedBike?: { name: string; grade: string; isNew: boolean };
   onNext?: () => void;
   onHome?: () => void;
   onReward?: (coins: number) => void;
@@ -49,13 +53,13 @@ class RewardSettlementScene extends Phaser.Scene {
     this.add.rectangle(195, 46, 374, 64, CREAM).setStrokeStyle(4, BORDER).setDepth(8);
     this.add.rectangle(70, 30, 104, 22, 0x5e9a67).setStrokeStyle(2, BORDER).setDepth(9);
     this.add.text(70, 30, 'DELIVERY DONE', { fontFamily: FONT, fontSize: '9px', color: '#fff1c6', fontStyle: 'bold' }).setOrigin(0.5).setDepth(10);
-    this.add.text(24, 44, '통학용 어반 로드 납품 완료!', { fontFamily: FONT, fontSize: '15px', color: INK, fontStyle: 'bold' }).setDepth(10);
+    this.add.text(24, 44, `${this.hooks.orderName ?? '통학용 어반 로드'} 납품 완료!`, { fontFamily: FONT, fontSize: '15px', color: INK, fontStyle: 'bold' }).setDepth(10);
     this.add.text(24, 64, '고객이 급여 봉투를 건넸습니다.', { fontFamily: FONT, fontSize: '10px', color: MUTED }).setDepth(10);
 
     // 중앙: 완성 자전거 + 고객 + 말풍선
     this.add.rectangle(195, 208, 374, 214, 0xd79a63, 0.7).setStrokeStyle(4, BROWN).setDepth(1);
     drawPixelBike(this, 150, 218, 3, {
-      category: 'road', colorway: makeWarmColorway(0xc95746), depth: 3,
+      category: this.hooks.bikeCategory ?? 'road', colorway: makeWarmColorway(0xc95746), depth: 3,
     });
     drawFieldCharacter(this, 312, 288, '고객', 4, 3);
     this.add.rectangle(300, 138, 150, 44, CREAM).setStrokeStyle(3, BORDER).setDepth(4);
@@ -129,11 +133,27 @@ class RewardSettlementScene extends Phaser.Scene {
     this.message.setText(`급여 ${reward.toLocaleString()}코인을 받았습니다!`);
     this.rewardText.setText(`+${reward.toLocaleString()}`);
     this.hooks.onReward?.((this.hooks.initialCoins ?? BASE_COINS) + reward);
+    this.showUnlockBanner();
     // 봉투에서 코인 조각이 정산 패널로 날아가는 짧은 픽셀 연출
     for (let i = 0; i < 5; i += 1) {
       const coin = this.add.rectangle(195 + (i - 2) * 10, 392, 12, 12, 0xe7a942).setStrokeStyle(2, BORDER).setDepth(20);
       this.tweens.add({ targets: coin, x: 340 + (i % 2) * 10, y: 512, alpha: { from: 1, to: 0.2 }, duration: 480 + i * 90, ease: 'Cubic.easeIn', onComplete: () => coin.destroy() });
     }
+  }
+
+  // 컬렉션 해금 결과 배너 (#201): 신규 발견이면 강조, 이미 보유한 자전거면 중복 안내만 표시
+  private showUnlockBanner() {
+    const unlocked = this.hooks.unlockedBike;
+    if (!unlocked) return;
+    const highlight = unlocked.isNew;
+    const banner = this.add.rectangle(195, 300, 342, 34, highlight ? 0xf4b84a : CREAM)
+      .setStrokeStyle(3, BORDER).setDepth(6).setAlpha(0);
+    const text = this.add.text(195, 300,
+      highlight
+        ? `NEW BIKE! ${unlocked.name} (${unlocked.grade}) 도감 등록`
+        : `${unlocked.name}은(는) 이미 도감에 있는 자전거입니다`,
+      { fontFamily: FONT, fontSize: '11px', color: INK, fontStyle: 'bold' }).setOrigin(0.5).setDepth(7).setAlpha(0);
+    this.tweens.add({ targets: [banner, text], alpha: 1, y: '-=8', duration: 360, ease: 'Cubic.easeOut' });
   }
 
   private showNextOrder() {
