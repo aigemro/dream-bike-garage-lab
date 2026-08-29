@@ -23,6 +23,7 @@ import { startGameSystemPrototype, type GameSystemPrototypeMode } from './game-s
 import { startBoardSizePrototype, type BoardSizeMode } from './board-size-prototype';
 import { startCoreLoopPrototype, type CoreLoopPrototypeMode } from './core-loop-prototype';
 import { startMvpReleaseIntegration } from './mvp-release-integration';
+import { startDayAccountIntegration } from './day-account-integration';
 import garage16Bit from './assets/background-art/garage-16bit.png';
 import garage32Bit from './assets/background-art/garage-32bit.png';
 import garageUiFriendly from './assets/background-art/garage-ui-friendly.png';
@@ -56,6 +57,7 @@ type Variant = {
   boardSizeDemo?: BoardSizeMode;
   coreLoopDemo?: CoreLoopPrototypeMode;
   releaseIntegrationDemo?: 'vertical-slice';
+  dayAccountDemo?: 'active-time-soft-day';
   imageDemo?: string;
   issueNumber: number;
   documentId: string;
@@ -394,6 +396,16 @@ const tracks: Track[] = [
     ],
   },
   {
+    id: 'day-account-session',
+    group: 'RELEASE INTEGRATION',
+    title: 'Day·계정 기반 플레이 세션',
+    description: '하루 제한 시간과 로그인 계정별 진행 저장을 기존 MVP 수직 슬라이스에 연결해 세션 시작·중단·복원을 검증합니다.',
+    issueNumber: 207,
+    variants: [
+      { id: 'active-time-soft-day', label: 'B안 · 1차 권장', title: '활성 플레이 시간 + 계정별 진행', description: '테스트 계정으로 로그인하고 최초 프로필을 만든 뒤, 활성 플레이 중에만 5분 Day 타이머를 차감합니다. Day·재화·주문·성장·정산 기록은 계정별로 분리 저장됩니다.', status: '체험 가능', question: '백그라운드와 로그아웃에서는 시간이 멈추면서도 Day 제한이 플레이 리듬을 만들고, 계정 전환 뒤 각 진행이 정확히 복원되는가?', controls: '계정 A 로그인 → 프로필 생성 → Day 시작 → 주문 진행·Day 정산 → 로그아웃 → 계정 B 진행 → 계정 A 재로그인 순서로 계정별 복원을 확인합니다.', dayAccountDemo: 'active-time-soft-day', issueNumber: 214, documentId: 'day-account-active-time' },
+    ],
+  },
+  {
     id: 'mvp-release-integration',
     group: 'RELEASE INTEGRATION',
     title: 'MVP 릴리스 통합',
@@ -504,8 +516,9 @@ function renderDemo(track: Track, variant: Variant) {
     || variant.homePlayDemo || variant.homeDesignDemo || variant.gameScreenDesignDemo || variant.screenDesignDemo
     || variant.collectionDesignDemo || variant.profileDesignDemo || variant.artAudioDemo || variant.inputDemo
     || variant.systemDemo || variant.storageDemo || variant.boardSizeDemo || variant.coreLoopDemo
-    || variant.releaseIntegrationDemo || variant.imageDemo);
-  const demoLabel = variant.releaseIntegrationDemo ? '선택 디자인·오디오·저장 상태 통합 · 390×810'
+    || variant.releaseIntegrationDemo || variant.dayAccountDemo || variant.imageDemo);
+  const demoLabel = variant.dayAccountDemo ? '테스트 계정 A/B · 활성 플레이 시간 · 계정별 자동 저장'
+    : variant.releaseIntegrationDemo ? '선택 디자인·오디오·저장 상태 통합 · 390×810'
     : variant.imageDemo ? '동일 Garage 장면 · 390×810 세로 화면'
     : variant.coreLoopDemo ? 'MVP GAME CORE · 간단 상호작용 검증'
     : variant.gameScreenDesignDemo ? (variant.gameScreenDesignDemo === 'warm-pixel-game-mobile' ? '#114 동일 통합 로직 · 390×810 모바일 세로' : '#114 동일 통합 로직 · 홈 A안 따뜻한 픽셀 Garage 표현')
@@ -527,10 +540,10 @@ function renderDemo(track: Track, variant: Variant) {
     : variant.demo === 'integrated' ? 'C안 화면·보드 기반 · 택배 수급 · 부품별 자동 장착'
     : '6×7 · 4 PARTS';
   shell(`<main class="experiment-page demo-page">
-    ${hasDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${demoLabel}</span><strong>${variant.title}</strong></div>${variant.imageDemo ? '' : '<button id="reset-demo">초기화</button>'}</div>${variant.imageDemo ? `<figure class="background-art-preview"><img src="${variant.imageDemo}" alt="${variant.title} Garage 배경 시안" /></figure>` : `<div id="game-root" class="demo-${variant.releaseIntegrationDemo ?? variant.gameScreenDesignDemo ?? variant.screenDesignDemo ?? variant.coreLoopDemo ?? variant.boardSizeDemo ?? variant.storageDemo ?? variant.systemDemo ?? variant.inputDemo ?? variant.artAudioDemo ?? variant.homeDesignDemo ?? variant.collectionDesignDemo ?? variant.profileDesignDemo ?? variant.homePlayDemo ?? variant.assemblyDemo ?? variant.rewardDemo ?? variant.supplyDemo ?? variant.collectionDemo ?? variant.demo}"></div>`}<p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
+    ${hasDemo ? `<section class="demo-panel"><div class="demo-head"><div><span>${track.title} · ${variant.label} · LIVE DEMO · ${demoLabel}</span><strong>${variant.title}</strong></div>${variant.imageDemo ? '' : '<button id="reset-demo">초기화</button>'}</div>${variant.imageDemo ? `<figure class="background-art-preview"><img src="${variant.imageDemo}" alt="${variant.title} Garage 배경 시안" /></figure>` : `<div id="game-root" class="demo-${variant.dayAccountDemo ?? variant.releaseIntegrationDemo ?? variant.gameScreenDesignDemo ?? variant.screenDesignDemo ?? variant.coreLoopDemo ?? variant.boardSizeDemo ?? variant.storageDemo ?? variant.systemDemo ?? variant.inputDemo ?? variant.artAudioDemo ?? variant.homeDesignDemo ?? variant.collectionDesignDemo ?? variant.profileDesignDemo ?? variant.homePlayDemo ?? variant.assemblyDemo ?? variant.rewardDemo ?? variant.supplyDemo ?? variant.collectionDemo ?? variant.demo}"></div>`}<p class="hint">${variant.controls}</p></section>` : `<section class="empty-panel"><span>VARIANT SLOT</span><h2>이 방안은 아직 준비 중입니다.</h2></section>`}
   </main>`, { href: `#/track/${track.id}/${variant.id}`, label: `${variant.title} 상세` });
   if (hasDemo && !variant.imageDemo) {
-    const start = () => { destroyGame(); if (variant.releaseIntegrationDemo) { game = startMvpReleaseIntegration('game-root'); return; } if (variant.gameScreenDesignDemo) { game = variant.gameScreenDesignDemo === 'warm-pixel-game-mobile' ? startGameScreenMobilePrototype('game-root') : startMergePrototype('game-root', 'integrated', 'warm-pixel'); return; } if (variant.screenDesignDemo) { game = screenDesignStarters[variant.screenDesignDemo]('game-root'); return; } if (variant.coreLoopDemo) { game = startCoreLoopPrototype('game-root', variant.coreLoopDemo) as unknown as Phaser.Game; return; } if (variant.boardSizeDemo) { game = startBoardSizePrototype('game-root', variant.boardSizeDemo) as unknown as Phaser.Game; return; } if (variant.storageDemo) { variant.storageDemo === 'integrated-auto' ? startIntegratedSavePrototype('game-root') : startStoragePrototype('game-root', variant.storageDemo); return; } game = variant.systemDemo ? startGameSystemPrototype('game-root', variant.systemDemo) : variant.inputDemo ? startInputPrototype('game-root', variant.inputDemo) : variant.artAudioDemo ? startArtAudioPrototype('game-root', variant.artAudioDemo) : variant.collectionDesignDemo ? startBikeCollectionDesignPrototype('game-root', variant.collectionDesignDemo) : variant.profileDesignDemo ? startProfileDesignPrototype('game-root', variant.profileDesignDemo) : variant.homeDesignDemo ? startHomeDesignPrototype('game-root', variant.homeDesignDemo) : variant.homePlayDemo ? startHomePlayPrototype('game-root', variant.homePlayDemo) : variant.assemblyDemo ? startAssemblyPrototype('game-root', variant.assemblyDemo) : variant.rewardDemo ? startRewardPrototype('game-root', variant.rewardDemo) : variant.supplyDemo ? startSupplyPrototype('game-root', variant.supplyDemo) : variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
+    const start = () => { destroyGame(); if (variant.dayAccountDemo) { game = startDayAccountIntegration('game-root'); return; } if (variant.releaseIntegrationDemo) { game = startMvpReleaseIntegration('game-root'); return; } if (variant.gameScreenDesignDemo) { game = variant.gameScreenDesignDemo === 'warm-pixel-game-mobile' ? startGameScreenMobilePrototype('game-root') : startMergePrototype('game-root', 'integrated', 'warm-pixel'); return; } if (variant.screenDesignDemo) { game = screenDesignStarters[variant.screenDesignDemo]('game-root'); return; } if (variant.coreLoopDemo) { game = startCoreLoopPrototype('game-root', variant.coreLoopDemo) as unknown as Phaser.Game; return; } if (variant.boardSizeDemo) { game = startBoardSizePrototype('game-root', variant.boardSizeDemo) as unknown as Phaser.Game; return; } if (variant.storageDemo) { variant.storageDemo === 'integrated-auto' ? startIntegratedSavePrototype('game-root') : startStoragePrototype('game-root', variant.storageDemo); return; } game = variant.systemDemo ? startGameSystemPrototype('game-root', variant.systemDemo) : variant.inputDemo ? startInputPrototype('game-root', variant.inputDemo) : variant.artAudioDemo ? startArtAudioPrototype('game-root', variant.artAudioDemo) : variant.collectionDesignDemo ? startBikeCollectionDesignPrototype('game-root', variant.collectionDesignDemo) : variant.profileDesignDemo ? startProfileDesignPrototype('game-root', variant.profileDesignDemo) : variant.homeDesignDemo ? startHomeDesignPrototype('game-root', variant.homeDesignDemo) : variant.homePlayDemo ? startHomePlayPrototype('game-root', variant.homePlayDemo) : variant.assemblyDemo ? startAssemblyPrototype('game-root', variant.assemblyDemo) : variant.rewardDemo ? startRewardPrototype('game-root', variant.rewardDemo) : variant.supplyDemo ? startSupplyPrototype('game-root', variant.supplyDemo) : variant.collectionDemo ? startCollectionPrototype('game-root', variant.collectionDemo) : startMergePrototype('game-root', variant.demo!); };
     start();
     document.querySelector('#reset-demo')?.addEventListener('click', start);
   }

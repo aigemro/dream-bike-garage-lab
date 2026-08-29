@@ -58,6 +58,7 @@ flowchart TB
     PLATFORM --> SAVE["저장 · 상태 복구"]
     PLATFORM --> TOSS["앱인토스 · 운영"]
     INTEGRATION --> MVP["MVP 핵심 기능 통합"]
+    INTEGRATION --> DAYACCOUNT["Day · 계정 세션 통합"]
 ```
 
 세부 분류 기준과 현재 통합 선택안은 [트랙 분류 운영안](TRACK_CLASSIFICATION.md)을 따릅니다.
@@ -322,6 +323,7 @@ mindmap
 | Art & Audio | 효과음·조작 피드백 | A: 부드러운 공방 조작 피드백 | 개발 중 (1차 데모) | 핵심 행동 6종 구분감·조립감·연속 입력 피로 검증 | [#129](https://github.com/aigemro/dream-bike-garage-lab/issues/129), [#137](https://github.com/aigemro/dream-bike-garage-lab/issues/137) |
 | Release Integration | MVP 릴리스 통합 | 최종 디자인·오디오 수직 슬라이스 + 플레이 코어 통합 | 검토 준비 | 타이틀→홈→안내→플레이→정산→수집·성장, 수집 A/B/C, HOME/WORK/REWARD BGM·행동 효과음, 로컬 상태 복구 검증 | [#113](https://github.com/aigemro/dream-bike-garage-lab/issues/113), [#114](https://github.com/aigemro/dream-bike-garage-lab/issues/114), [#192](https://github.com/aigemro/dream-bike-garage-lab/issues/192), [통합안](variants/mvp-release-vertical-slice.md) |
 | Release Integration | 컬렉션·드림 바이크 성장 메타 루프 | 주문 완료→해금→저장·복구→성장→홈 다음 목표 동기화 | 검토 준비 | 주문 3종 완주·중복 보상 방지·저장 손상 복구·강화 원자성·다음 목표 자동 갱신 E2E 검증 (Vitest 33건 + 화면 구동) | [#200](https://github.com/aigemro/dream-bike-garage-lab/issues/200)~[#205](https://github.com/aigemro/dream-bike-garage-lab/issues/205), [검증 결과](decisions/META_LOOP_VALIDATION_RESULT.md) |
+| Release Integration | Day·계정 기반 플레이 세션 | B: 활성 플레이 시간 + 계정별 진행 | 개발 중 (1차 데모) | 계정 A/B 분리, 백그라운드 타이머 정지, 중복 없는 Day 정산, 새로고침 복원 검증 | [#207](https://github.com/aigemro/dream-bike-garage-lab/issues/207), [#214](https://github.com/aigemro/dream-bike-garage-lab/issues/214), [실험 문서](DAY_ACCOUNT_EXPERIMENT.md) |
 | Platform | 입력 방식 | A/B/C | 개발 중 (1차 데모) | 탭·드래그·하이브리드를 같은 보드에서 비교 플레이 테스트 | [#33](https://github.com/aigemro/dream-bike-garage-lab/issues/33), [PR #39](https://github.com/aigemro/dream-bike-garage-lab/pull/39) |
 | Platform | 반응형 화면 | A/B/C | 준비 (허브 등록) | 비교 데모 구현 후 모바일·태블릿·웹브라우저 조건별 비교 | [#4](https://github.com/aigemro/dream-bike-garage-lab/issues/4), [PR #39](https://github.com/aigemro/dream-bike-garage-lab/pull/39) |
 | Platform | 저장·복구 | A/B/C: localStorage·IndexedDB·통합 자동 저장 | 개발 중 (1차 데모) | 앱인토스 WebView 실기기 백그라운드·강제 종료 복구 판정 (#4·#117 연계) | [#3](https://github.com/aigemro/dream-bike-garage-lab/issues/3), [#5](https://github.com/aigemro/dream-bike-garage-lab/issues/5), [실험 문서](PERSISTENCE_EXPERIMENT.md) |
