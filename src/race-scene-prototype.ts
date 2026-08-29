@@ -4,8 +4,7 @@
 // A안 side-follow: 카메라가 내 자전거를 따라가는 사이드뷰 트랙
 // B안 lane-board: 트랙 전체를 8레인 전광판으로 중계하는 관람 뷰
 import Phaser from 'phaser';
-import { addPixelBikeImage, drawPixelBike, makeWarmColorway } from './bike-pixel-sprite';
-import { drawFieldCharacter } from './art-character-pixel';
+import { addPixelBikeImage, drawPixelBike, makeWarmColorway, type BikeCategory } from './bike-pixel-sprite';
 import type { BikeStats } from './meta-progress';
 import { dreamGradeName } from './meta-progress';
 import {
@@ -56,11 +55,44 @@ const SPREAD_PX = 2400;
 const PLAYER_X = 130;
 const ROAD_Y = 384;
 
+// ─── 착좌 라이더 (페달링) ──────────────────────────────────────────────
+// bike-pixel-sprite의 그리드 지오메트리(64×40, 앵커 x=32 / y=바퀴 축)를 기준으로
+// 안장(hip)·핸들바(hand)·크랭크 중심(crank)을 카테고리별로 맞춥니다.
+const RIDER_GEOM: Record<BikeCategory, { axle: number; hip: [number, number]; hand: [number, number]; crank: [number, number] }> = {
+  road: { axle: 27, hip: [22, 6], hand: [46, 9], crank: [30, 30] },
+  gravel: { axle: 27, hip: [22, 6], hand: [46, 9], crank: [30, 30] },
+  mtb: { axle: 27, hip: [21, 6], hand: [44, 9], crank: [30, 30] },
+  city: { axle: 27, hip: [22, 6], hand: [43, 9], crank: [30, 30] },
+  minivelo: { axle: 30, hip: [22, 6], hand: [42, 6], crank: [30, 32] },
+};
+
+const RIDER_SKIN = 0xf2c77e;
+const RIDER_PANTS = 0x573044;
+const RIDER_PANTS_FAR = 0x41202f;
+const RIDER_SHOE = 0x302936;
+const RIDER_SHOE_FAR = 0x241f28;
+// 페달 회전 반경(그리드 단위)과 이동 픽셀 → 크랭크 회전량 환산 계수
+const PEDAL_RADIUS_UNITS = 3.5;
+const PEDAL_PX_PER_RADIAN = 12;
+
+// 채널별 밝기 보정: 프레임색에서 저지(상의) 색을 파생합니다.
+function lighten(color: number, factor: number): number {
+  const r = Math.min(255, Math.round(((color >> 16) & 0xff) * factor));
+  const g = Math.min(255, Math.round(((color >> 8) & 0xff) * factor));
+  const b = Math.min(255, Math.round((color & 0xff) * factor));
+  return (r << 16) | (g << 8) | b;
+}
+
 type RacerView = {
   data: RacerResult;
   container: Phaser.GameObjects.Container;
   dot: Phaser.GameObjects.Rectangle;
   progress: number;
+  // 사이드뷰 페달링 라이더 (lane-board에는 없음)
+  farLegs?: Phaser.GameObjects.Graphics;
+  nearLegs?: Phaser.GameObjects.Graphics;
+  pedalAngle: number;
+  lastProgress: number;
 };
 
 class RaceScene extends Phaser.Scene {
@@ -300,22 +332,33 @@ class RaceScene extends Phaser.Scene {
     const finishLabel = this.add.text(0, 296, 'FINISH', this.style(9, CREAM_TEXT, true)).setOrigin(0.5).setDepth(5).setStroke(INK, 4);
     this.worldMarkers.push({ progress: 1, objects: [finishPost, finishFlag, finishLabel] });
 
-    // 참가자: 텍스처 캐시 경로(addPixelBikeImage)로 8대 동시 렌더링
+    // 참가자: 텍스처 캐시 경로(addPixelBikeImage)로 8대 동시 렌더링.
+    // 라이더는 안장에 앉은 자세로 그리고, 다리(원경/근경)는 매 프레임 크랭크 각도에 맞춰 다시 그립니다.
     this.result!.racers.forEach((racer, index) => {
       const container = this.add.container(PLAYER_X, ROAD_Y + (racer.isPlayer ? 0 : (index % 3) - 1)).setDepth(racer.isPlayer ? 7 : 6);
+      const farLegs = this.add.graphics();
+      container.add(farLegs);
       const bike = addPixelBikeImage(this, 0, 0, 2, { category: racer.category, colorway: makeWarmColorway(racer.frameColor) });
       container.add(bike);
-      const rider = drawFieldCharacter(this, 4, -16, racer.isPlayer ? '정비사' : index % 2 === 0 ? '고객' : '점장', 2, 0);
-      container.add(rider);
+      const body = this.add.graphics();
+      this.paintRiderBody(body, racer, 2);
+      container.add(body);
+      const nearLegs = this.add.graphics();
+      container.add(nearLegs);
       if (racer.isPlayer) {
-        const tag = this.add.rectangle(0, -66, 36, 18, RED).setStrokeStyle(2, BORDER);
-        const tagText = this.add.text(0, -66, '나', this.style(10, CREAM_TEXT, true)).setOrigin(0.5);
+        const tag = this.add.rectangle(0, -84, 36, 18, RED).setStrokeStyle(2, BORDER);
+        const tagText = this.add.text(0, -84, '나', this.style(10, CREAM_TEXT, true)).setOrigin(0.5);
         container.add([tag, tagText]);
       } else {
-        container.add(this.add.text(0, -60, racer.name, this.style(8, INK, true)).setOrigin(0.5));
+        container.add(this.add.text(0, -78, racer.name, this.style(8, INK, true)).setOrigin(0.5));
       }
       this.tweens.add({ targets: container, y: '-=2', duration: 240 + index * 22, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-      this.views.push({ data: racer, container, dot: this.add.rectangle(0, 0, 1, 1, 0, 0), progress: 0 });
+      const view: RacerView = {
+        data: racer, container, dot: this.add.rectangle(0, 0, 1, 1, 0, 0), progress: 0,
+        farLegs, nearLegs, pedalAngle: index * 2.1, lastProgress: 0,
+      };
+      this.drawRiderLegs(view);
+      this.views.push(view);
     });
   }
 
@@ -352,7 +395,7 @@ class RaceScene extends Phaser.Scene {
       const bike = addPixelBikeImage(this, 0, 0, 1, { category: racer.category, colorway: makeWarmColorway(racer.frameColor) });
       container.add(bike);
       this.tweens.add({ targets: container, y: '-=1.5', duration: 220 + index * 18, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-      this.views.push({ data: racer, container, dot: this.add.rectangle(0, 0, 1, 1, 0, 0), progress: 0 });
+      this.views.push({ data: racer, container, dot: this.add.rectangle(0, 0, 1, 1, 0, 0), progress: 0, pedalAngle: 0, lastProgress: 0 });
     });
 
     // 레인 좌표 갱신에 쓰는 상수 저장
@@ -462,7 +505,88 @@ class RaceScene extends Phaser.Scene {
     }
   }
 
+  // 그리드 좌표(64×40) → 자전거 앵커(x=중앙, y=바퀴 축) 기준 픽셀 좌표
+  private riderPoint(category: BikeCategory, point: [number, number], cell: number): { x: number; y: number } {
+    return { x: (point[0] - 32) * cell, y: (point[1] - RIDER_GEOM[category].axle) * cell };
+  }
+
+  // 안장에 앉아 핸들바를 잡은 상반신 (정적 1회 드로잉)
+  private paintRiderBody(g: Phaser.GameObjects.Graphics, racer: RacerResult, cell: number) {
+    const geom = RIDER_GEOM[racer.category];
+    const hip = this.riderPoint(racer.category, geom.hip, cell);
+    const hand = this.riderPoint(racer.category, geom.hand, cell);
+    const shoulder = this.riderPoint(racer.category, [33, -1], cell);
+    const jersey = racer.isPlayer ? CREAM : lighten(racer.frameColor, 1.3);
+    const helmet = racer.isPlayer ? RED : lighten(racer.frameColor, 0.6);
+    // 몸통: 안장에서 어깨로 앞으로 기운 착좌 자세
+    g.lineStyle(3.4 * cell, jersey);
+    g.lineBetween(hip.x, hip.y, shoulder.x, shoulder.y);
+    // 엉덩이(팬츠): 안장 접점
+    g.fillStyle(RIDER_PANTS);
+    g.fillRect(hip.x - 2 * cell, hip.y - 1.5 * cell, 4.5 * cell, 3 * cell);
+    // 팔: 어깨→핸들바, 손은 그립 위
+    g.lineStyle(1.8 * cell, jersey);
+    g.lineBetween(shoulder.x, shoulder.y + cell, hand.x, hand.y);
+    g.fillStyle(RIDER_SKIN);
+    g.fillRect(hand.x - cell, hand.y - cell, 2 * cell, 2 * cell);
+    // 어깨 관절: 몸통·팔·목을 잇는 블록
+    g.fillStyle(jersey);
+    g.fillRect(shoulder.x - 1.5 * cell, shoulder.y - 1.5 * cell, 3 * cell, 3 * cell);
+    // 머리 + 헬멧 (어깨 위에 붙여 그림)
+    const headX = shoulder.x + 0.5 * cell;
+    const headY = shoulder.y - 6.5 * cell;
+    g.fillStyle(RIDER_SKIN);
+    g.fillRect(headX, headY, 5 * cell, 5 * cell);
+    g.fillStyle(helmet);
+    g.fillRect(headX - cell, headY - 2 * cell, 6.5 * cell, 2.6 * cell);
+    g.fillRect(headX + 4.5 * cell, headY + 0.4 * cell, 1.6 * cell, 1 * cell); // 헬멧 챙
+    g.lineStyle(2, BORDER);
+    g.strokeRect(headX - cell, headY - 2 * cell, 6.5 * cell, 7 * cell);
+  }
+
+  // 크랭크 각도에 맞춰 원경/근경 다리를 다시 그립니다 (라이더당 드로잉 6개 수준)
+  private drawRiderLegs(view: RacerView) {
+    const { farLegs, nearLegs } = view;
+    if (!farLegs || !nearLegs) return;
+    const cell = 2;
+    const category = view.data.category;
+    const geom = RIDER_GEOM[category];
+    const hip = this.riderPoint(category, geom.hip, cell);
+    const crank = this.riderPoint(category, geom.crank, cell);
+    const radius = PEDAL_RADIUS_UNITS * cell;
+    farLegs.clear();
+    nearLegs.clear();
+    const drawLeg = (g: Phaser.GameObjects.Graphics, angle: number, pants: number, shoe: number) => {
+      const pedal = { x: crank.x + Math.cos(angle) * radius, y: crank.y + Math.sin(angle) * radius };
+      const dx = pedal.x - hip.x;
+      const dy = pedal.y - hip.y;
+      const length = Math.hypot(dx, dy) || 1;
+      // 무릎: 엉덩이→페달 중점에서 전방(진행 방향) 위쪽으로 굽힘
+      const knee = {
+        x: (hip.x + pedal.x) / 2 + (dy / length) * 3 * cell,
+        y: (hip.y + pedal.y) / 2 - (dx / length) * 3 * cell,
+      };
+      g.lineStyle(2.4 * cell, pants);
+      g.lineBetween(hip.x, hip.y, knee.x, knee.y);
+      g.lineStyle(1.7 * cell, pants);
+      g.lineBetween(knee.x, knee.y, pedal.x, pedal.y);
+      g.fillStyle(shoe);
+      g.fillRect(pedal.x - 1.6 * cell, pedal.y - 0.9 * cell, 3.4 * cell, 1.8 * cell);
+    };
+    drawLeg(farLegs, view.pedalAngle + Math.PI, RIDER_PANTS_FAR, RIDER_SHOE_FAR);
+    drawLeg(nearLegs, view.pedalAngle, RIDER_PANTS, RIDER_SHOE);
+  }
+
   private updateSideView(player: RacerView) {
+    // 페달링: 실제 이동량에 비례해 크랭크를 돌립니다 (슬로모션·완주 후 관성도 자연히 반영)
+    this.views.forEach((view) => {
+      const moved = view.progress - view.lastProgress;
+      view.lastProgress = view.progress;
+      if (moved > 0) {
+        view.pedalAngle += (moved * SPREAD_PX) / PEDAL_PX_PER_RADIAN;
+        this.drawRiderLegs(view);
+      }
+    });
     const offset = player.progress * SPREAD_PX;
     if (this.hillFar) this.hillFar.x = -((offset * 0.22) % 540);
     if (this.hillNear) this.hillNear.x = -((offset * 0.45) % 360);
