@@ -280,22 +280,31 @@ export function sanitizeCollectionProgress(data: Partial<CollectionProgress>): C
   };
 }
 
-// ── 드림 바이크 성장 (#203) ──
-// 기존 C안 화면의 강화 규칙(파츠 3종 · Lv.1~4 · 비용 350×레벨 · 합계 7/10에서 등급 상승)을
-// 화면 내부 값에서 분리해, 코인 차감과 강화 반영을 하나의 원자적 처리로 관리합니다.
+// ── 자전거 성장 (#203 → #223 완성 자전거별 개편) ──
+// 강화 규칙(파츠 3종 · Lv.1~4 · 비용 350×레벨 · 합계 7/10에서 등급 상승)은 유지하고,
+// 성장 단계를 완성(보유) 자전거별로 독립 관리합니다. Garage에서 자전거를 클릭해 진입합니다.
 
 export type DreamStatKey = '성능' | '스타일' | '희귀도';
 export const DREAM_STAT_KEYS: DreamStatKey[] = ['성능', '스타일', '희귀도'];
 export const DREAM_STAT_MIN_LEVEL = 1;
 export const DREAM_STAT_MAX_LEVEL = 4;
 
-export type DreamGrowth = {
-  targetBikeId: string;
-  stats: Record<DreamStatKey, number>;
+export type BikeStats = Record<DreamStatKey, number>;
+export type GrowthProgress = {
+  // 완성 자전거별 파츠 강화 단계. 기록이 없으면 모든 파츠 Lv.1로 본다.
+  statsByBikeId: Record<string, BikeStats>;
 };
 
-export function createDreamGrowth(): DreamGrowth {
-  return { targetBikeId: 'dream-road', stats: { 성능: 1, 스타일: 1, 희귀도: 1 } };
+function createBikeStats(): BikeStats {
+  return { 성능: 1, 스타일: 1, 희귀도: 1 };
+}
+
+export function createGrowthProgress(): GrowthProgress {
+  return { statsByBikeId: {} };
+}
+
+export function bikeStats(growth: GrowthProgress, bikeId: string): BikeStats {
+  return { ...(growth.statsByBikeId[bikeId] ?? createBikeStats()) };
 }
 
 // 강화 비용: 현재 레벨 × 350 (명시적 데이터 — 밸런스 확정은 메인 담당)
@@ -303,89 +312,120 @@ export function dreamUpgradeCost(level: number): number {
   return 350 * level;
 }
 
-export function dreamTotalLevel(growth: DreamGrowth): number {
-  return DREAM_STAT_KEYS.reduce((sum, key) => sum + growth.stats[key], 0);
+export function dreamTotalLevel(stats: BikeStats): number {
+  return DREAM_STAT_KEYS.reduce((sum, key) => sum + stats[key], 0);
 }
 
 // 종합 성장 단계: 합계 10 이상 = 3단계(드림), 7 이상 = 2단계(고급), 그 외 1단계(중급)
-export function dreamStage(growth: DreamGrowth): 1 | 2 | 3 {
-  const total = dreamTotalLevel(growth);
+export function dreamStage(stats: BikeStats): 1 | 2 | 3 {
+  const total = dreamTotalLevel(stats);
   return total >= 10 ? 3 : total >= 7 ? 2 : 1;
 }
 
-export function dreamGradeName(growth: DreamGrowth): '중급' | '고급' | '드림' {
-  const stage = dreamStage(growth);
+export function dreamGradeName(stats: BikeStats): '중급' | '고급' | '드림' {
+  const stage = dreamStage(stats);
   return stage === 3 ? '드림' : stage === 2 ? '고급' : '중급';
 }
 
 export type DreamUpgradeResult =
-  | { ok: true; coins: number; growth: DreamGrowth; upgradedTo: number; stageUp: boolean }
-  | { ok: false; reason: 'coins' | 'max'; coins: number; growth: DreamGrowth };
+  | { ok: true; coins: number; growth: GrowthProgress; stats: BikeStats; upgradedTo: number; stageUp: boolean }
+  | { ok: false; reason: 'coins' | 'max' | 'not-crafted'; coins: number; stats: BikeStats };
 
 // 코인 차감과 레벨 상승을 함께 계산해 반환합니다. 실패 시 어느 쪽도 변하지 않습니다(원자적 처리).
-export function applyDreamUpgrade(growth: DreamGrowth, coins: number, stat: DreamStatKey): DreamUpgradeResult {
-  const level = growth.stats[stat];
-  if (level >= DREAM_STAT_MAX_LEVEL) return { ok: false, reason: 'max', coins, growth };
+// 성장은 완성(보유) 자전거만 가능합니다 (#223).
+export function applyBikeUpgrade(
+  collection: CollectionProgress,
+  growth: GrowthProgress,
+  coins: number,
+  bikeId: string,
+  stat: DreamStatKey,
+): DreamUpgradeResult {
+  const stats = bikeStats(growth, bikeId);
+  if (!isBikeCrafted(collection, bikeId)) return { ok: false, reason: 'not-crafted', coins, stats };
+  const level = stats[stat];
+  if (level >= DREAM_STAT_MAX_LEVEL) return { ok: false, reason: 'max', coins, stats };
   const cost = dreamUpgradeCost(level);
-  if (coins < cost) return { ok: false, reason: 'coins', coins, growth };
-  const beforeStage = dreamStage(growth);
-  const next: DreamGrowth = { ...growth, stats: { ...growth.stats, [stat]: level + 1 } };
-  return { ok: true, coins: coins - cost, growth: next, upgradedTo: level + 1, stageUp: dreamStage(next) > beforeStage };
+  if (coins < cost) return { ok: false, reason: 'coins', coins, stats };
+  const beforeStage = dreamStage(stats);
+  const nextStats: BikeStats = { ...stats, [stat]: level + 1 };
+  const next: GrowthProgress = { statsByBikeId: { ...growth.statsByBikeId, [bikeId]: nextStats } };
+  return {
+    ok: true,
+    coins: coins - cost,
+    growth: next,
+    stats: nextStats,
+    upgradedTo: level + 1,
+    stageUp: dreamStage(nextStats) > beforeStage,
+  };
 }
 
-// ── 드림 바이크 성장 저장·복구 (#203) — 컬렉션(#204)과 같은 버전·보정 규칙 구조 ──
+// ── 자전거 성장 저장·복구 (#203 → #223 v2) — 컬렉션(#204)과 같은 버전·보정 규칙 구조 ──
 
 export const GROWTH_STORAGE_KEY = 'dbg-lab-meta-growth';
-export const GROWTH_SCHEMA_VERSION = 1;
+// v2 (#223): 단일 드림 바이크 스탯 → 완성 자전거별 스탯
+export const GROWTH_SCHEMA_VERSION = 2;
 
-type SavedGrowth = { version: number } & Partial<DreamGrowth>;
+type SavedGrowthV1 = { version: 1; targetBikeId?: unknown; stats?: unknown };
+type SavedGrowth = { version: number } & Partial<GrowthProgress>;
 
-export function serializeDreamGrowth(growth: DreamGrowth): string {
+export function serializeGrowthProgress(growth: GrowthProgress): string {
   return JSON.stringify({ version: GROWTH_SCHEMA_VERSION, ...growth } satisfies SavedGrowth);
 }
 
-export function parseDreamGrowth(raw: string | null | undefined): DreamGrowth {
-  if (!raw) return createDreamGrowth();
+// v1(단일 드림 바이크) 저장을 v2로 마이그레이션: 기존 스탯을 대상 자전거의 스탯으로 승계한다.
+function migrateGrowthV1(data: SavedGrowthV1): Partial<GrowthProgress> {
+  const targetBikeId = typeof data.targetBikeId === 'string' ? data.targetBikeId : 'dream-road';
+  const stats = (data.stats && typeof data.stats === 'object' ? data.stats : {}) as Partial<BikeStats>;
+  return { statsByBikeId: { [targetBikeId]: { ...createBikeStats(), ...stats } } };
+}
+
+export function parseGrowthProgress(raw: string | null | undefined): GrowthProgress {
+  if (!raw) return createGrowthProgress();
   let saved: unknown;
   try {
     saved = JSON.parse(raw);
   } catch {
-    return createDreamGrowth();
+    return createGrowthProgress();
   }
-  if (typeof saved !== 'object' || saved === null) return createDreamGrowth();
+  if (typeof saved !== 'object' || saved === null) return createGrowthProgress();
   const data = saved as SavedGrowth;
-  if (data.version !== GROWTH_SCHEMA_VERSION) return createDreamGrowth();
-  return sanitizeDreamGrowth(data);
+  if (data.version === 1) return sanitizeGrowthProgress(migrateGrowthV1(data as SavedGrowthV1));
+  if (data.version !== GROWTH_SCHEMA_VERSION) return createGrowthProgress();
+  return sanitizeGrowthProgress(data);
 }
 
-// 저장 데이터의 비정상 값(범위 밖 레벨, 소수·문자열, 미등록 대상 자전거)을 안전한 값으로 보정합니다.
-export function sanitizeDreamGrowth(data: Partial<DreamGrowth>): DreamGrowth {
-  const fallback = createDreamGrowth();
-  const targetBikeId = typeof data.targetBikeId === 'string' && catalogBikeById(data.targetBikeId)
-    ? data.targetBikeId
-    : fallback.targetBikeId;
-  const stats = { ...fallback.stats };
-  DREAM_STAT_KEYS.forEach((key) => {
-    const value = data.stats?.[key];
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      stats[key] = Math.min(DREAM_STAT_MAX_LEVEL, Math.max(DREAM_STAT_MIN_LEVEL, Math.floor(value)));
-    }
-  });
-  return { targetBikeId, stats };
+// 저장 데이터의 비정상 값(범위 밖 레벨, 소수·문자열, 미등록 자전거 ID)을 안전한 값으로 보정합니다.
+export function sanitizeGrowthProgress(data: Partial<GrowthProgress>): GrowthProgress {
+  const statsByBikeId: Record<string, BikeStats> = {};
+  const raw = data.statsByBikeId;
+  if (raw && typeof raw === 'object') {
+    Object.entries(raw).forEach(([bikeId, value]) => {
+      if (!catalogBikeById(bikeId) || !value || typeof value !== 'object') return;
+      const stats = createBikeStats();
+      DREAM_STAT_KEYS.forEach((key) => {
+        const level = (value as Partial<BikeStats>)[key];
+        if (typeof level === 'number' && Number.isFinite(level)) {
+          stats[key] = Math.min(DREAM_STAT_MAX_LEVEL, Math.max(DREAM_STAT_MIN_LEVEL, Math.floor(level)));
+        }
+      });
+      statsByBikeId[bikeId] = stats;
+    });
+  }
+  return { statsByBikeId };
 }
 
-// ── 다음 목표 결정 규칙 (#205 → #221·#222 개편) ──
+// ── 다음 목표 결정 규칙 (#205 → #221·#222·#223 개편) ──
 // 우선순위: 1) 등록·미완성 자전거의 부품 제작 (등록 직후 만들기 체험으로 바로 연결)
-// → 2) 이해도가 100%가 아닌 자전거의 주문 납품 → 3) 강화 가능한 드림 바이크 파츠
+// → 2) 이해도가 100%가 아닌 자전거의 주문 납품 → 3) 완성 자전거 중 강화 가능한 파츠
 // → 4) 모두 달성 시 반복 주문 안내.
 
 export type NextGoal =
   | { kind: 'understand'; orderIndex: number; orderName: string; bikeId: string; bikeName: string; understanding: number; deliveriesLeft: number }
   | { kind: 'craft'; bikeId: string; bikeName: string; partName: string; cost: number; installedCount: number; totalParts: number }
-  | { kind: 'upgrade'; stat: DreamStatKey; cost: number }
+  | { kind: 'upgrade'; bikeId: string; bikeName: string; stat: DreamStatKey; cost: number }
   | { kind: 'repeat' };
 
-export function computeNextGoal(collection: CollectionProgress, growth: DreamGrowth): NextGoal {
+export function computeNextGoal(collection: CollectionProgress, growth: GrowthProgress): NextGoal {
   // 등록됐지만 아직 완성하지 못한 자전거의 다음 부품 제작 (#222)
   const craftTargetId = collection.registeredBikeIds.find((id) => !isBikeCrafted(collection, id));
   if (craftTargetId) {
@@ -416,11 +456,19 @@ export function computeNextGoal(collection: CollectionProgress, growth: DreamGro
       deliveriesLeft: Math.max(1, Math.ceil((UNDERSTANDING_MAX - understanding) / UNDERSTANDING_PER_DELIVERY)),
     };
   }
-  const upgradable = DREAM_STAT_KEYS.filter((key) => growth.stats[key] < DREAM_STAT_MAX_LEVEL);
-  if (upgradable.length > 0) {
-    // 가장 낮은 단계의 파츠부터 안내해 성장 격차를 줄입니다
-    const stat = upgradable.reduce((lowest, key) => (growth.stats[key] < growth.stats[lowest] ? key : lowest));
-    return { kind: 'upgrade', stat, cost: dreamUpgradeCost(growth.stats[stat]) };
+  // 완성 자전거 중 아직 최대 단계가 아닌 첫 자전거의 가장 낮은 파츠를 안내한다 (#223)
+  for (const bikeId of collection.craftedBikeIds) {
+    const stats = bikeStats(growth, bikeId);
+    const upgradable = DREAM_STAT_KEYS.filter((key) => stats[key] < DREAM_STAT_MAX_LEVEL);
+    if (upgradable.length === 0) continue;
+    const stat = upgradable.reduce((lowest, key) => (stats[key] < stats[lowest] ? key : lowest));
+    return {
+      kind: 'upgrade',
+      bikeId,
+      bikeName: catalogBikeById(bikeId)?.name ?? bikeId,
+      stat,
+      cost: dreamUpgradeCost(stats[stat]),
+    };
   }
   return { kind: 'repeat' };
 }

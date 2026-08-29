@@ -13,21 +13,22 @@ import {
   GROWTH_STORAGE_KEY,
   ORDER_METAS,
   applyCraftPart,
-  applyDreamUpgrade,
+  applyBikeUpgrade,
   applyOrderDelivery,
   computeNextGoal,
   craftedBikeCount,
   createCollectionProgress,
-  createDreamGrowth,
+  bikeStats,
+  createGrowthProgress,
   dreamGradeName,
   dreamStage,
   dreamTotalLevel,
   markBikeSeen,
   orderMetaAt,
   parseCollectionProgress,
-  parseDreamGrowth,
+  parseGrowthProgress,
   serializeCollectionProgress,
-  serializeDreamGrowth,
+  serializeGrowthProgress,
   type CraftPartType,
   type DreamStatKey,
   type OrderDeliveryResult,
@@ -156,6 +157,8 @@ export class MvpReleaseIntegrationController {
         onPlay: () => this.show(this.state.tutorialDone ? 'game' : 'guide'),
         // 만들기 진입 (#222): 제작 중 자전거를 선택 상태로 두고 상세·성장(제작 모드) 화면으로 이동
         onCraft: (bikeId) => { this.collection.selectedBikeId = bikeId; this.saveCollection(); this.show('dream'); },
+        // Garage 자전거 클릭 → 해당 완성 자전거의 성장 화면 진입 (#223)
+        onHeroBike: (bikeId) => { this.collection.selectedBikeId = bikeId; this.saveCollection(); this.show('dream'); },
         onCollection: () => this.show('catalog'),
         onShowcase: () => this.show('showcase'),
         onProfile: () => this.show('profile'),
@@ -261,10 +264,10 @@ export class MvpReleaseIntegrationController {
         showcaseSlots: [...this.collection.showcaseSlots],
         onShowcaseChange: (slots) => { this.collection.showcaseSlots = slots; this.saveCollection(); },
         onBikeSeen: (bikeId) => { markBikeSeen(this.collection, bikeId); this.saveCollection(); },
-        // 드림 바이크 강화 (#203): 코인 차감과 강화 반영을 한 번에 적용·저장하고 결과만 화면에 돌려준다
-        dreamStats: { ...this.growth.stats },
+        // 자전거 강화 (#203 → #223 완성 자전거별): 코인 차감과 강화 반영을 한 번에 적용·저장하고 결과만 화면에 돌려준다
+        dreamStats: bikeStats(this.growth, this.collection.selectedBikeId),
         onDreamUpgrade: (stat: DreamStatKey) => {
-          const result = applyDreamUpgrade(this.growth, this.state.coins, stat);
+          const result = applyBikeUpgrade(this.collection, this.growth, this.state.coins, this.collection.selectedBikeId, stat);
           if (result.ok) {
             this.growth = result.growth;
             this.state.coins = result.coins;
@@ -276,7 +279,7 @@ export class MvpReleaseIntegrationController {
             ok: result.ok,
             reason: result.ok ? undefined : result.reason,
             coins: result.coins,
-            stats: { ...(result.ok ? result.growth : this.growth).stats },
+            stats: { ...result.stats },
             stageUp: result.ok ? result.stageUp : false,
           };
         },
@@ -301,7 +304,7 @@ export class MvpReleaseIntegrationController {
       onReset: () => {
         this.state = { ...DEFAULT_STATE };
         this.collection = createCollectionProgress();
-        this.growth = createDreamGrowth();
+        this.growth = createGrowthProgress();
         this.lastDelivery = undefined;
         localStorage.removeItem(STORAGE_KEY);
         localStorage.removeItem(COLLECTION_STORAGE_KEY);
@@ -328,9 +331,10 @@ export class MvpReleaseIntegrationController {
   private buildHomeProgress() {
     const orderMeta = orderMetaAt(this.state.orderIndex) ?? ORDER_METAS[0];
     const goal = computeNextGoal(this.collection, this.growth);
-    const hero = catalogBikeById(this.collection.selectedBikeId) ?? catalogBikeById('dream-road')!;
-    // 대표 자전거가 성장 대상(드림 바이크)이면 강화 등급을, 아니면 도감 등급을 표시한다
-    const isGrowthTarget = hero.id === this.growth.targetBikeId;
+    // 홈 대표 자전거는 완성(보유) 자전거만: 선택 자전거가 미완성이면 시작 자전거로 대체 (#223)
+    const selectedCrafted = this.collection.craftedBikeIds.includes(this.collection.selectedBikeId);
+    const hero = (selectedCrafted ? catalogBikeById(this.collection.selectedBikeId) : undefined) ?? catalogBikeById('dream-road')!;
+    const heroStats = bikeStats(this.growth, hero.id);
     return {
       ownedCount: craftedBikeCount(this.collection),
       catalogSize: CATALOG_SIZE,
@@ -339,7 +343,7 @@ export class MvpReleaseIntegrationController {
       orderReward: orderMeta.reward,
       nextGoalLabel: goal.kind === 'understand' ? goal.bikeName
         : goal.kind === 'craft' ? `${goal.bikeName} 제작`
-        : goal.kind === 'upgrade' ? `${goal.stat} 강화`
+        : goal.kind === 'upgrade' ? `${goal.bikeName} ${goal.stat} 강화`
         : '주문 반복 플레이',
       nextGoalHint: goal.kind === 'understand'
         ? `이해도 ${goal.understanding}% · 납품 ${goal.deliveriesLeft}회 남음`
@@ -352,13 +356,14 @@ export class MvpReleaseIntegrationController {
       craft: goal.kind === 'craft'
         ? { bikeId: goal.bikeId, bikeName: goal.bikeName, installedCount: goal.installedCount, totalParts: goal.totalParts }
         : undefined,
-      growthPercent: Math.round((dreamTotalLevel(this.growth) - 3) / 9 * 100),
+      growthPercent: Math.round((dreamTotalLevel(heroStats) - 3) / 9 * 100),
       heroBike: {
+        id: hero.id,
         name: hero.name,
         category: hero.category,
         color: hero.color,
-        grade: isGrowthTarget ? dreamGradeName(this.growth) : hero.grade,
-        stage: isGrowthTarget ? dreamStage(this.growth) : 1 as const,
+        grade: dreamGradeName(heroStats),
+        stage: dreamStage(heroStats),
       },
     };
   }
@@ -415,14 +420,14 @@ export class MvpReleaseIntegrationController {
   // 드림 바이크 성장 저장·복구 (#203): 검증·보정 규칙은 meta-progress가 담당
   private loadGrowth() {
     try {
-      return parseDreamGrowth(localStorage.getItem(GROWTH_STORAGE_KEY));
+      return parseGrowthProgress(localStorage.getItem(GROWTH_STORAGE_KEY));
     } catch {
-      return createDreamGrowth();
+      return createGrowthProgress();
     }
   }
 
   private saveGrowth() {
-    localStorage.setItem(GROWTH_STORAGE_KEY, serializeDreamGrowth(this.growth));
+    localStorage.setItem(GROWTH_STORAGE_KEY, serializeGrowthProgress(this.growth));
   }
 }
 

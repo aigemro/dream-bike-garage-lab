@@ -105,3 +105,38 @@ NextGoal             unlock(다음 해금 주문) | upgrade(최저 파츠 강화
 
 - 메인 저장소에 `[적용]` 이슈로 위 채택 기준 전달 (양방향 링크)
 - 서버 저장·계정 동기화·앱인토스 SDK 연동은 별도 트랙
+
+---
+
+## 6. 변경 이력: 이해도·제작 메타 루프 개편 (#220 트랙 · 2026-08-29)
+
+기획 협의로 '납품 즉시 도감 등록·보유' 구조를 아래로 개편했다. 관련 이슈: [#220](https://github.com/aigemro/dream-bike-garage-lab/issues/220) [#221](https://github.com/aigemro/dream-bike-garage-lab/issues/221) [#222](https://github.com/aigemro/dream-bike-garage-lab/issues/222) [#223](https://github.com/aigemro/dream-bike-garage-lab/issues/223)
+
+> 주문 납품 → 자전거 **이해도 +50%** → 100%에 **도감 등록(제작 가능)** → Garage에서 **급여로 부품 4종을 하나씩 장착해 완성(보유)** → Garage에서 자전거 **클릭으로 성장**
+
+### 데이터 모델 변경
+
+```text
+CollectionProgress v2   { understandingByBikeId, registeredBikeIds(등록), craftedBikeIds(완성),
+                          craftPartsByBikeId(제작 진행), newBikeIds, selectedBikeId, showcaseSlots }
+CRAFT_PARTS             프레임 400 · 휠셋 300 · 구동계 200 · 핸들바 100 (합 1,000 = 첫 급여)
+GrowthProgress v2       { statsByBikeId } — 완성 자전거별 독립 성장
+NextGoal                craft(제작) → understand(이해도 학습) → upgrade(강화) → repeat
+```
+
+- 저장 스키마: 컬렉션 v1→v2 마이그레이션(기존 보유 = 이해도 100%·등록·완성 승계), 성장 v1→v2 마이그레이션(단일 드림 바이크 스탯 → 자전거별 스탯 승계)
+- 원자 처리 3종: 납품 이해도 반영 / 부품 장착+코인 차감(+완성 승격) / 강화+코인 차감 (완성 자전거만)
+- 등록 ≠ 보유: 전시·수집 수·성장은 완성 자전거만
+
+### 검증 (Vitest 37건 + 실제 화면 구동)
+
+- 납품 1회 "이해도 0% → 50%" 배너, 2회째 "도감 등록! … 제작 가능" 배너 확인
+- 홈 NEXT GOAL·만들기 버튼(조립 N/4) → 제작 화면(미장착 부품 반투명 + 부품 슬롯 4개) → 4종 장착 시 완성 승격·저장 확인
+- Garage 대표 자전거 클릭 → 성장 화면 진입, 강화 결과가 자전거별로 저장(v2 statsByBikeId) 확인
+- 중복 납품·연속 강화 입력·저장 손상·새 게임 초기화 방어 테스트 통과
+
+### 메인 적용 시 추가 결정 사항
+
+- 납품 1회당 이해도 상승치(Lab 50%)와 자전거별 차등 여부
+- 부품 제작 비용·등급별 차등, 제작 시간(즉시 vs 대기) 도입 여부
+- 주문 순환이 고정 순서(0→1→2)라 특정 자전거 이해도만 올리는 선택권이 없음 — 주문 선택 UI 필요 여부
