@@ -15,6 +15,7 @@ import { startGameScreenMobilePrototype } from './game-screen-mobile';
 import { startBikeCollectionDesignPrototype, type BikeCollectionDesignMode } from './bike-collection-design-prototype';
 import { startSettingsDrawerPrototype } from './settings-design';
 import { ReleaseAudio, type ReleaseAudioRoom, type ReleaseSfxEvent } from './release-audio';
+import { RIVERSIDE_RACE, daysUntilRace, isRaceDay, nextRaceDay } from './race-progress';
 
 type DayAccountScreen = 'account' | 'profile-create' | 'title' | 'home' | 'guide' | 'day-ready' | 'game'
   | 'day-settlement' | 'catalog' | 'showcase' | 'dream' | 'profile' | 'settings';
@@ -354,10 +355,37 @@ export class DayAccountIntegrationController {
         <div class="day-number-badge">DAY ${day.dayNumber}</div>
         <h2>오늘 공방을 열까요?</h2>
         <p>${formatTime(DAY_DURATION_MS)} 동안 플레이하면 오늘 수입을 정산합니다. 게임 밖에서는 시간이 멈춥니다.</p>
+        ${this.renderDayCalendar(day.dayNumber)}
         <div class="day-goal-grid"><div><span>오늘 검증</span><strong>납품·정산 전환</strong></div><div><span>현재 코인</span><strong>${this.state.coins.toLocaleString()}</strong></div><div><span>지난 기록</span><strong>${this.state.dayHistory.length}일</strong></div></div>
         <button id="start-day" class="day-account-primary" type="button">DAY ${day.dayNumber} START</button>
       </section>`;
     stage.querySelector<HTMLButtonElement>('#start-day')?.addEventListener('click', () => this.startDay());
+  }
+
+  // 공방 달력 (#231 후속): 대회 주기(5일)에 맞춘 한 줄 5칸 달력으로 대회일을 표시합니다.
+  // 패널이 스크롤 없이 스테이지에 맞아야 하므로(#230) 현재 주기 한 줄만 보여주고,
+  // 다음 대회 일정은 머리글의 D-day 문구로 전달합니다.
+  private renderDayCalendar(dayNumber: number): string {
+    const cycle = RIVERSIDE_RACE.heldEveryDays;
+    const calendarStart = Math.floor((dayNumber - 1) / cycle) * cycle + 1;
+    const calendarDays = Array.from({ length: cycle }, (_, index) => calendarStart + index);
+    const dday = daysUntilRace(dayNumber);
+    const raceNote = dday === 0
+      ? `오늘 ${RIVERSIDE_RACE.name} 개최!`
+      : `다음 대회 D-${dday} · DAY ${nextRaceDay(dayNumber)}`;
+    const cells = calendarDays.map((n) => {
+      const classes = ['day-calendar-cell'];
+      if (n === dayNumber) classes.push('today');
+      if (isRaceDay(n)) classes.push('race');
+      if (n < dayNumber) classes.push('past');
+      const tag = isRaceDay(n) ? '<em>대회</em>' : n === dayNumber ? '<em class="today-tag">오늘</em>' : '';
+      return `<div class="${classes.join(' ')}"><span>${n}</span>${tag}</div>`;
+    }).join('');
+    return `
+      <div class="day-calendar">
+        <div class="day-calendar-head"><span>공방 달력</span><strong>${raceNote}</strong></div>
+        <div class="day-calendar-grid">${cells}</div>
+      </div>`;
   }
 
   private renderDaySettlement(stage: HTMLElement) {

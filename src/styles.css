@@ -162,6 +162,18 @@ body:has(.variant-detail-page) .site-footer { display: none; }
 .day-account-eyebrow { color: #b0643e !important; font-size: 9px !important; font-weight: 900; letter-spacing: .13em; }
 .day-number-badge { display: inline-block; margin-bottom: 5px; padding: 5px 7px; background: #573044; color: #fff1c6; font-size: 12px; font-weight: 900; }
 .day-account-message { padding: 8px 10px; border-left: 3px solid #f4b84a; background: #f8deb0; }
+.day-calendar { margin: 6px 0; padding: 5px 6px 6px; border: 2px solid #8e5136; background: #f8deb0; }
+.day-calendar-head { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; margin-bottom: 4px; color: #79513d; font-size: 9px; font-weight: 900; letter-spacing: .08em; }
+.day-calendar-head strong { color: #b0432e; font-size: 9px; text-align: right; }
+.day-calendar-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 3px; }
+.day-calendar-cell { display: grid; justify-items: center; align-content: center; gap: 0; min-height: 22px; border: 2px solid #d9b98a; background: #fff1c6; color: #573044; font-size: 10px; font-weight: 800; line-height: 1.1; }
+.day-ready-panel .day-goal-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.day-calendar-cell em { color: #9a6549; font-size: 7px; font-style: normal; font-weight: 900; letter-spacing: .06em; }
+.day-calendar-cell.past { border-color: #d9c197; background: #ecd9ae; color: #b39a76; }
+.day-calendar-cell.race { border-color: #c95746; background: #ffe6a8; }
+.day-calendar-cell.race em { color: #b0432e; }
+.day-calendar-cell.today { border-color: #573044; background: #f4b84a; box-shadow: inset 0 0 0 1px #573044; }
+.day-calendar-cell.today .today-tag { color: #573044; }
 .day-history-list { display: grid; gap: 4px; margin-top: 8px; }
 .day-history-list h3 { font-size: 16px; line-height: 1.2; }
 .day-history-list p { display: flex; justify-content: space-between; gap: 7px; margin: 0; padding: 5px 7px; border-left: 3px solid #f4b84a; background: #f8deb0; color: #79513d; font-size: 9px; line-height: 1.25; }
