@@ -12,13 +12,12 @@ import { startTitleLoadingPrototype } from './title-loading-design';
 import { startHomeDesignPrototype } from './home-design-prototype';
 import { startGuideOverlayPrototype } from './guide-overlay-design';
 import { startGameScreenMobilePrototype } from './game-screen-mobile';
-import { startRewardSettlementPrototype } from './reward-settlement-design';
 import { startBikeCollectionDesignPrototype, type BikeCollectionDesignMode } from './bike-collection-design-prototype';
 import { startSettingsDrawerPrototype } from './settings-design';
 import { ReleaseAudio, type ReleaseAudioRoom, type ReleaseSfxEvent } from './release-audio';
 
 type DayAccountScreen = 'account' | 'profile-create' | 'title' | 'home' | 'guide' | 'day-ready' | 'game'
-  | 'reward' | 'day-settlement' | 'catalog' | 'showcase' | 'dream' | 'profile' | 'settings';
+  | 'day-settlement' | 'catalog' | 'showcase' | 'dream' | 'profile' | 'settings';
 
 const NAV: Array<{ screen: DayAccountScreen; label: string }> = [
   { screen: 'home', label: 'HOME' },
@@ -38,8 +37,7 @@ const SCREEN_LABELS: Record<DayAccountScreen, string> = {
   guide: '05 · 첫 플레이 안내',
   'day-ready': '06 · Day 시작 준비',
   game: '07 · 활성 플레이 시간',
-  reward: '08 · 주문 납품·보상',
-  'day-settlement': '09 · Day 정산',
+  'day-settlement': '08 · Day 정산',
   catalog: '10A · 자전거 도감',
   showcase: '10B · Garage 전시',
   dream: '10C · 드림 바이크 성장',
@@ -69,7 +67,6 @@ export class DayAccountIntegrationController {
   private profile: GameProfile | null = null;
   private state: DayAccountProgress | null = null;
   private screen: DayAccountScreen = 'account';
-  private rewardApplied = false;
   private lastTickAt = 0;
   private lastCheckpointSecond = -1;
   private readonly stageId = `day-account-stage-${Math.random().toString(36).slice(2)}`;
@@ -185,6 +182,9 @@ export class DayAccountIntegrationController {
       this.game = startHomeDesignPrototype(this.stageId, 'warm-pixel-garage', {
         coins: this.state.coins,
         completedOrders: this.state.completedOrders,
+        dayNumber: this.state.currentDayState.dayNumber,
+        dayRemainingMs: this.state.currentDayState.remainingMs,
+        dayStatusLabel: this.dayStatusLabel(),
         onPlay: () => this.openPlay(),
         onCollection: () => this.show('catalog'),
         onShowcase: () => this.show('showcase'),
@@ -209,42 +209,32 @@ export class DayAccountIntegrationController {
     }
     if (screen === 'game') {
       this.resumeDay();
-      this.rewardApplied = false;
       this.game = startGameScreenMobilePrototype(this.stageId, {
         orderIndex: this.state.orderIndex,
         autoPlacement: this.state.autoPlacement,
+        continuousOrders: true,
+        getDaySummary: () => ({
+          dayNumber: this.state?.currentDayState.dayNumber ?? 1,
+          remainingMs: this.state?.currentDayState.remainingMs ?? 0,
+          earnings: this.state?.currentDayState.earnings ?? 0,
+        }),
         onAutoPlacementChange: (enabled) => {
           if (!this.state) return;
           this.state.autoPlacement = enabled;
           this.persist();
         },
-        onOrderComplete: () => {
+        onOrderComplete: (completedOrderIndex) => {
           if (!this.state) return;
+          const reward = 1000 + completedOrderIndex * 400;
           this.state.completedOrders += 1;
           this.state.currentDayState.ordersCompleted += 1;
-          this.persist();
-          this.show('reward');
-        },
-        onSfx: (event) => this.play(event),
-      });
-      return;
-    }
-    if (screen === 'reward') {
-      const reward = 1000 + this.state.orderIndex * 400;
-      this.game = startRewardSettlementPrototype(this.stageId, {
-        initialCoins: this.state.coins,
-        reward,
-        onReward: (coins) => {
-          if (!this.state || this.rewardApplied) return;
-          this.rewardApplied = true;
-          const earned = Math.max(0, coins - this.state.coins);
-          this.state.coins = coins;
-          this.state.currentDayState.earnings += earned;
+          this.state.currentDayState.earnings += reward;
+          this.state.coins += reward;
+          this.state.orderIndex = (completedOrderIndex + 1) % 2;
           this.persist();
           this.refreshShell();
+          return { reward, totalDayIncome: this.state.currentDayState.earnings };
         },
-        onNext: () => { this.advanceOrder(); this.openPlay(); },
-        onHome: () => { this.advanceOrder(); this.show('home'); },
         onSfx: (event) => this.play(event),
       });
       return;
@@ -365,8 +355,8 @@ export class DayAccountIntegrationController {
         <p class="day-account-eyebrow">${escapeHtml(this.profile.garageName)} · WORK PLAN</p>
         <div class="day-number-badge">DAY ${day.dayNumber}</div>
         <h2>오늘의 공방 문을 열까요?</h2>
-        <p>활성 플레이 시간 ${formatTime(DAY_DURATION_MS)} 동안 주문 2~3건 완주를 목표로 합니다. 설정·수집·백그라운드에서는 시간이 멈춥니다.</p>
-        <div class="day-goal-grid"><div><span>오늘 목표</span><strong>주문 2건</strong></div><div><span>현재 코인</span><strong>${this.state.coins.toLocaleString()}</strong></div><div><span>지난 기록</span><strong>${this.state.dayHistory.length}일</strong></div></div>
+        <p>Lab 테스트용 활성 플레이 시간 ${formatTime(DAY_DURATION_MS)}가 지나면 오늘 수입 정산으로 이동합니다. 홈·설정·수집·백그라운드에서는 시간이 멈춥니다.</p>
+        <div class="day-goal-grid"><div><span>오늘 검증</span><strong>납품·정산 전환</strong></div><div><span>현재 코인</span><strong>${this.state.coins.toLocaleString()}</strong></div><div><span>지난 기록</span><strong>${this.state.dayHistory.length}일</strong></div></div>
         <button id="start-day" class="day-account-primary" type="button">DAY ${day.dayNumber} START</button>
       </section>`;
     stage.querySelector<HTMLButtonElement>('#start-day')?.addEventListener('click', () => this.startDay());
@@ -381,7 +371,8 @@ export class DayAccountIntegrationController {
         <p class="day-account-eyebrow">DAY ${day.dayNumber} · SETTLEMENT r${day.settlementRevision ?? this.state.revision}</p>
         <h2>${escapeHtml(this.profile.nickname)} 정비사, 오늘도 수고했어요!</h2>
         <p>${reason} 미완료 주문 번호는 다음 Day로 이월하고, 임시 보드는 초기화하는 B안 검증 규칙을 적용합니다.</p>
-        <div class="settlement-grid"><div><span>완료 주문</span><strong>${day.ordersCompleted}건</strong></div><div><span>오늘 급여</span><strong>${day.earnings.toLocaleString()}</strong></div><div><span>활성 시간</span><strong>${formatTime(day.elapsedActiveMs)}</strong></div><div><span>누적 코인</span><strong>${this.state.coins.toLocaleString()}</strong></div></div>
+        <div class="settlement-income"><span>오늘 수입</span><strong>+ ${day.earnings.toLocaleString()} COIN</strong></div>
+        <div class="settlement-grid"><div><span>완료 주문</span><strong>${day.ordersCompleted}건</strong></div><div><span>종료 Day</span><strong>DAY ${day.dayNumber}</strong></div><div><span>활성 시간</span><strong>${formatTime(day.elapsedActiveMs)}</strong></div><div><span>누적 코인</span><strong>${this.state.coins.toLocaleString()}</strong></div></div>
         <button id="prepare-next-day" class="day-account-primary" type="button">DAY ${day.dayNumber + 1} 준비하기</button>
         <button id="settlement-profile" type="button">작업 기록 보기</button>
       </section>`;
@@ -499,12 +490,6 @@ export class DayAccountIntegrationController {
     this.show('home');
   }
 
-  private advanceOrder() {
-    if (!this.state) return;
-    this.state.orderIndex = (this.state.orderIndex + 1) % 2;
-    this.persist();
-  }
-
   private async logout() {
     this.pauseDay('logout');
     this.persist();
@@ -534,7 +519,7 @@ export class DayAccountIntegrationController {
   private roomFor(screen: DayAccountScreen): ReleaseAudioRoom {
     if (screen === 'title' || screen === 'account' || screen === 'profile-create') return 'title';
     if (screen === 'game' || screen === 'guide' || screen === 'day-ready') return 'work';
-    if (screen === 'reward' || screen === 'day-settlement') return 'reward';
+    if (screen === 'day-settlement') return 'reward';
     return 'home';
   }
 
@@ -559,8 +544,16 @@ export class DayAccountIntegrationController {
     this.parent.querySelectorAll<HTMLButtonElement>('[data-day-screen]').forEach((button) => {
       button.disabled = !this.profile;
       const destination = button.dataset.dayScreen;
-      button.classList.toggle('active', destination === this.screen || (destination === 'game' && ['guide', 'day-ready', 'reward', 'day-settlement'].includes(this.screen)));
+      button.classList.toggle('active', destination === this.screen || (destination === 'game' && ['guide', 'day-ready', 'day-settlement'].includes(this.screen)));
     });
+  }
+
+  private dayStatusLabel() {
+    const status = this.state?.currentDayState.status;
+    if (status === 'active') return '영업 중';
+    if (status === 'paused') return '일시정지';
+    if (status === 'settlement') return '정산';
+    return '준비';
   }
 }
 

@@ -1,6 +1,7 @@
 import type { AuthSession } from './auth-provider';
 
-export const DAY_DURATION_MS = 5 * 60 * 1000;
+// Lab에서 Day 종료·정산·다음 Day 전환을 빠르게 반복 검증하기 위한 축약 시간입니다.
+export const DAY_DURATION_MS = 10 * 1000;
 const PROFILE_KEY = 'dbg-lab-day-account-profiles-v1';
 const PROGRESS_KEY_PREFIX = 'dbg-lab-day-account-progress-v1';
 

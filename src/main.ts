@@ -402,7 +402,7 @@ const tracks: Track[] = [
     description: '하루 제한 시간과 로그인 계정별 진행 저장을 기존 MVP 수직 슬라이스에 연결해 세션 시작·중단·복원을 검증합니다.',
     issueNumber: 207,
     variants: [
-      { id: 'active-time-soft-day', label: 'B안 · 1차 권장', title: '활성 플레이 시간 + 계정별 진행', description: '테스트 계정으로 로그인하고 최초 프로필을 만든 뒤, 활성 플레이 중에만 5분 Day 타이머를 차감합니다. Day·재화·주문·성장·정산 기록은 계정별로 분리 저장됩니다.', status: '체험 가능', question: '백그라운드와 로그아웃에서는 시간이 멈추면서도 Day 제한이 플레이 리듬을 만들고, 계정 전환 뒤 각 진행이 정확히 복원되는가?', controls: '계정 A 로그인 → 프로필 생성 → Day 시작 → 주문 진행·Day 정산 → 로그아웃 → 계정 B 진행 → 계정 A 재로그인 순서로 계정별 복원을 확인합니다.', dayAccountDemo: 'active-time-soft-day', issueNumber: 214, documentId: 'day-account-active-time' },
+      { id: 'active-time-soft-day', label: 'B안 · 1차 권장', title: '활성 플레이 시간 + 계정별 진행', description: '테스트 계정으로 로그인하고 최초 프로필을 만든 뒤, 활성 플레이 중에만 Lab용 10초 Day 타이머를 차감합니다. Day·재화·주문·성장·정산 기록은 계정별로 분리 저장됩니다.', status: '체험 가능', question: '백그라운드와 로그아웃에서는 시간이 멈추면서도 Day 제한이 플레이 리듬을 만들고, 계정 전환 뒤 각 진행이 정확히 복원되는가?', controls: '계정 A 로그인 → 프로필 생성 → Day 시작 → 10초 종료·오늘 수입 정산 → 다음 Day → 로그아웃·계정 전환 순서로 확인합니다.', dayAccountDemo: 'active-time-soft-day', issueNumber: 214, documentId: 'day-account-active-time' },
     ],
   },
   {

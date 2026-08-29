@@ -32,8 +32,10 @@ const BIKE_CELL = 2;
 export type GameScreenMobileHooks = {
   orderIndex?: number;
   autoPlacement?: boolean;
+  continuousOrders?: boolean;
+  getDaySummary?: () => { dayNumber: number; remainingMs: number; earnings: number };
   onAutoPlacementChange?: (enabled: boolean) => void;
-  onOrderComplete?: (orderIndex: number) => void;
+  onOrderComplete?: (orderIndex: number) => void | { reward: number; totalDayIncome: number };
   onSfx?: (event: 'tap' | 'parcel' | 'merge' | 'install' | 'complete' | 'error') => void;
 };
 
@@ -75,6 +77,7 @@ class GameScreenMobileScene extends Phaser.Scene {
   private autoPlacementToggle?: Phaser.GameObjects.Rectangle;
   private autoPlacementCheck?: Phaser.GameObjects.Text;
   private autoPlacementState?: Phaser.GameObjects.Text;
+  private daySummary?: Phaser.GameObjects.Text;
 
   create() {
     this.cameras.main.setBackgroundColor('#c78452');
@@ -93,7 +96,12 @@ class GameScreenMobileScene extends Phaser.Scene {
   }
 
   update() {
-    this.metrics.setText(`${((this.time.now - this.startedAt) / 1000).toFixed(0)}s · 머지 ${this.merges}`);
+    const summary = this.hooks.getDaySummary?.();
+    this.metrics.setText(summary ? '' : `${((this.time.now - this.startedAt) / 1000).toFixed(0)}s · 머지 ${this.merges}`);
+    if (summary && this.daySummary) {
+      const remainingSeconds = Math.max(0, Math.ceil(summary.remainingMs / 1000));
+      this.daySummary.setText(`DAY ${summary.dayNumber} · 00:${String(remainingSeconds).padStart(2, '0')} · 오늘 수입 ${summary.earnings.toLocaleString()}`);
+    }
     this.tickParcels();
   }
 
@@ -111,7 +119,7 @@ class GameScreenMobileScene extends Phaser.Scene {
     this.add.text(56, 30, 'WORK', { fontFamily: FONT, fontSize: '11px', color: '#fff1c6', fontStyle: 'bold' }).setOrigin(0.5).setDepth(10);
     this.add.text(104, 22, '두리 자전거 공방 · 작업대', { fontFamily: FONT, fontSize: '13px', color: INK, fontStyle: 'bold' }).setDepth(10);
     this.metrics = this.add.text(382, 39, '', { fontFamily: FONT, fontSize: '10px', color: MUTED }).setOrigin(1, 0.5).setDepth(10);
-    this.add.text(104, 40, 'MVP 통합 · 모바일 세로 B안', { fontFamily: FONT, fontSize: '9px', color: MUTED }).setDepth(10);
+    this.daySummary = this.add.text(104, 40, 'DAY · 00:10 · 오늘 수입 0', { fontFamily: FONT, fontSize: '9px', color: MUTED, fontStyle: 'bold' }).setDepth(10);
   }
 
   private drawOrderCard() {
@@ -598,7 +606,22 @@ class GameScreenMobileScene extends Phaser.Scene {
     if (this.orderCompleting) return;
     this.orderCompleting = true;
     this.hooks.onSfx?.('complete');
-    this.info.setText('주문 완료! 모든 부품이 장착되어 자전거를 납품했습니다. 정산 화면으로 이동합니다.');
+    this.info.setText('자전거 완성! 납품 처리 후 다음 주문을 준비합니다.');
+    if (this.hooks.continuousOrders) {
+      this.time.delayedCall(650, () => {
+        const result = this.hooks.onOrderComplete?.(this.orderIndex);
+        this.orderCompleting = false;
+        this.orderIndex = (this.orderIndex + 1) % 2;
+        this.goals = ORDERS[this.orderIndex].map((goal) => ({ ...goal }));
+        this.startedAt = this.time.now;
+        this.drawOrderBike();
+        this.refreshOrder();
+        this.refreshParcelDisplays();
+        const income = result && typeof result === 'object' ? ` +${result.reward.toLocaleString()} · 오늘 수입 ${result.totalDayIncome.toLocaleString()}` : '';
+        this.refreshUi(`납품 완료${income}! 다음 자전거 주문이 바로 시작되었습니다. 보드의 남은 부품은 유지됩니다.`);
+      });
+      return;
+    }
     if (this.hooks.onOrderComplete) {
       this.time.delayedCall(900, () => this.hooks.onOrderComplete?.(this.orderIndex));
       return;
