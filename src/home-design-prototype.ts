@@ -30,6 +30,13 @@ export type HomeProgressData = {
     grade: string;
     stage: 1 | 2 | 3;
   };
+  // 제작 중 자전거 (#222): 있으면 Garage에 만들기 버튼이 열린다
+  craft?: {
+    bikeId: string;
+    bikeName: string;
+    installedCount: number;
+    totalParts: number;
+  };
 };
 
 export type HomeDesignHooks = {
@@ -41,6 +48,8 @@ export type HomeDesignHooks = {
   onShowcase?: () => void;
   onProfile?: () => void;
   onSettings?: () => void;
+  // 제작 중 자전거 만들기 진입 (#222)
+  onCraft?: (bikeId: string) => void;
   onSfx?: (event: 'tap') => void;
 };
 
@@ -110,6 +119,14 @@ class WarmPixelGarageScene extends Phaser.Scene {
     if (!progress) {
       this.button(352, 263, 54, 48, '조립\n2/4', () => this.notify('조립 현황'));
       this.button(352, 321, 54, 48, 'STATUS\nLv.12', () => this.notify('견습 정비사 Lv.12'));
+    }
+    // 제작 중 자전거가 있으면 Garage에 만들기 버튼이 열린다 (#222)
+    if (progress?.craft) {
+      const craft = progress.craft;
+      this.button(352, 263, 54, 48, `만들기\n${craft.installedCount}/${craft.totalParts}`, () => {
+        this.hooks.onSfx?.('tap');
+        this.hooks.onCraft ? this.hooks.onCraft(craft.bikeId) : this.notify(`${craft.bikeName} 제작 중`);
+      }, true);
     }
 
     this.pixelRect(195, 387, 254, 430, 0xf2c77e, P.ink, 7).setAlpha(.88);

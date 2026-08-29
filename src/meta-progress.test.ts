@@ -3,16 +3,20 @@ import { describe, expect, it } from 'vitest';
 import { CATALOG_BIKES, catalogBikeById } from './bike-catalog';
 import {
   COLLECTION_SCHEMA_VERSION,
+  CRAFT_PARTS,
+  CRAFT_PART_TYPES,
   DREAM_STAT_MAX_LEVEL,
   GROWTH_SCHEMA_VERSION,
   ORDER_METAS,
   UNDERSTANDING_MAX,
   UNDERSTANDING_PER_DELIVERY,
+  applyCraftPart,
   applyDreamUpgrade,
   applyOrderDelivery,
   bikeUnderstanding,
   computeNextGoal,
   craftedBikeCount,
+  nextCraftPart,
   createCollectionProgress,
   createDreamGrowth,
   dreamGradeName,
@@ -262,18 +266,107 @@ describe('다음 목표 결정 규칙 (#205 → #221 개편)', () => {
     expect(goal).toMatchObject({ kind: 'understand', orderIndex: 0, understanding: 50, deliveriesLeft: 1 });
   });
 
-  it('등록이 진행되면 다음 미등록 자전거로 목표가 자동 갱신된다', () => {
+  it('등록 직후에는 제작이 우선하고, 완성하면 다음 미등록 자전거 학습으로 넘어간다', () => {
     const collection = createCollectionProgress();
     [0, 0].forEach((index) => applyOrderDelivery(collection, index));
+    expect(computeNextGoal(collection, createDreamGrowth())).toMatchObject({ kind: 'craft', bikeId: 'urban-road' });
+    CRAFT_PART_TYPES.forEach((part) => applyCraftPart(collection, 9_999, 'urban-road', part));
     expect(computeNextGoal(collection, createDreamGrowth())).toMatchObject({ kind: 'understand', orderIndex: 1, bikeId: 'trail-mtb' });
   });
 
-  it('3종 모두 등록되면 강화 → 모두 최대면 반복 안내로 전환된다', () => {
+  it('3종 모두 등록되면 제작 → 완성 후 강화 → 모두 최대면 반복 안내로 전환된다', () => {
     const collection = createCollectionProgress();
     [0, 0, 1, 1, 2, 2].forEach((index) => applyOrderDelivery(collection, index));
     const growth = createDreamGrowth();
+    // 등록·미완성 자전거가 있으므로 제작이 최우선 목표
+    expect(computeNextGoal(collection, growth)).toMatchObject({ kind: 'craft', bikeId: 'urban-road' });
+    ORDER_METAS.forEach((meta) => CRAFT_PART_TYPES.forEach((part) => applyCraftPart(collection, 9_999, meta.bikeId, part)));
     expect(computeNextGoal(collection, growth)).toMatchObject({ kind: 'upgrade' });
     growth.stats = { 성능: DREAM_STAT_MAX_LEVEL, 스타일: DREAM_STAT_MAX_LEVEL, 희귀도: DREAM_STAT_MAX_LEVEL };
     expect(computeNextGoal(collection, growth)).toEqual({ kind: 'repeat' });
+  });
+});
+
+describe('Garage 자전거 만들기 (#222)', () => {
+  const registerUrban = () => {
+    const progress = createCollectionProgress();
+    applyOrderDelivery(progress, 0);
+    applyOrderDelivery(progress, 0);
+    return progress;
+  };
+
+  it('부품 비용 합계는 첫 주문 급여와 같다 (검증용 수치)', async () => {
+    const { CRAFT_PARTS } = await import('./meta-progress');
+    const total = CRAFT_PARTS.reduce((sum, part) => sum + part.cost, 0);
+    expect(total).toBe(ORDER_METAS[0].reward);
+  });
+
+  it('등록 자전거에 부품을 하나씩 장착할 수 있고 코인이 함께 차감된다', async () => {
+    const { applyCraftPart, CRAFT_PARTS } = await import('./meta-progress');
+    const progress = registerUrban();
+    const frame = CRAFT_PARTS[0];
+    const result = applyCraftPart(progress, 1000, 'urban-road', 'frame');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.coins).toBe(1000 - frame.cost);
+      expect(result.installedParts).toEqual(['frame']);
+      expect(result.completed).toBe(false);
+    }
+  });
+
+  it('코인 부족·미등록·중복 장착은 원자적으로 거부된다', async () => {
+    const { applyCraftPart } = await import('./meta-progress');
+    const progress = registerUrban();
+    expect(applyCraftPart(progress, 100, 'urban-road', 'frame')).toMatchObject({ ok: false, reason: 'coins', coins: 100 });
+    expect(applyCraftPart(progress, 9999, 'trail-mtb', 'frame')).toMatchObject({ ok: false, reason: 'not-registered' });
+    applyCraftPart(progress, 9999, 'urban-road', 'frame');
+    expect(applyCraftPart(progress, 9999, 'urban-road', 'frame')).toMatchObject({ ok: false, reason: 'already-installed' });
+    expect(progress.craftPartsByBikeId['urban-road']).toEqual(['frame']);
+  });
+
+  it('부품 4종을 모두 장착하면 완성(보유)으로 승격되고 수집 수·전시가 열린다', async () => {
+    const { applyCraftPart, CRAFT_PART_TYPES } = await import('./meta-progress');
+    const progress = registerUrban();
+    let coins = 2000;
+    let completed = false;
+    CRAFT_PART_TYPES.forEach((part) => {
+      const result = applyCraftPart(progress, coins, 'urban-road', part);
+      expect(result.ok).toBe(true);
+      if (result.ok) { coins = result.coins; completed = result.completed; }
+    });
+    expect(completed).toBe(true);
+    expect(coins).toBe(1000);
+    expect(isBikeCrafted(progress, 'urban-road')).toBe(true);
+    expect(craftedBikeCount(progress)).toBe(2);
+    expect(progress.craftPartsByBikeId['urban-road']).toBeUndefined();
+    // 완성 자전거는 전시 슬롯 보정을 통과한다
+    const sanitized = sanitizeCollectionProgress({ ...progress, showcaseSlots: ['urban-road', null, null] });
+    expect(sanitized.showcaseSlots[0]).toBe('urban-road');
+    // 완성 후 추가 장착은 거부된다
+    const again = applyCraftPart(progress, 9999, 'urban-road', 'frame');
+    expect(again).toMatchObject({ ok: false, reason: 'already-crafted' });
+  });
+
+  it('제작 진행이 저장·복구되고, 4종 완비 저장본은 완성으로 승격 보정된다', async () => {
+    const { applyCraftPart, CRAFT_PART_TYPES, nextCraftPart } = await import('./meta-progress');
+    const progress = registerUrban();
+    applyCraftPart(progress, 9999, 'urban-road', 'frame');
+    applyCraftPart(progress, 9999, 'urban-road', 'wheel');
+    const restored = parseCollectionProgress(serializeCollectionProgress(progress));
+    expect(restored).toEqual(progress);
+    expect(nextCraftPart(restored, 'urban-road')?.type).toBe('drivetrain');
+    // 저장본에 4종이 모두 있으면 완성으로 승격
+    const promoted = sanitizeCollectionProgress({
+      ...progress,
+      craftPartsByBikeId: { 'urban-road': [...CRAFT_PART_TYPES] },
+    });
+    expect(promoted.craftedBikeIds).toContain('urban-road');
+    expect(promoted.craftPartsByBikeId['urban-road']).toBeUndefined();
+  });
+
+  it('다음 목표: 등록·미완성 자전거가 있으면 제작이 강화보다 우선한다', () => {
+    const progress = registerUrban();
+    const goal = computeNextGoal(progress, createDreamGrowth());
+    expect(goal).toMatchObject({ kind: 'craft', bikeId: 'urban-road', partName: '프레임', cost: 400, installedCount: 0, totalParts: 4 });
   });
 });

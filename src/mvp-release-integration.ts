@@ -12,6 +12,7 @@ import {
   COLLECTION_STORAGE_KEY,
   GROWTH_STORAGE_KEY,
   ORDER_METAS,
+  applyCraftPart,
   applyDreamUpgrade,
   applyOrderDelivery,
   computeNextGoal,
@@ -27,6 +28,7 @@ import {
   parseDreamGrowth,
   serializeCollectionProgress,
   serializeDreamGrowth,
+  type CraftPartType,
   type DreamStatKey,
   type OrderDeliveryResult,
 } from './meta-progress';
@@ -152,6 +154,8 @@ export class MvpReleaseIntegrationController {
         completedOrders: this.state.completedOrders,
         progress: this.buildHomeProgress(),
         onPlay: () => this.show(this.state.tutorialDone ? 'game' : 'guide'),
+        // 만들기 진입 (#222): 제작 중 자전거를 선택 상태로 두고 상세·성장(제작 모드) 화면으로 이동
+        onCraft: (bikeId) => { this.collection.selectedBikeId = bikeId; this.saveCollection(); this.show('dream'); },
         onCollection: () => this.show('catalog'),
         onShowcase: () => this.show('showcase'),
         onProfile: () => this.show('profile'),
@@ -234,6 +238,25 @@ export class MvpReleaseIntegrationController {
         ownedBikeIds: [...this.collection.craftedBikeIds],
         registeredBikeIds: [...this.collection.registeredBikeIds],
         understandingByBikeId: { ...this.collection.understandingByBikeId },
+        craftPartsByBikeId: Object.fromEntries(Object.entries(this.collection.craftPartsByBikeId).map(([id, parts]) => [id, [...parts]])),
+        // 자전거 만들기 (#222): 코인 차감과 부품 장착을 한 번에 적용·저장하고 결과만 화면에 돌려준다
+        onCraftPart: (bikeId: string, part: CraftPartType) => {
+          const result = applyCraftPart(this.collection, this.state.coins, bikeId, part);
+          if (result.ok) {
+            this.state.coins = result.coins;
+            this.saveCollection();
+            this.saveState();
+            this.refreshShell();
+            return { ok: true, coins: result.coins, installedParts: [...result.installedParts], completed: result.completed };
+          }
+          return {
+            ok: false,
+            reason: result.reason,
+            coins: result.coins,
+            installedParts: [...(this.collection.craftPartsByBikeId[bikeId] ?? [])],
+            completed: false,
+          };
+        },
         newBikeIds: [...this.collection.newBikeIds],
         showcaseSlots: [...this.collection.showcaseSlots],
         onShowcaseChange: (slots) => { this.collection.showcaseSlots = slots; this.saveCollection(); },
@@ -314,12 +337,21 @@ export class MvpReleaseIntegrationController {
       orderName: orderMeta.name,
       orderCategory: orderMeta.bikeCategory,
       orderReward: orderMeta.reward,
-      nextGoalLabel: goal.kind === 'understand' ? goal.bikeName : goal.kind === 'upgrade' ? `${goal.stat} 강화` : '주문 반복 플레이',
+      nextGoalLabel: goal.kind === 'understand' ? goal.bikeName
+        : goal.kind === 'craft' ? `${goal.bikeName} 제작`
+        : goal.kind === 'upgrade' ? `${goal.stat} 강화`
+        : '주문 반복 플레이',
       nextGoalHint: goal.kind === 'understand'
         ? `이해도 ${goal.understanding}% · 납품 ${goal.deliveriesLeft}회 남음`
-        : goal.kind === 'upgrade'
-          ? `강화 비용 ${goal.cost.toLocaleString()}코인`
-          : '모든 목표 달성 · 급여를 모아보세요',
+        : goal.kind === 'craft'
+          ? `다음 부품 ${goal.partName} · ${goal.cost.toLocaleString()}코인`
+          : goal.kind === 'upgrade'
+            ? `강화 비용 ${goal.cost.toLocaleString()}코인`
+            : '모든 목표 달성 · 급여를 모아보세요',
+      // 제작 중 자전거 요약 (#222): 홈 만들기 버튼 표시용
+      craft: goal.kind === 'craft'
+        ? { bikeId: goal.bikeId, bikeName: goal.bikeName, installedCount: goal.installedCount, totalParts: goal.totalParts }
+        : undefined,
       growthPercent: Math.round((dreamTotalLevel(this.growth) - 3) / 9 * 100),
       heroBike: {
         name: hero.name,

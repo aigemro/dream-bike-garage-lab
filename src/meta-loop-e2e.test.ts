@@ -5,9 +5,11 @@
 import { describe, expect, it } from 'vitest';
 import { CATALOG_SIZE } from './bike-catalog';
 import {
+  CRAFT_PARTS,
   DREAM_STAT_MAX_LEVEL,
   ORDER_METAS,
   UNDERSTANDING_MAX,
+  applyCraftPart,
   applyDreamUpgrade,
   applyOrderDelivery,
   bikeUnderstanding,
@@ -91,8 +93,8 @@ describe('메타 루프 E2E: 새 게임 → 이해도 학습 → 등록 → 성�
     storage.save(collection, growth);
     expect(coins).toBe(firstMeta.reward * 2 - dreamUpgradeCost(1));
 
-    // 7. 다음 목표가 다음 자전거 학습으로 갱신
-    expect(computeNextGoal(collection, growth)).toMatchObject({ kind: 'understand', orderIndex: 1, bikeId: 'trail-mtb' });
+    // 7. 다음 목표가 등록된 자전거의 제작으로 갱신 (제작이 학습보다 우선)
+    expect(computeNextGoal(collection, growth)).toMatchObject({ kind: 'craft', bikeId: 'urban-road', partName: '프레임' });
 
     // 8. 새로고침 후 상태 복구
     const restored = storage.reload();
@@ -112,10 +114,25 @@ describe('메타 루프 E2E: 새 게임 → 이해도 학습 → 등록 → 성�
     }
     expect(completedOrders).toBe(6);
     ORDER_METAS.forEach((meta) => expect(isBikeRegistered(collection, meta.bikeId)).toBe(true));
-    // 등록만으로는 수집 수가 늘지 않는다 (완성은 #222 제작에서)
+    // 등록만으로는 수집 수가 늘지 않는다 (보유는 제작 완료 시)
     expect(craftedBikeCount(collection)).toBe(1);
 
-    // 10. 이후에도 다음 목표가 항상 존재한다 (강화 → 반복)
+    // 10. 급여로 등록 자전거 3종을 부품 하나씩 장착해 완성 (#222) — 다음 목표가 제작을 안내한다
+    while (computeNextGoal(collection, growth).kind === 'craft') {
+      const goal = computeNextGoal(collection, growth);
+      if (goal.kind !== 'craft') break;
+      const partType = CRAFT_PARTS.find((part) => part.name === goal.partName)!.type;
+      const result = applyCraftPart(collection, coins, goal.bikeId, partType);
+      expect(result.ok).toBe(true);
+      if (result.ok) coins = result.coins;
+      storage.save(collection, growth);
+    }
+    // 부품 12개 = 3,000코인 소비, 3종 완성 → 수집 4/24, 전시 배치 가능
+    expect(craftedBikeCount(collection)).toBe(4);
+    ORDER_METAS.forEach((meta) => expect(isBikeCrafted(collection, meta.bikeId)).toBe(true));
+    expect(coins).toBe(8400 - dreamUpgradeCost(1) - 3000);
+
+    // 11. 이후에도 다음 목표가 항상 존재한다 (강화 → 반복)
     while (computeNextGoal(collection, growth).kind === 'upgrade') {
       const goal = computeNextGoal(collection, growth);
       if (goal.kind !== 'upgrade') break;
