@@ -4,7 +4,7 @@
 // A안 side-follow: 카메라가 내 자전거를 따라가는 사이드뷰 트랙
 // B안 lane-board: 트랙 전체를 8레인 전광판으로 중계하는 관람 뷰
 import Phaser from 'phaser';
-import { addPixelBikeImage, drawPixelBike, makeWarmColorway, type BikeCategory } from './bike-pixel-sprite';
+import { addPixelBikeImage, drawPixelBike, makeWarmColorway, type BikeCategory, type BikeColorway } from './bike-pixel-sprite';
 import { drawPixelMap, type PixelCharacterRole } from './art-character-pixel';
 import type { BikeStats } from './meta-progress';
 import { dreamGradeName } from './meta-progress';
@@ -143,12 +143,23 @@ type RacerView = {
   // 사이드뷰 페달링 라이더 (lane-board에는 없음)
   farLegs?: Phaser.GameObjects.Graphics;
   nearLegs?: Phaser.GameObjects.Graphics;
-  // 회전 스포크 오버레이
+  // 회전 스포크 오버레이 (픽셀 애니메이션 느낌을 위해 15° 단위로 끊어 회전)
   wheels?: Phaser.GameObjects.Image[];
   spokeRadius?: number;
+  wheelSpin: number;
   pedalAngle: number;
   lastProgress: number;
 };
+
+// 구동계 금속 팔레트 (bike-pixel-sprite makeWarmColorway와 동일 값)
+const CRANK_METAL = 0xa39985;
+const CRANK_METAL_FAR = 0x8d8779;
+const CHAIN_COLOR = 0x8d8779;
+const RING_COLOR = 0xc2bcae;
+const PEDAL_PLATE = 0x573044;
+const PEDAL_PLATE_FAR = 0x41202f;
+// 바퀴 스포크 회전 스텝: 15°씩 끊어 돌려 픽셀 프레임 애니메이션처럼 보이게 합니다.
+const WHEEL_SPIN_STEP = Math.PI / 12;
 
 class RaceScene extends Phaser.Scene {
   constructor(private readonly mode: RaceSceneMode, private readonly hooks: RaceSceneHooks = {}) {
@@ -396,8 +407,11 @@ class RaceScene extends Phaser.Scene {
       const farLegs = this.add.graphics();
       container.add(farLegs);
       const spin = this.addWheelSpokes(container, racer.category, 2);
-      const bike = addPixelBikeImage(this, 0, 0, 2, { category: racer.category, colorway: makeWarmColorway(racer.frameColor) });
+      const colorway = makeWarmColorway(racer.frameColor);
+      const bike = this.add.image(0, 0, this.bikeBodyTextureKey(racer.category, colorway, 2));
+      bike.setOrigin(0.5, RIDER_GEOM[racer.category].axle / 40);
       container.add(bike);
+      container.add(this.buildStaticDrivetrain(racer.category, 2));
       this.buildRiderBody(container, racer, role, 2);
       const nearLegs = this.add.graphics();
       container.add(nearLegs);
@@ -411,7 +425,7 @@ class RaceScene extends Phaser.Scene {
       this.tweens.add({ targets: container, y: '-=2', duration: 240 + index * 22, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       const view: RacerView = {
         data: racer, container, dot: this.add.rectangle(0, 0, 1, 1, 0, 0), progress: 0, role,
-        farLegs, nearLegs, wheels: spin.wheels, spokeRadius: spin.spokeRadius,
+        farLegs, nearLegs, wheels: spin.wheels, spokeRadius: spin.spokeRadius, wheelSpin: 0,
         pedalAngle: index * 2.1, lastProgress: 0,
       };
       this.drawRiderLegs(view);
@@ -456,7 +470,7 @@ class RaceScene extends Phaser.Scene {
       this.views.push({
         data: racer, container, dot: this.add.rectangle(0, 0, 1, 1, 0, 0), progress: 0,
         role: racer.isPlayer ? '정비사' : index % 2 === 0 ? '고객' : '점장',
-        wheels: spin.wheels, spokeRadius: spin.spokeRadius, pedalAngle: 0, lastProgress: 0,
+        wheels: spin.wheels, spokeRadius: spin.spokeRadius, wheelSpin: 0, pedalAngle: 0, lastProgress: 0,
       });
     });
 
@@ -597,6 +611,35 @@ class RaceScene extends Phaser.Scene {
     container.add([body, arm]);
   }
 
+  // 크랭크·페달을 뺀 자전거 텍스처: 페달은 다리와 함께 절차 드로잉으로 회전시키므로
+  // 베이크된 정지 구동계를 partAlpha로 제거하고, 체인·체인링·카세트는 정적 오버레이로 되살립니다.
+  private bikeBodyTextureKey(category: BikeCategory, colorway: BikeColorway, cell: number): string {
+    const key = `race-bike-body-${category}-${cell}-${colorway.frame.toString(16)}`;
+    if (!this.textures.exists(key)) {
+      const g = drawPixelBike(this, 32 * cell, RIDER_GEOM[category].axle * cell, cell, {
+        category, colorway, partAlpha: { drivetrain: 0 },
+      });
+      g.generateTexture(key, 64 * cell, 40 * cell);
+      g.destroy();
+    }
+    return key;
+  }
+
+  // 체인·체인링·카세트 정적 오버레이 (회전하는 크랭크·페달은 drawRiderLegs가 담당)
+  private buildStaticDrivetrain(category: BikeCategory, cell: number): Phaser.GameObjects.Graphics {
+    const crank = this.riderPoint(category, RIDER_GEOM[category].crank, cell);
+    const rear = this.riderPoint(category, WHEEL_GEOM[category].rear, cell);
+    const g = this.add.graphics();
+    g.lineStyle(cell * 0.8, CHAIN_COLOR, 1);
+    g.lineBetween(rear.x, rear.y - 1.4 * cell, crank.x, crank.y - 2.8 * cell);
+    g.lineBetween(rear.x, rear.y + 1.2 * cell, crank.x, crank.y + 2.8 * cell);
+    g.fillStyle(RING_COLOR, 1);
+    g.fillCircle(rear.x, rear.y, 1.6 * cell);
+    g.lineStyle(cell, RING_COLOR, 1);
+    g.strokeCircle(crank.x, crank.y, 3 * cell);
+    return g;
+  }
+
   // 바퀴 중심에 회전 스포크 오버레이를 추가합니다. 텍스처는 반경 단위로 캐시되고,
   // 자전거 텍스처 아래(프레임·타이어 뒤)에 깔려 바퀴 안쪽에서만 보입니다.
   private addWheelSpokes(container: Phaser.GameObjects.Container, category: BikeCategory, cell: number): { wheels: Phaser.GameObjects.Image[]; spokeRadius: number } {
@@ -639,26 +682,44 @@ class RaceScene extends Phaser.Scene {
     const radius = PEDAL_RADIUS_UNITS * cell;
     farLegs.clear();
     nearLegs.clear();
-    const drawLeg = (g: Phaser.GameObjects.Graphics, angle: number, pants: number, shoe: number) => {
+    const drawLeg = (g: Phaser.GameObjects.Graphics, angle: number, pants: number, shoe: number, crankColor: number, plateColor: number) => {
       const pedal = { x: crank.x + Math.cos(angle) * radius, y: crank.y + Math.sin(angle) * radius };
-      const dx = pedal.x - hip.x;
-      const dy = pedal.y - hip.y;
+      // 크랭크 암: 중심→페달로 함께 회전 (잉크 밑선 + 금속 윗선)
+      g.lineStyle(2 * cell, BORDER, 1);
+      g.lineBetween(crank.x, crank.y, pedal.x, pedal.y);
+      g.lineStyle(cell, crankColor, 1);
+      g.lineBetween(crank.x, crank.y, pedal.x, pedal.y);
+      // 페달 발판: 회전 위치를 따라가되 수평을 유지
+      g.fillStyle(BORDER, 1);
+      g.fillRect(pedal.x - 2.2 * cell, pedal.y - 0.9 * cell, 4.4 * cell, 1.8 * cell);
+      g.fillStyle(plateColor, 1);
+      g.fillRect(pedal.x - 1.8 * cell, pedal.y - 0.5 * cell, 3.6 * cell, 1 * cell);
+      // 다리: 발목이 페달 발판 바로 위에 오도록 잇습니다
+      const ankle = { x: pedal.x - 0.2 * cell, y: pedal.y - 1.6 * cell };
+      const dx = ankle.x - hip.x;
+      const dy = ankle.y - hip.y;
       const length = Math.hypot(dx, dy) || 1;
-      // 무릎: 엉덩이→페달 중점에서 전방(진행 방향) 위쪽으로 굽힘
+      // 무릎: 엉덩이→발목 중점에서 전방(진행 방향) 위쪽으로 굽힘
       const knee = {
-        x: (hip.x + pedal.x) / 2 + (dy / length) * 3 * cell,
-        y: (hip.y + pedal.y) / 2 - (dx / length) * 3 * cell,
+        x: (hip.x + ankle.x) / 2 + (dy / length) * 3 * cell,
+        y: (hip.y + ankle.y) / 2 - (dx / length) * 3 * cell,
       };
-      g.lineStyle(2.4 * cell, pants);
+      g.lineStyle(2.4 * cell, pants, 1);
       g.lineBetween(hip.x, hip.y, knee.x, knee.y);
-      g.lineStyle(1.7 * cell, pants);
-      g.lineBetween(knee.x, knee.y, pedal.x, pedal.y);
-      g.fillStyle(shoe);
-      g.fillRect(pedal.x - 1.6 * cell, pedal.y - 0.9 * cell, 3.4 * cell, 1.8 * cell);
+      g.lineStyle(1.7 * cell, pants, 1);
+      g.lineBetween(knee.x, knee.y, ankle.x, ankle.y);
+      // 신발: 페달을 밟은 발
+      g.fillStyle(shoe, 1);
+      g.fillRect(pedal.x - 1.7 * cell, pedal.y - 2.5 * cell, 3.6 * cell, 1.8 * cell);
     };
     const colors = RIDER_LEG_COLORS[view.role];
-    drawLeg(farLegs, view.pedalAngle + Math.PI, colors.pantsFar, colors.shoeFar);
-    drawLeg(nearLegs, view.pedalAngle, colors.pants, colors.shoe);
+    drawLeg(farLegs, view.pedalAngle + Math.PI, colors.pantsFar, colors.shoeFar, CRANK_METAL_FAR, PEDAL_PLATE_FAR);
+    drawLeg(nearLegs, view.pedalAngle, colors.pants, colors.shoe, CRANK_METAL, PEDAL_PLATE);
+    // 크랭크 허브 캡: 회전축이 고정돼 보이도록 근경 크랭크 뿌리를 덮습니다
+    nearLegs.fillStyle(BORDER, 1);
+    nearLegs.fillCircle(crank.x, crank.y, 1.5 * cell);
+    nearLegs.fillStyle(CRANK_METAL, 1);
+    nearLegs.fillCircle(crank.x, crank.y, 0.9 * cell);
   }
 
   // 페달링·바퀴 회전: 실제 이동량에 비례해 돌립니다 (슬로모션·완주 후 관성도 자연히 반영)
@@ -669,8 +730,10 @@ class RaceScene extends Phaser.Scene {
       if (moved <= 0) return;
       const movedPx = moved * SPREAD_PX;
       if (view.wheels && view.spokeRadius) {
-        const rotation = movedPx / (view.spokeRadius * 1.4);
-        view.wheels.forEach((wheel) => { wheel.rotation += rotation; });
+        // 연속 회전 대신 15° 스텝으로 끊어 픽셀 프레임 애니메이션처럼 보이게 합니다
+        view.wheelSpin += movedPx / (view.spokeRadius * 1.4);
+        const snapped = Math.round(view.wheelSpin / WHEEL_SPIN_STEP) * WHEEL_SPIN_STEP;
+        view.wheels.forEach((wheel) => { wheel.rotation = snapped; });
       }
       if (view.farLegs) {
         view.pedalAngle += movedPx / PEDAL_PX_PER_RADIAN;
