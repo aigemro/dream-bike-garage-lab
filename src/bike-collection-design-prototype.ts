@@ -11,7 +11,10 @@ export type BikeCollectionDesignHooks = {
   coins?: number;
   initialBikeId?: string;
   // 릴리스 통합용 실제 진행 데이터 (#201): 지정 시 샘플 보유 상태(8/24) 대신 이 목록으로 잠금을 결정합니다.
+  // ownedBikeIds = 완성(보유) 자전거. 등록·이해도(#221)는 도감 상태 표시에 사용합니다.
   ownedBikeIds?: string[];
+  registeredBikeIds?: string[];
+  understandingByBikeId?: Record<string, number>;
   newBikeIds?: string[];
   showcaseSlots?: Array<string | null>;
   onShowcaseChange?: (slots: Array<string | null>) => void;
@@ -61,8 +64,11 @@ class BikeCollectionDesignScene extends Phaser.Scene {
   private mode: BikeCollectionDesignMode;
   private view: 'collection' | 'home' = 'collection';
   private bikes = DESIGN_BIKES.map((bike) => ({ ...bike }));
-  // 아직 도감에서 확인하지 않은 신규 해금 자전거 (#201) — 확인 시 onBikeSeen으로 컨트롤러에 알림
+  // 아직 도감에서 확인하지 않은 신규 등록 자전거 (#201·#221) — 확인 시 onBikeSeen으로 컨트롤러에 알림
   private newIds = new Set<string>();
+  // 도감 등록(제작 가능) 자전거와 자전거별 이해도 (#221) — 독립 데모는 샘플 보유와 동일하게 취급
+  private registeredIds = new Set<string>();
+  private understanding: Record<string, number> = {};
   private selected = 'trail-mtb';
   private coins = 2480;
   private toast: string;
@@ -81,6 +87,8 @@ class BikeCollectionDesignScene extends Phaser.Scene {
         .map((slot) => (slot && owned.has(slot) ? slot : null));
     }
     this.newIds = new Set(hooks.newBikeIds ?? []);
+    this.registeredIds = new Set(hooks.registeredBikeIds ?? hooks.ownedBikeIds ?? this.bikes.filter((bike) => bike.owned).map((bike) => bike.id));
+    this.understanding = { ...(hooks.understandingByBikeId ?? {}) };
     if (hooks.dreamStats) this.dreamStats = { ...hooks.dreamStats };
     if (hooks.initialBikeId && this.bikes.some((bike) => bike.id === hooks.initialBikeId)) this.selected = hooks.initialBikeId;
     this.toast =
@@ -192,14 +200,16 @@ class BikeCollectionDesignScene extends Phaser.Scene {
           if (this.newIds.delete(bike.id)) this.hooks.onBikeSeen?.(bike.id);
           this.render();
         });
-      if (bike.owned && this.newIds.has(bike.id)) {
+      // 도감 상태 3단계 (#221): 완성(보유) → 컬러, 등록(제작 가능) → 컬러+제작 태그, 미등록 → 실루엣+이해도
+      const isRegistered = bike.owned || this.registeredIds.has(bike.id);
+      const progress = this.understanding[bike.id] ?? (isRegistered ? 100 : 0);
+      if (isRegistered && this.newIds.has(bike.id)) {
         this.add.rectangle(x + 26, y - 24, 34, 14, P.red).setStrokeStyle(2, P.ink).setDepth(8);
         this.label(x + 26, y - 24, 'NEW', 8, '#fff1c6', true).setOrigin(.5).setDepth(9);
       }
       this.add.circle(x - 33, y - 24, 4, GRADE_COLOR[bike.grade]).setStrokeStyle(1, P.ink).setDepth(7);
-      // 보유: 카테고리별 픽셀 스프라이트, 미보유: 실루엣 표시.
       // 24칸을 동시에 그리므로 Graphics 대신 텍스처 캐시 경로(addPixelBikeImage)를 사용합니다.
-      if (bike.owned) {
+      if (isRegistered) {
         addPixelBikeImage(this, x, y + 4, 1, {
           category: bikeCategoryFromKorean(bike.category), colorway: makeWarmColorway(bike.color), depth: 7,
         });
@@ -208,14 +218,28 @@ class BikeCollectionDesignScene extends Phaser.Scene {
           category: bikeCategoryFromKorean(bike.category), silhouette: { body: 0x8a6a52, ink: 0x4a3328 }, depth: 7,
         });
       }
-      if (!bike.owned) this.label(x, y + 21, isNextGoal ? 'NEXT' : '?', 9, isNextGoal ? '#f4b84a' : '#c9a98c', true).setOrigin(.5).setDepth(7);
+      if (!bike.owned) {
+        const cellTag = isRegistered ? '제작 가능' : progress > 0 ? `${progress}%` : isNextGoal ? 'NEXT' : '?';
+        const cellColor = isRegistered ? '#a16028' : progress > 0 ? '#3f7851' : isNextGoal ? '#f4b84a' : '#c9a98c';
+        this.label(x, y + 21, cellTag, isRegistered ? 8 : 9, cellColor, true).setOrigin(.5).setDepth(7);
+      }
     });
 
     const target = this.bikes.find((bike) => bike.id === this.selected)!;
+    const targetRegistered = target.owned || this.registeredIds.has(target.id);
+    const targetProgress = this.understanding[target.id] ?? (targetRegistered ? 100 : 0);
     this.pixelRect(195, 682, 366, 74, P.paper, P.ink, 8);
     this.label(28, 656, `${target.category} · ${target.grade}`, 9, '#8e5136', true).setDepth(9);
-    this.label(28, 671, target.owned ? target.name : `??? ${target.name}`, 14, target.owned ? '#3b2531' : '#7b5140', true).setDepth(9);
-    this.label(28, 693, target.owned ? `보유 중 · ${target.hint}` : target.hint, 10, target.owned ? '#3f7851' : '#a14a38', true).setDepth(9);
+    this.label(28, 671, targetRegistered ? target.name : `??? ${target.name}`, 14, targetRegistered ? '#3b2531' : '#7b5140', true).setDepth(9);
+    // 상태별 안내 (#221): 완성=보유 중, 등록=제작 가능, 미등록=이해도 진행 표시 (실데이터 모드)
+    const targetStatus = target.owned
+      ? `보유 중 · ${target.hint}`
+      : targetRegistered
+        ? '도감 등록 · Garage에서 부품을 조립해 제작할 수 있습니다'
+        : this.hooks.ownedBikeIds
+          ? `이해도 ${targetProgress}% · 주문 납품으로 학습하세요`
+          : target.hint;
+    this.label(28, 693, targetStatus, 10, target.owned ? '#3f7851' : targetRegistered ? '#a16028' : '#a14a38', true).setDepth(9);
     if (target.owned) {
       this.button(322, 682, 108, 42, '상세·성장\n보기', () => {
         this.hooks.onSfx?.('tap');

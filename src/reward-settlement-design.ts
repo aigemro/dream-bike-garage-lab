@@ -25,7 +25,15 @@ export type RewardSettlementHooks = {
   // 릴리스 통합용 실제 주문 데이터 (#201): 납품 주문명·자전거 종류·컬렉션 해금 결과
   orderName?: string;
   bikeCategory?: BikeCategory;
-  unlockedBike?: { name: string; grade: string; isNew: boolean };
+  // 납품 이해도 결과 (#221): 상승 표시, 100% 도달 시 도감 등록 배너
+  understanding?: {
+    bikeName: string;
+    grade: string;
+    before: number;
+    after: number;
+    registeredNow: boolean;
+    alreadyRegistered: boolean;
+  };
   // 다음 주문 예고 (#205): 실제 주문 순환에 맞춰 동적으로 표시
   nextOrder?: { name: string; parts: number; reward: number };
   onNext?: () => void;
@@ -143,19 +151,26 @@ class RewardSettlementScene extends Phaser.Scene {
     }
   }
 
-  // 컬렉션 해금 결과 배너 (#201): 신규 발견이면 강조, 이미 보유한 자전거면 중복 안내만 표시
+  // 납품 이해도 배너 (#221): 상승 중이면 진행률, 100% 도달이면 도감 등록 강조, 등록 후 반복이면 안내만 표시
   private showUnlockBanner() {
-    const unlocked = this.hooks.unlockedBike;
-    if (!unlocked) return;
-    const highlight = unlocked.isNew;
+    const result = this.hooks.understanding;
+    if (!result) return;
+    const highlight = result.registeredNow;
+    const message = result.registeredNow
+      ? `도감 등록! ${result.bikeName} (${result.grade}) 이해도 100% · 제작 가능`
+      : result.alreadyRegistered
+        ? `${result.bikeName}은(는) 이미 도감에 등록된 자전거입니다`
+        : `${result.bikeName} 이해도 ${result.before}% → ${result.after}%`;
     const banner = this.add.rectangle(195, 300, 342, 34, highlight ? 0xf4b84a : CREAM)
       .setStrokeStyle(3, BORDER).setDepth(6).setAlpha(0);
-    const text = this.add.text(195, 300,
-      highlight
-        ? `NEW BIKE! ${unlocked.name} (${unlocked.grade}) 도감 등록`
-        : `${unlocked.name}은(는) 이미 도감에 있는 자전거입니다`,
+    const text = this.add.text(195, 300, message,
       { fontFamily: FONT, fontSize: '11px', color: INK, fontStyle: 'bold' }).setOrigin(0.5).setDepth(7).setAlpha(0);
     this.tweens.add({ targets: [banner, text], alpha: 1, y: '-=8', duration: 360, ease: 'Cubic.easeOut' });
+    // 이해도 진행 게이지 (등록 반복 납품 시에는 표시하지 않음)
+    if (!result.alreadyRegistered) {
+      this.add.rectangle(195, 322, 342, 8, 0x6a4a3a).setStrokeStyle(2, BORDER).setDepth(6);
+      this.add.rectangle(24 + (342 * result.after / 100) / 2, 322, 342 * result.after / 100, 6, highlight ? 0xf4b84a : 0x5e9a67).setDepth(7);
+    }
   }
 
   private showNextOrder() {
