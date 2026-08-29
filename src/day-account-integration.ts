@@ -352,8 +352,8 @@ export class DayAccountIntegrationController {
       <section class="day-account-panel day-ready-panel">
         <p class="day-account-eyebrow">${escapeHtml(this.profile.garageName)} · WORK PLAN</p>
         <div class="day-number-badge">DAY ${day.dayNumber}</div>
-        <h2>오늘의 공방 문을 열까요?</h2>
-        <p>Lab 테스트용 활성 플레이 시간 ${formatTime(DAY_DURATION_MS)}가 지나면 오늘 수입 정산으로 이동합니다. 홈·설정·수집·백그라운드에서는 시간이 멈춥니다.</p>
+        <h2>오늘 공방을 열까요?</h2>
+        <p>${formatTime(DAY_DURATION_MS)} 동안 플레이하면 오늘 수입을 정산합니다. 게임 밖에서는 시간이 멈춥니다.</p>
         <div class="day-goal-grid"><div><span>오늘 검증</span><strong>납품·정산 전환</strong></div><div><span>현재 코인</span><strong>${this.state.coins.toLocaleString()}</strong></div><div><span>지난 기록</span><strong>${this.state.dayHistory.length}일</strong></div></div>
         <button id="start-day" class="day-account-primary" type="button">DAY ${day.dayNumber} START</button>
       </section>`;
@@ -368,7 +368,7 @@ export class DayAccountIntegrationController {
       <section class="day-account-panel day-settlement-panel">
         <p class="day-account-eyebrow">DAY ${day.dayNumber} · SETTLEMENT r${day.settlementRevision ?? this.state.revision}</p>
         <h2>${escapeHtml(this.profile.nickname)} 정비사, 오늘도 수고했어요!</h2>
-        <p>${reason} 미완료 주문 번호는 다음 Day로 이월하고, 임시 보드는 초기화하는 B안 검증 규칙을 적용합니다.</p>
+        <p>${reason} 미완료 주문은 다음 Day로 이월하고 임시 보드는 초기화합니다.</p>
         <div class="settlement-income"><span>오늘 수입</span><strong>+ ${day.earnings.toLocaleString()} COIN</strong></div>
         <div class="settlement-grid"><div><span>완료 주문</span><strong>${day.ordersCompleted}건</strong></div><div><span>종료 Day</span><strong>DAY ${day.dayNumber}</strong></div><div><span>활성 시간</span><strong>${formatTime(day.elapsedActiveMs)}</strong></div><div><span>누적 코인</span><strong>${this.state.coins.toLocaleString()}</strong></div></div>
         <button id="prepare-next-day" class="day-account-primary" type="button">DAY ${day.dayNumber + 1} 준비하기</button>
@@ -380,13 +380,13 @@ export class DayAccountIntegrationController {
 
   private renderAccountProfile(stage: HTMLElement) {
     if (!this.state || !this.profile || !this.session) return;
-    const recent = [...this.state.dayHistory].reverse().slice(0, 4);
+    const recent = [...this.state.dayHistory].reverse().slice(0, 3);
     stage.innerHTML = `
       <section class="day-account-panel account-profile-panel">
         <p class="day-account-eyebrow">PLAYER ACCOUNT · GAME PROGRESS</p>
         <div class="profile-id-card"><div><span>정비사</span><strong>${escapeHtml(this.profile.nickname)}</strong><em>${escapeHtml(this.profile.garageName)}</em></div><div><span>계정</span><strong>${escapeHtml(this.session.displayLabel)}</strong><em>${escapeHtml(this.profile.playerId)}</em></div></div>
         <div class="profile-progress-grid"><div><span>현재 Day</span><strong>${this.state.currentDayState.dayNumber}</strong></div><div><span>누적 납품</span><strong>${this.state.completedOrders}</strong></div><div><span>코인</span><strong>${this.state.coins.toLocaleString()}</strong></div><div><span>저장 revision</span><strong>${this.state.revision}</strong></div></div>
-        <div class="day-history-list"><h3>최근 Day 기록</h3>${recent.length ? recent.map((entry) => `<p><strong>DAY ${entry.dayNumber}</strong><span>주문 ${entry.ordersCompleted} · 급여 ${entry.earnings.toLocaleString()} · ${formatTime(entry.elapsedActiveMs)}</span></p>`).join('') : '<p><span>아직 정산된 Day가 없습니다.</span></p>'}</div>
+        <div class="day-history-list"><h3>최근 Day 기록 · 3일</h3>${recent.length ? recent.map((entry) => `<p><strong>DAY ${entry.dayNumber}</strong><span>주문 ${entry.ordersCompleted} · 급여 ${entry.earnings.toLocaleString()} · ${formatTime(entry.elapsedActiveMs)}</span></p>`).join('') : '<p><span>아직 정산된 Day가 없습니다.</span></p>'}</div>
         <button id="profile-home" class="day-account-primary" type="button">Garage Home</button>
       </section>`;
     stage.querySelector<HTMLButtonElement>('#profile-home')?.addEventListener('click', () => this.show('home'));
