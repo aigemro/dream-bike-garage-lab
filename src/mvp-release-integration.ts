@@ -8,7 +8,16 @@ import { startBikeCollectionDesignPrototype, type BikeCollectionDesignMode } fro
 import { startProfileDesignPrototype } from './profile-design-prototype';
 import { startSettingsDrawerPrototype } from './settings-design';
 import { ReleaseAudio, type ReleaseAudioRoom, type ReleaseSfxEvent } from './release-audio';
-import { applyOrderUnlock, createCollectionProgress, markBikeSeen, orderMetaAt, type OrderUnlockResult } from './meta-progress';
+import {
+  COLLECTION_STORAGE_KEY,
+  applyOrderUnlock,
+  createCollectionProgress,
+  markBikeSeen,
+  orderMetaAt,
+  parseCollectionProgress,
+  serializeCollectionProgress,
+  type OrderUnlockResult,
+} from './meta-progress';
 
 type ReleaseScreen = 'title' | 'home' | 'guide' | 'game' | 'reward' | 'catalog' | 'showcase' | 'dream' | 'profile' | 'settings';
 type ReleaseState = {
@@ -57,8 +66,8 @@ export class MvpReleaseIntegrationController {
   private readonly audio = new ReleaseAudio();
   private state = this.loadState();
   private screen: ReleaseScreen = 'title';
-  // 컬렉션 진행 상태 (#201): 이 단계에서는 세션 메모리로만 유지하고, 저장·복구는 #204에서 연결한다
-  private collection = createCollectionProgress();
+  // 컬렉션 진행 상태 (#201 해금 → #204 저장·복구): 새로고침·재진입 후에도 동일하게 복구된다
+  private collection = this.loadCollection();
   private lastUnlock?: OrderUnlockResult;
   private rewardApplied = false;
   private readonly stageId = `mvp-release-stage-${Math.random().toString(36).slice(2)}`;
@@ -153,6 +162,7 @@ export class MvpReleaseIntegrationController {
           this.state.completedOrders += 1;
           // 납품한 주문에 매핑된 자전거를 컬렉션에 해금하고, 결과를 정산 화면에 전달한다 (#201)
           this.lastUnlock = applyOrderUnlock(this.collection, orderIndex);
+          this.saveCollection();
           this.saveState();
           this.show('reward');
         },
@@ -193,13 +203,13 @@ export class MvpReleaseIntegrationController {
         ownedBikeIds: [...this.collection.ownedBikeIds],
         newBikeIds: [...this.collection.newBikeIds],
         showcaseSlots: [...this.collection.showcaseSlots],
-        onShowcaseChange: (slots) => { this.collection.showcaseSlots = slots; },
-        onBikeSeen: (bikeId) => markBikeSeen(this.collection, bikeId),
+        onShowcaseChange: (slots) => { this.collection.showcaseSlots = slots; this.saveCollection(); },
+        onBikeSeen: (bikeId) => { markBikeSeen(this.collection, bikeId); this.saveCollection(); },
         onHome: () => this.show('home'),
         onCatalog: () => this.show('catalog'),
         onShowcase: () => this.show('showcase'),
         onDreamGrowth: () => this.show('dream'),
-        onBikeDetail: (bikeId) => { this.collection.selectedBikeId = bikeId; this.show('dream'); },
+        onBikeDetail: (bikeId) => { this.collection.selectedBikeId = bikeId; this.saveCollection(); this.show('dream'); },
         onCoinsChange: (coins) => { this.state.coins = coins; this.saveState(); this.refreshShell(); },
         onSfx: (event) => this.play(event === 'reward' ? 'reward' : event),
       });
@@ -218,6 +228,7 @@ export class MvpReleaseIntegrationController {
         this.collection = createCollectionProgress();
         this.lastUnlock = undefined;
         localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(COLLECTION_STORAGE_KEY);
         window.setTimeout(() => this.show('title'), 0);
       },
       onToggle: (key, value) => {
@@ -269,6 +280,19 @@ export class MvpReleaseIntegrationController {
 
   private saveState() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
+  }
+
+  // 컬렉션 저장·복구 (#204): 직렬화·손상 복구·비정상 값 방어 규칙은 meta-progress가 담당
+  private loadCollection() {
+    try {
+      return parseCollectionProgress(localStorage.getItem(COLLECTION_STORAGE_KEY));
+    } catch {
+      return createCollectionProgress();
+    }
+  }
+
+  private saveCollection() {
+    localStorage.setItem(COLLECTION_STORAGE_KEY, serializeCollectionProgress(this.collection));
   }
 }
 
