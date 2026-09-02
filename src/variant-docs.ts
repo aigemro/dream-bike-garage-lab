@@ -77,6 +77,7 @@ import doc75 from '../docs/variants/race-side-follow.md?raw';
 import doc76 from '../docs/variants/race-lane-board.md?raw';
 import doc77 from '../docs/variants/race-hybrid-finish.md?raw';
 import doc78 from '../docs/variants/race-manual-switch.md?raw';
+import doc79 from '../docs/variants/race-cinematic-broadcast.md?raw';
 
 const variantDocs: Record<string, string> = {
   'merge-free-board': doc0,
@@ -158,6 +159,7 @@ const variantDocs: Record<string, string> = {
   'race-lane-board': doc76,
   'race-hybrid-finish': doc77,
   'race-manual-switch': doc78,
+  'race-cinematic-broadcast': doc79,
 };
 
 export default variantDocs;
