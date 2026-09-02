@@ -2,7 +2,8 @@
 // 특정 게임의 캐릭터·UI를 복제하지 않고, 레이스 중계의 연출 문법
 // (국면별 카메라, 라이벌 포커스, 막판 스퍼트 컷인, 사진 판정)을 warm-pixel 테마로 검증합니다.
 import Phaser from 'phaser';
-import { addPixelBikeImage, makeWarmColorway } from './bike-pixel-sprite';
+import { addPixelBikeImage, drawPixelBike, makeWarmColorway, type BikeCategory, type BikeColorway } from './bike-pixel-sprite';
+import { drawPixelMap, type PixelCharacterRole } from './art-character-pixel';
 import type { BikeStats } from './meta-progress';
 import { dreamGradeName } from './meta-progress';
 import {
@@ -36,6 +37,72 @@ const DARK_WOOD = 0x573044;
 // C·D안과 같은 3,000m 코스·참가비·보상을 사용해 연출만 비교합니다.
 const CINEMATIC_RACE = RIVERSIDE_ENDURANCE_RACE;
 
+// A안과 같은 착좌 캐릭터·바퀴·크랭크 지오메트리를 E안 카메라에 맞춰 사용합니다.
+const RIDER_CELL = 2;
+const MOTION_SPREAD_PX = 2600;
+const RIDER_GEOM: Record<BikeCategory, { axle: number; hip: [number, number]; hand: [number, number]; crank: [number, number] }> = {
+  road: { axle: 27, hip: [22, 6], hand: [46, 9], crank: [30, 30] },
+  gravel: { axle: 27, hip: [22, 6], hand: [46, 9], crank: [30, 30] },
+  mtb: { axle: 27, hip: [21, 6], hand: [44, 9], crank: [30, 30] },
+  city: { axle: 27, hip: [22, 6], hand: [43, 9], crank: [30, 30] },
+  minivelo: { axle: 30, hip: [22, 6], hand: [42, 6], crank: [30, 32] },
+};
+const RIDER_MAP = [
+  '.............KKKKKK......',
+  '...........KKUUUUUUKK....',
+  '..........KUuUUUUUUUUK...',
+  '..........KFFSSSSSSSSSK..',
+  '.........KFFSSSSSEESSSK..',
+  '.........KFFSSSSSEWSBBK..',
+  '..........KSSSSSSSSSSK...',
+  '...........KSSSSSSSSK....',
+  '............KKTSSTKK.....',
+  '..........KKOOSSOOKK.....',
+  '.........KOOOOOOOOOK.....',
+  '........KOOOOOOOOOK......',
+  '.......KOOOOOOOOK........',
+  '......KOOOOOOOK..........',
+  '.....KOOOOOOK............',
+  '....KOOoOOK..............',
+  '...KQQOOOK...............',
+  '...KQQQQK................',
+  '...KQQQQK................',
+  '....KKKK.................',
+];
+const RIDER_MAP_HIP = { col: 6, row: 17 };
+const RIDER_MAP_SHOULDER = { col: 16, row: 10 };
+type RiderLegend = Record<string, number>;
+const RIDER_BASE_LEGEND: RiderLegend = {
+  K: 0x3b2531, S: 0xeeb07c, T: 0xd18a54, B: 0xe58a66, E: 0x2c1c26, W: 0xfff8df,
+};
+const RIDER_LEGENDS: Record<PixelCharacterRole, RiderLegend> = {
+  정비사: { ...RIDER_BASE_LEGEND, U: 0xfff1c6, u: 0xe8c98d, F: 0x77492f, O: 0x5e9a67, o: 0x477a50, Q: 0x6b4534 },
+  점장: { ...RIDER_BASE_LEGEND, U: 0x8d7a68, u: 0xa8988a, F: 0x8d7a68, O: 0x573044, o: 0x41202f, Q: 0x4a3542 },
+  고객: { ...RIDER_BASE_LEGEND, U: 0xc95746, u: 0xa63f31, F: 0x4f3527, O: 0x4e8092, o: 0x3a6274, Q: 0x3f4a63 },
+};
+const RIDER_LEG_COLORS: Record<PixelCharacterRole, { pants: number; pantsFar: number; shoe: number; shoeFar: number }> = {
+  정비사: { pants: 0x6b4534, pantsFar: 0x53341f, shoe: 0x352c3c, shoeFar: 0x241f28 },
+  점장: { pants: 0x4a3542, pantsFar: 0x38222f, shoe: 0x6b4226, shoeFar: 0x4d2c15 },
+  고객: { pants: 0x3f4a63, pantsFar: 0x2e3850, shoe: 0x352c3c, shoeFar: 0x241f28 },
+};
+const RIDER_SKIN = 0xeeb07c;
+const WHEEL_GEOM: Record<BikeCategory, { rear: [number, number]; front: [number, number]; spokeUnits: number }> = {
+  road: { rear: [14, 27], front: [50, 27], spokeUnits: 6.5 },
+  gravel: { rear: [14, 27], front: [50, 27], spokeUnits: 6.5 },
+  mtb: { rear: [14, 27], front: [50, 27], spokeUnits: 6 },
+  city: { rear: [14, 27], front: [50, 27], spokeUnits: 6.5 },
+  minivelo: { rear: [16, 30], front: [48, 30], spokeUnits: 3.5 },
+};
+const PEDAL_RADIUS_UNITS = 3.5;
+const PEDAL_PX_PER_RADIAN = 12;
+const CRANK_METAL = 0xa39985;
+const CRANK_METAL_FAR = 0x8d8779;
+const CHAIN_COLOR = 0x8d8779;
+const RING_COLOR = 0xc2bcae;
+const PEDAL_PLATE = 0x573044;
+const PEDAL_PLATE_FAR = 0x41202f;
+const WHEEL_SPIN_STEP = Math.PI / 12;
+
 const STAT_PRESETS: Array<{ label: string; stats: BikeStats }> = [
   { label: '갓 완성', stats: { 성능: 1, 스타일: 1, 희귀도: 1 } },
   { label: '성장 중', stats: { 성능: 3, 스타일: 2, 희귀도: 2 } },
@@ -49,6 +116,14 @@ type RacerVisual = {
   racer: RacerResult;
   container: Phaser.GameObjects.Container;
   name: Phaser.GameObjects.Text;
+  role: PixelCharacterRole;
+  farLegs: Phaser.GameObjects.Graphics;
+  nearLegs: Phaser.GameObjects.Graphics;
+  wheels: Phaser.GameObjects.Image[];
+  spokeRadius: number;
+  wheelSpin: number;
+  pedalAngle: number;
+  lastProgress: number;
   progress: number;
   targetX: number;
   targetY: number;
@@ -242,34 +317,175 @@ class CinematicRaceScene extends Phaser.Scene {
     this.speedLines = this.add.graphics().setDepth(8);
 
     this.result!.racers.forEach((racer, index) => {
+      const role: PixelCharacterRole = racer.isPlayer ? '정비사' : index % 2 === 0 ? '고객' : '점장';
       const container = this.add.container(-100, 348 + (index % 4) * 8).setDepth(racer.isPlayer ? 7 : 6);
-      const bike = addPixelBikeImage(this, 0, 0, 1.55, { category: racer.category, colorway: makeWarmColorway(racer.frameColor) });
+      const farLegs = this.add.graphics();
+      container.add(farLegs);
+      const spin = this.addWheelSpokes(container, racer.category, RIDER_CELL);
+      const colorway = makeWarmColorway(racer.frameColor);
+      const bike = this.add.image(0, 0, this.bikeBodyTextureKey(racer.category, colorway, RIDER_CELL));
+      bike.setOrigin(0.5, RIDER_GEOM[racer.category].axle / 40);
       container.add(bike);
-      this.addTinyRider(container, racer.isPlayer ? RED : racer.frameColor);
-      const name = this.add.text(0, -55, racer.isPlayer ? '나 · 드림 로드' : racer.name, this.style(7, racer.isPlayer ? CREAM_TEXT : INK, true))
+      container.add(this.buildStaticDrivetrain(racer.category, RIDER_CELL));
+      this.buildRiderBody(container, racer, role, RIDER_CELL);
+      const nearLegs = this.add.graphics();
+      container.add(nearLegs);
+      const name = this.add.text(0, -88, racer.isPlayer ? '나 · 드림 로드' : racer.name, this.style(7, racer.isPlayer ? CREAM_TEXT : INK, true))
         .setOrigin(0.5).setStroke(racer.isPlayer ? INK : CREAM_TEXT, 3);
       container.add(name);
       if (racer.isPlayer) {
-        const tag = this.add.rectangle(0, -73, 34, 16, RED).setStrokeStyle(2, BORDER);
-        const tagText = this.add.text(0, -73, 'PLAYER', this.style(6, CREAM_TEXT, true)).setOrigin(0.5);
+        const tag = this.add.rectangle(0, -106, 34, 16, RED).setStrokeStyle(2, BORDER);
+        const tagText = this.add.text(0, -106, 'PLAYER', this.style(6, CREAM_TEXT, true)).setOrigin(0.5);
         container.add([tag, tagText]);
       }
-      this.visuals.push({ racer, container, name, progress: 0, targetX: -100, targetY: container.y });
-      this.tweens.add({ targets: container, y: '-=2', duration: 210 + index * 18, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      const visual: RacerVisual = {
+        racer, container, name, role, farLegs, nearLegs,
+        wheels: spin.wheels, spokeRadius: spin.spokeRadius,
+        wheelSpin: 0, pedalAngle: index * 2.1, lastProgress: 0,
+        progress: 0, targetX: -100, targetY: container.y,
+      };
+      this.drawRiderLegs(visual);
+      this.visuals.push(visual);
     });
 
     this.add.rectangle(195, 610, 390, 400, WOOD).setDepth(9);
     for (let y = 430; y < 810; y += 26) this.add.rectangle(195, y, 390, 2, 0x8a5231, 0.5).setDepth(9);
   }
 
-  private addTinyRider(container: Phaser.GameObjects.Container, jersey: number) {
-    const rearLeg = this.add.rectangle(-6, -18, 5, 18, 0x53341f).setAngle(-34);
-    const body = this.add.rectangle(-2, -35, 13, 20, jersey).setStrokeStyle(2, BORDER).setAngle(25);
-    const head = this.add.rectangle(5, -51, 12, 12, 0xeeb07c).setStrokeStyle(2, BORDER);
-    const helmet = this.add.rectangle(4, -58, 16, 6, jersey).setStrokeStyle(2, BORDER);
-    const arm = this.add.rectangle(11, -31, 4, 22, 0xeeb07c).setAngle(-50);
-    const frontLeg = this.add.rectangle(5, -17, 5, 19, 0x6b4534).setAngle(38);
-    container.add([rearLeg, body, head, helmet, arm, frontLeg]);
+  private riderPoint(category: BikeCategory, point: [number, number], cell: number): { x: number; y: number } {
+    return { x: (point[0] - 32) * cell, y: (point[1] - RIDER_GEOM[category].axle) * cell };
+  }
+
+  private buildRiderBody(container: Phaser.GameObjects.Container, racer: RacerResult, role: PixelCharacterRole, cell: number) {
+    const geom = RIDER_GEOM[racer.category];
+    const hip = this.riderPoint(racer.category, geom.hip, cell);
+    const hand = this.riderPoint(racer.category, geom.hand, cell);
+    const legend = RIDER_LEGENDS[role];
+    const mapWidth = Math.max(...RIDER_MAP.map((row) => row.length));
+    const gx = hip.x - (-(mapWidth * cell) / 2 + RIDER_MAP_HIP.col * cell + cell / 2);
+    const gy = hip.y - (-(RIDER_MAP.length * cell) + RIDER_MAP_HIP.row * cell + cell / 2);
+    const body = drawPixelMap(this, gx, gy, RIDER_MAP, legend, cell, 0, 'bottom');
+    const shoulder = {
+      x: gx + (-(mapWidth * cell) / 2 + RIDER_MAP_SHOULDER.col * cell + cell / 2),
+      y: gy + (-(RIDER_MAP.length * cell) + RIDER_MAP_SHOULDER.row * cell + cell / 2),
+    };
+    const arm = this.add.graphics();
+    arm.lineStyle(2 * cell, legend.O);
+    arm.lineBetween(shoulder.x, shoulder.y + cell, hand.x, hand.y);
+    arm.fillStyle(RIDER_SKIN);
+    arm.fillRect(hand.x - cell, hand.y - cell, 2 * cell, 2 * cell);
+    container.add([body, arm]);
+  }
+
+  private bikeBodyTextureKey(category: BikeCategory, colorway: BikeColorway, cell: number): string {
+    const key = `race-e-bike-body-${category}-${cell}-${colorway.frame.toString(16)}`;
+    if (!this.textures.exists(key)) {
+      const g = drawPixelBike(this, 32 * cell, RIDER_GEOM[category].axle * cell, cell, {
+        category, colorway, partAlpha: { drivetrain: 0 },
+      });
+      g.generateTexture(key, 64 * cell, 40 * cell);
+      g.destroy();
+    }
+    return key;
+  }
+
+  private buildStaticDrivetrain(category: BikeCategory, cell: number): Phaser.GameObjects.Graphics {
+    const crank = this.riderPoint(category, RIDER_GEOM[category].crank, cell);
+    const rear = this.riderPoint(category, WHEEL_GEOM[category].rear, cell);
+    const g = this.add.graphics();
+    g.lineStyle(cell * 0.8, CHAIN_COLOR, 1);
+    g.lineBetween(rear.x, rear.y - 1.4 * cell, crank.x, crank.y - 2.8 * cell);
+    g.lineBetween(rear.x, rear.y + 1.2 * cell, crank.x, crank.y + 2.8 * cell);
+    g.fillStyle(RING_COLOR, 1);
+    g.fillCircle(rear.x, rear.y, 1.6 * cell);
+    g.lineStyle(cell, RING_COLOR, 1);
+    g.strokeCircle(crank.x, crank.y, 3 * cell);
+    return g;
+  }
+
+  private addWheelSpokes(container: Phaser.GameObjects.Container, category: BikeCategory, cell: number): { wheels: Phaser.GameObjects.Image[]; spokeRadius: number } {
+    const geom = WHEEL_GEOM[category];
+    const radius = Math.max(4, Math.round(geom.spokeUnits * cell));
+    const key = `race-e-spokes-${radius}`;
+    if (!this.textures.exists(key)) {
+      const g = this.add.graphics();
+      g.lineStyle(Math.max(2, cell), 0xd9c197, 1);
+      for (let index = 0; index < 3; index += 1) {
+        const angle = (Math.PI / 3) * index + Math.PI / 6;
+        g.lineBetween(
+          radius + Math.cos(angle) * (radius - 1), radius + Math.sin(angle) * (radius - 1),
+          radius - Math.cos(angle) * (radius - 1), radius - Math.sin(angle) * (radius - 1),
+        );
+      }
+      g.fillStyle(CRANK_METAL, 1);
+      g.fillCircle(radius, radius, Math.max(2, cell));
+      g.generateTexture(key, radius * 2, radius * 2);
+      g.destroy();
+    }
+    const axle = RIDER_GEOM[category].axle;
+    const wheels = [geom.rear, geom.front].map((point) => {
+      const image = this.add.image((point[0] - 32) * cell, (point[1] - axle) * cell, key);
+      container.add(image);
+      return image;
+    });
+    return { wheels, spokeRadius: radius };
+  }
+
+  private drawRiderLegs(visual: RacerVisual) {
+    const cell = RIDER_CELL;
+    const category = visual.racer.category;
+    const geom = RIDER_GEOM[category];
+    const hip = this.riderPoint(category, geom.hip, cell);
+    const crank = this.riderPoint(category, geom.crank, cell);
+    const radius = PEDAL_RADIUS_UNITS * cell;
+    visual.farLegs.clear();
+    visual.nearLegs.clear();
+    const drawLeg = (g: Phaser.GameObjects.Graphics, angle: number, pants: number, shoe: number, crankColor: number, plateColor: number) => {
+      const pedal = { x: crank.x + Math.cos(angle) * radius, y: crank.y + Math.sin(angle) * radius };
+      g.lineStyle(2 * cell, BORDER, 1);
+      g.lineBetween(crank.x, crank.y, pedal.x, pedal.y);
+      g.lineStyle(cell, crankColor, 1);
+      g.lineBetween(crank.x, crank.y, pedal.x, pedal.y);
+      g.fillStyle(BORDER, 1);
+      g.fillRect(pedal.x - 2.2 * cell, pedal.y - 0.9 * cell, 4.4 * cell, 1.8 * cell);
+      g.fillStyle(plateColor, 1);
+      g.fillRect(pedal.x - 1.8 * cell, pedal.y - 0.5 * cell, 3.6 * cell, cell);
+      const ankle = { x: pedal.x - 0.2 * cell, y: pedal.y - 1.6 * cell };
+      const dx = ankle.x - hip.x;
+      const dy = ankle.y - hip.y;
+      const length = Math.hypot(dx, dy) || 1;
+      const knee = {
+        x: (hip.x + ankle.x) / 2 + (dy / length) * 3 * cell,
+        y: (hip.y + ankle.y) / 2 - (dx / length) * 3 * cell,
+      };
+      g.lineStyle(2.4 * cell, pants, 1);
+      g.lineBetween(hip.x, hip.y, knee.x, knee.y);
+      g.lineStyle(1.7 * cell, pants, 1);
+      g.lineBetween(knee.x, knee.y, ankle.x, ankle.y);
+      g.fillStyle(shoe, 1);
+      g.fillRect(pedal.x - 1.7 * cell, pedal.y - 2.5 * cell, 3.6 * cell, 1.8 * cell);
+    };
+    const colors = RIDER_LEG_COLORS[visual.role];
+    drawLeg(visual.farLegs, visual.pedalAngle + Math.PI, colors.pantsFar, colors.shoeFar, CRANK_METAL_FAR, PEDAL_PLATE_FAR);
+    drawLeg(visual.nearLegs, visual.pedalAngle, colors.pants, colors.shoe, CRANK_METAL, PEDAL_PLATE);
+    visual.nearLegs.fillStyle(BORDER, 1);
+    visual.nearLegs.fillCircle(crank.x, crank.y, 1.5 * cell);
+    visual.nearLegs.fillStyle(CRANK_METAL, 1);
+    visual.nearLegs.fillCircle(crank.x, crank.y, 0.9 * cell);
+  }
+
+  private updateRiderMotion() {
+    this.visuals.forEach((visual) => {
+      const moved = visual.progress - visual.lastProgress;
+      visual.lastProgress = visual.progress;
+      if (moved <= 0) return;
+      const movedPx = moved * MOTION_SPREAD_PX;
+      visual.wheelSpin += movedPx / (visual.spokeRadius * 1.4);
+      const snapped = Math.round(visual.wheelSpin / WHEEL_SPIN_STEP) * WHEEL_SPIN_STEP;
+      visual.wheels.forEach((wheel) => { wheel.rotation = snapped; });
+      visual.pedalAngle += movedPx / PEDAL_PX_PER_RADIAN;
+      this.drawRiderLegs(visual);
+    });
   }
 
   private buildBroadcastHud() {
@@ -305,8 +521,11 @@ class CinematicRaceScene extends Phaser.Scene {
     const speedButton = this.add.rectangle(282, 646, 166, 38, GREEN).setStrokeStyle(3, BORDER).setInteractive({ useHandCursor: true }).setDepth(21);
     this.speedButtonText = this.add.text(282, 646, '중계 속도 x1', this.style(11, CREAM_TEXT, true)).setOrigin(0.5).setDepth(22);
     speedButton.on('pointerdown', () => {
-      this.speedMult = this.speedMult === 1 ? 2 : 1;
+      this.speedMult = this.speedMult === 1 ? 2 : this.speedMult === 2 ? 4 : 1;
+      speedButton.setFillStyle(this.speedMult === 4 ? RED : this.speedMult === 2 ? GOLD : GREEN);
       this.speedButtonText?.setText(`중계 속도 x${this.speedMult}`);
+      this.speedButtonText?.setColor(this.speedMult === 2 ? INK : CREAM_TEXT);
+      if (this.speedMult === 4) this.cameras.main.shake(140, 0.004);
     });
 
     this.add.rectangle(195, 723, 358, 72, DARK_WOOD).setStrokeStyle(3, BORDER).setDepth(20);
@@ -326,6 +545,7 @@ class CinematicRaceScene extends Phaser.Scene {
     this.visuals.forEach((visual) => {
       visual.progress = progressAt(visual.racer.timeline, tickFloat);
     });
+    this.updateRiderMotion();
     const player = this.visuals.find((visual) => visual.racer.isPlayer)!;
     const ordered = [...this.visuals].sort((a, b) => b.progress - a.progress || a.racer.finishTimeMs - b.racer.finishTimeMs);
     const playerRank = ordered.findIndex((visual) => visual.racer.isPlayer) + 1;
@@ -357,6 +577,7 @@ class CinematicRaceScene extends Phaser.Scene {
     if (shot === 'rival') this.setAnnouncer(`${nearest.racer.name}와 나란히! 오르막 뒤 승부처입니다.`);
     if (shot === 'final') this.setAnnouncer('마지막 600m! 남은 힘을 모두 쏟아붓습니다!');
     this.cameras.main.flash(120, 255, 241, 198, false);
+    if (shot === 'final') this.cameras.main.shake(220, 0.006);
   }
 
   private positionRacers(player: RacerVisual, ordered: RacerVisual[]) {
@@ -370,32 +591,38 @@ class CinematicRaceScene extends Phaser.Scene {
       const packOffset = this.shot === 'opening' ? rankIndex * 22 : this.shot === 'pack' ? rankIndex * 12 : 0;
       const rawX = focusX + (visual.progress - focusProgress) * spread - packOffset;
       visual.targetX = Phaser.Math.Clamp(rawX, -96, 486);
-      visual.targetY = 338 + (rankIndex % 4) * 12;
+      const roadBob = Math.sin(this.playMs * 0.012 + rankIndex * 1.7) * (this.shot === 'final' ? 3 : 1.5);
+      visual.targetY = 344 + (rankIndex % 4) * 11 + roadBob;
       const isFocus = visual.racer.isPlayer || (this.shot === 'rival' && visual === nearest) || this.shot === 'opening' || this.shot === 'pack';
-      const scale = this.shot === 'opening' ? 0.7 : this.shot === 'pack' ? 0.78 : isFocus ? (this.shot === 'final' ? 1.08 : 0.94) : 0.62;
+      const scale = this.shot === 'opening' ? 0.58 : this.shot === 'pack' ? 0.66 : isFocus ? (this.shot === 'final' ? 0.92 : 0.78) : 0.5;
       const alpha = isFocus ? 1 : 0.42;
       visual.container.x = Phaser.Math.Linear(visual.container.x, visual.targetX, 0.14);
       visual.container.y = Phaser.Math.Linear(visual.container.y, visual.targetY, 0.14);
       visual.container.setScale(Phaser.Math.Linear(visual.container.scaleX, scale, 0.12));
       visual.container.setAlpha(Phaser.Math.Linear(visual.container.alpha, alpha, 0.12));
       visual.container.setDepth(visual.racer.isPlayer ? 7 : 6 - rankIndex * 0.01);
-      visual.name.setVisible(scale >= 0.75);
+      visual.name.setVisible(scale >= 0.64);
     });
   }
 
   private updateWorldScroll(progress: number, delta: number) {
-    const pace = (this.shot === 'final' ? 0.36 : 0.2) * delta * this.speedMult;
+    const shotPace: Record<BroadcastShot, number> = { opening: 0.18, pack: 0.23, rival: 0.3, final: 0.4 };
+    const pace = shotPace[this.shot] * delta * this.speedMult;
     if (this.hillFar) this.hillFar.x = -((progress * 500) % 160);
     if (this.hillNear) this.hillNear.x = -((progress * 860) % 150);
     if (this.roadDashes) this.roadDashes.x = (this.roadDashes.x - pace) % 52;
     this.speedLines?.clear();
-    if (this.shot === 'final') {
-      this.speedLines?.lineStyle(2, CREAM, 0.45);
-      for (let index = 0; index < 12; index += 1) {
-        const y = 165 + index * 18;
-        const length = 28 + (index % 4) * 17;
-        this.speedLines?.lineBetween(390 - ((this.playMs * 0.32 + index * 47) % 430), y, 390 - ((this.playMs * 0.32 + index * 47) % 430) + length, y);
-      }
+    const shotLines: Record<BroadcastShot, number> = { opening: 0, pack: 3, rival: 7, final: 13 };
+    const lineCount = shotLines[this.shot] + (this.speedMult === 4 ? 9 : this.speedMult === 2 ? 4 : 0);
+    if (lineCount === 0) return;
+    const lineSpeed = 0.24 + this.speedMult * 0.13 + (this.shot === 'final' ? 0.12 : 0);
+    const alpha = Math.min(0.68, 0.2 + this.speedMult * 0.08 + (this.shot === 'final' ? 0.12 : 0));
+    for (let index = 0; index < lineCount; index += 1) {
+      const y = 128 + ((index * 31 + (index % 3) * 11) % 268);
+      const length = 20 + (index % 5) * 13 + this.speedMult * 5;
+      const head = 410 - ((this.playMs * lineSpeed + index * 67) % 470);
+      this.speedLines?.lineStyle(this.speedMult === 4 && index % 3 === 0 ? 3 : 2, index % 4 === 0 ? PALE_GOLD : CREAM, alpha);
+      this.speedLines?.lineBetween(head - length, y, head, y);
     }
   }
 
