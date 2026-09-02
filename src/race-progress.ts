@@ -56,6 +56,18 @@ export const RIVERSIDE_RACE: RaceMeta = {
   finishReward: 200,
 };
 
+// C안 전용 장거리 코스. 참가비·보상·난이도는 A/B안과 같게 유지하고,
+// 주행 거리만 늘려 사이드뷰 몰입 구간과 결승 중계 구간을 모두 체험합니다.
+export const RIVERSIDE_ENDURANCE_RACE: RaceMeta = {
+  ...RIVERSIDE_RACE,
+  id: 'riverside-endurance-3k',
+  name: '리버사이드 3K 챌린지',
+  distanceMeters: 3000,
+};
+
+// 마지막 20%(600m)에서 사이드뷰(A안) → 8레인 중계(B안)로 전환합니다.
+export const HYBRID_FINISH_PROGRESS = 0.8;
+
 // ─── 대회 일정 ─────────────────────────────────────────────────────────
 
 export function isRaceDay(dayNumber: number, meta: RaceMeta = RIVERSIDE_RACE): boolean {
