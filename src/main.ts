@@ -335,10 +335,12 @@ const tracks: Track[] = [
   },
   {
     id: 'race-event', group: 'META PROGRESSION', title: '대회·레이스 보상', issueNumber: 231,
-    description: '급여로 참가비를 내고 보유 자전거로 출전하는 자동 관람형 대회가 성장 보상 루프를 만드는지 두 가지 관람 연출로 비교합니다.',
+    description: '급여로 참가비를 내고 보유 자전거로 출전하는 자동 관람형 대회가 성장 보상 루프를 만드는지 단일 시점과 하이브리드 중계를 비교합니다.',
     variants: [
       { id: 'side-follow', label: 'A안', title: '사이드뷰 카메라 추적 레이스', description: '카메라가 내 자전거를 따라가는 사이드뷰 트랙에서 리버사이드 서킷 1,200m(직선→오르막→내리막→스퍼트)를 자동 주행합니다.', status: '체험 가능', question: '내 자전거를 따라가는 주행 연출이 몰입감을 주면서, 오르막·내리막 순위 변동과 현재 등수가 읽히는가?', controls: '성장 프리셋(갓 완성/성장 중/드림 완성)을 바꿔 참가비 500코인을 내고 출전합니다. 관람 중 배속 x2로 전환할 수 있고, 완주 후 등수·기록·상금을 정산합니다.', raceDemo: 'side-follow', issueNumber: 231, documentId: 'race-side-follow' },
       { id: 'lane-board', label: 'B안', title: '8레인 전광판 중계 레이스', description: '같은 시뮬레이션 결과를 8레인 전광판으로 중계해 전체 순위 변동을 한눈에 보여줍니다.', status: '체험 가능', question: '전체 조망형 중계가 순위 경쟁의 긴장감을 더 잘 전달하는가, 아니면 내 자전거 몰입이 약해지는가?', controls: 'A안과 같은 참가·정산 흐름에서 레인별 실시간 순위 칩과 결승 체커 통과를 확인하고, 같은 성장 프리셋으로 A안과 등수 체감을 비교합니다.', raceDemo: 'lane-board', issueNumber: 231, documentId: 'race-lane-board' },
+      { id: 'hybrid-finish', label: 'C안', title: '장거리 사이드뷰 → 결승 중계 전환', description: '3,000m 중 첫 2,400m는 A안 사이드뷰로 달리고, 마지막 600m는 B안 8레인 전광판으로 자동 전환해 결승 순위 싸움을 보여줍니다.', status: '체험 가능', question: '주행 중에는 내 자전거의 몰입감을 유지하고 결승 직전에는 전체 순위 경쟁을 보여주는 전환이 두 안의 장점을 자연스럽게 결합하는가?', controls: '성장 프리셋을 골라 출전한 뒤 사이드뷰 장거리 주행을 관람합니다. 2,400m 통과 시 LAST 600m 중계 전환과 레인별 순위 변화, 결승 정산까지 확인합니다.', raceDemo: 'hybrid-finish', issueNumber: 231, documentId: 'race-hybrid-finish' },
+      { id: 'manual-switch', label: 'D안', title: '버튼 선택형 레이스 중계 전환', description: '3,000m 레이스를 사이드뷰로 시작하고, 관람 중 버튼을 눌러 내 자전거 추적과 8레인 전체 중계를 원하는 시점에 자유롭게 전환합니다.', status: '체험 가능', question: '자동 전환보다 플레이어가 원하는 순간 시점을 선택하는 방식이 관람 몰입과 순위 확인을 더 잘 만족시키는가?', controls: '출전 후 `전체 중계 보기`와 `내 자전거 보기` 버튼을 여러 차례 눌러 시점을 전환합니다. 거리·기록·순위가 끊기지 않고 이어지는지 확인한 뒤 C안 자동 전환과 비교합니다.', raceDemo: 'manual-switch', issueNumber: 231, documentId: 'race-manual-switch' },
     ],
   },
   {

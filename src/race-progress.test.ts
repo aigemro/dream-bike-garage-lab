@@ -4,7 +4,9 @@ import type { BikeStats } from './meta-progress';
 import {
   RACE_SEGMENTS,
   RACE_TICK_MS,
+  HYBRID_FINISH_PROGRESS,
   RIVERSIDE_RACE,
+  RIVERSIDE_ENDURANCE_RACE,
   applyRaceEntry,
   applyRaceReward,
   daysUntilRace,
@@ -60,6 +62,14 @@ describe('트랙 구간', () => {
     for (let index = 1; index < RACE_SEGMENTS.length; index += 1) {
       expect(RACE_SEGMENTS[index].from).toBe(RACE_SEGMENTS[index - 1].to);
     }
+  });
+
+  it('C안은 3,000m 중 마지막 600m를 결승 중계 구간으로 사용한다', () => {
+    expect(RIVERSIDE_ENDURANCE_RACE.distanceMeters).toBe(3000);
+    expect(RIVERSIDE_ENDURANCE_RACE.distanceMeters * HYBRID_FINISH_PROGRESS).toBe(2400);
+    expect(RIVERSIDE_ENDURANCE_RACE.distanceMeters * (1 - HYBRID_FINISH_PROGRESS)).toBeCloseTo(600);
+    expect(RIVERSIDE_ENDURANCE_RACE.entryFee).toBe(RIVERSIDE_RACE.entryFee);
+    expect(RIVERSIDE_ENDURANCE_RACE.rankRewards).toEqual(RIVERSIDE_RACE.rankRewards);
   });
 
   it('진행률에 맞는 구간을 돌려준다', () => {
@@ -122,6 +132,13 @@ describe('레이스 시뮬레이션', () => {
     for (let seed = 1; seed <= 10; seed += 1) {
       run(seed).racers.forEach((racer) => expect(racer.finishTimeMs).toBeGreaterThan(0));
     }
+  });
+
+  it('C안 장거리 코스도 같은 시드 결과로 전원이 완주한다', () => {
+    const result = simulateRace({ seed: 231, playerStats: MIN_STATS, meta: RIVERSIDE_ENDURANCE_RACE });
+    expect(result.meta.distanceMeters).toBe(3000);
+    expect(result.racers.every((racer) => racer.timeline.at(-1) === 1)).toBe(true);
+    expect(result.totalTicks).toBeGreaterThan(run(231).totalTicks);
   });
 
   it('성장한 자전거가 낮은 자전거보다 명확히 유리하다', () => {
