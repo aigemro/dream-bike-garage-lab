@@ -630,8 +630,10 @@ class GameScreenMobileScene extends Phaser.Scene {
     this.hooks.onSfx?.('complete');
     this.info.setText('자전거 완성! 납품 처리 후 다음 주문을 준비합니다.');
     if (this.hooks.continuousOrders) {
+      // 보상·완료 수 반영은 즉시 처리합니다. 650ms 지연 안에 Day 시간이 끝나 씬이 파기되면
+      // 지연 콜백이 실행되지 않아 보상이 누락되므로, 다음 주문 전환 연출만 지연합니다.
+      const result = this.hooks.onOrderComplete?.(this.orderIndex);
       this.time.delayedCall(650, () => {
-        const result = this.hooks.onOrderComplete?.(this.orderIndex);
         this.orderCompleting = false;
         this.orderIndex = (this.orderIndex + 1) % 2;
         this.goals = ORDERS[this.orderIndex].map((goal) => ({ ...goal }));
