@@ -109,6 +109,9 @@ const STAT_PRESETS: Array<{ label: string; stats: BikeStats }> = [
   { label: '드림 완성', stats: { 성능: 4, 스타일: 4, 희귀도: 4 } },
 ];
 
+// 카운트다운 전 라인업 카드 표시 시간(ms)
+const LINEUP_HOLD_MS = 1000;
+
 type BroadcastShot = 'opening' | 'pack' | 'rival' | 'final';
 type ScenePhase = 'entry' | 'countdown' | 'racing' | 'finish-hold' | 'result';
 
@@ -137,6 +140,8 @@ class CinematicRaceScene extends Phaser.Scene {
   private phase: ScenePhase = 'entry';
   private coins = 0;
   private runSeed = 0;
+  // 씬 재시작(재도전) 시 코인·시드를 유지하기 위한 최초 초기화 플래그
+  private initialized = false;
   private presetIndex = 1;
   private result?: RaceResult;
   private playMs = 0;
@@ -163,8 +168,12 @@ class CinematicRaceScene extends Phaser.Scene {
   private speedButtonText?: Phaser.GameObjects.Text;
 
   create() {
-    this.coins = this.coins || (this.hooks.initialCoins ?? 2480);
-    this.runSeed = this.runSeed || (this.hooks.seed ?? 20260903);
+    // ||를 쓰면 initialCoins: 0 / seed: 0이 무시되므로 최초 create에서만 훅 값을 읽습니다.
+    if (!this.initialized) {
+      this.coins = this.hooks.initialCoins ?? 2480;
+      this.runSeed = this.hooks.seed ?? 20260903;
+      this.initialized = true;
+    }
     this.phase = 'entry';
     this.playMs = 0;
     this.speedMult = 1;
@@ -280,8 +289,10 @@ class CinematicRaceScene extends Phaser.Scene {
     lineup.add(this.add.text(0, 30, '오늘부터 자전거 부자 특별 중계', this.style(9, CREAM_TEXT)).setOrigin(0.5));
     this.tweens.add({ targets: lineup, alpha: { from: 0, to: 1 }, y: { from: 270, to: 254 }, duration: 320 });
 
+    // 라인업 카드를 읽을 시간을 준 뒤 카운트다운을 시작합니다.
+    // (delayedCall(0)으로 즉시 파기하면 페이드인 직후 사라져 카드가 보이지 않음)
     ['3', '2', '1', 'START!'].forEach((value, index) => {
-      this.time.delayedCall(620 * index, () => {
+      this.time.delayedCall(LINEUP_HOLD_MS + 620 * index, () => {
         if (index === 0) lineup.destroy(true);
         const text = this.add.text(195, 255, value, this.style(value === 'START!' ? 34 : 48, CREAM_TEXT, true))
           .setOrigin(0.5).setDepth(41).setStroke(INK, 8);

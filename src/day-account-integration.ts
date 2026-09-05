@@ -310,6 +310,8 @@ export class DayAccountIntegrationController {
         try {
           this.session = await this.auth.login(button.dataset.mockAccount ?? '');
           this.restoreAccountContext();
+          // 계정별 BGM·SFX 설정을 즉시 적용합니다 (로그아웃 시 true/true로 리셋된 값이 남지 않도록)
+          this.audio.setEnabled(this.state?.settings.bgm ?? true, this.state?.settings.sfx ?? true);
           this.audio.unlock();
           this.show(this.profile ? (this.state?.currentDayState.status === 'settlement' ? 'day-settlement' : 'title') : 'profile-create');
         } catch (error) {
