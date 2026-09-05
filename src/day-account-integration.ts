@@ -20,6 +20,9 @@ import { RIVERSIDE_RACE, daysUntilRace, isRaceDay, nextRaceDay } from './race-pr
 type DayAccountScreen = 'account' | 'profile-create' | 'title' | 'home' | 'guide' | 'day-ready' | 'game'
   | 'day-settlement' | 'catalog' | 'showcase' | 'dream' | 'profile' | 'settings';
 
+// Day 시간이 '진행 중'으로 취급되는 플레이 화면 (guide는 타이머는 멈추지만 Day 상태는 유지)
+const PLAY_SCREENS: DayAccountScreen[] = ['game', 'guide'];
+
 const NAV: Array<{ screen: DayAccountScreen; label: string }> = [
   { screen: 'home', label: 'HOME' },
   { screen: 'game', label: 'PLAY' },
@@ -87,6 +90,8 @@ export class DayAccountIntegrationController {
   destroy(_removeCanvas?: boolean) {
     window.clearInterval(this.timerId);
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    // 데모 초기화·라우트 이탈로 파기될 때 'active' 상태가 저장되지 않도록 먼저 일시정지합니다.
+    this.pauseDay('destroy');
     this.persist();
     this.game?.destroy(true);
     this.audio.destroy();
@@ -155,7 +160,9 @@ export class DayAccountIntegrationController {
     if (!this.profile && screen !== 'account' && screen !== 'profile-create') {
       screen = this.session ? 'profile-create' : 'account';
     }
-    if (this.screen === 'game' && screen !== 'game') this.pauseDay('screen-navigation');
+    // game·guide(첫 플레이 안내)를 벗어나 다른 화면으로 가면 Day를 일시정지합니다.
+    // (guide는 startDay 직후 'active' 상태로 진입하므로 game만 검사하면 홈에 '영업 중'으로 남습니다)
+    if (PLAY_SCREENS.includes(this.screen) && !PLAY_SCREENS.includes(screen)) this.pauseDay('screen-navigation');
     this.game?.destroy(true);
     this.game = undefined;
     this.screen = screen;
@@ -556,7 +563,7 @@ export class DayAccountIntegrationController {
     const audio = this.parent.querySelector<HTMLButtonElement>('#day-account-audio');
     const end = this.parent.querySelector<HTMLButtonElement>('#day-account-end');
     const logout = this.parent.querySelector<HTMLButtonElement>('#day-account-logout');
-    if (label) label.textContent = SCREEN_LABELS[this.screen];
+    if (label) label.textContent = SCREEN_LABELS[this.screen] + (this.repository.lastSaveError ? ' · ⚠ 저장 실패 (메모리 진행만 유지)' : '');
     if (audio) {
       audio.textContent = this.state?.settings.bgm === false ? '♫ OFF' : '♫ ON';
       audio.disabled = !this.state;
