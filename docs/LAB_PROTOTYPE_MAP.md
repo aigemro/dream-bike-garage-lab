@@ -12,7 +12,7 @@
 - 현재 핵심: 캐주얼 머지, 주문 조립, 완성차 수집
 - Lab 역할: 여러 구현안을 같은 조건으로 만들어 비교하고 선택 근거를 남김
 - 메인 역할: Lab에서 선택한 결과를 기획·설계 기준에 맞춰 최종 적용
-- 향후 확장: 브랜드 협업, 매치3, 레이스, 경영, 과금·광고는 MVP 검증 이후 별도 트랙으로 검토
+- 향후 확장: 브랜드 협업, 매치3, 경영, 과금·광고는 MVP 검증 이후 별도 트랙으로 검토 (레이스는 [#231](https://github.com/aigemro/dream-bike-garage-lab/issues/231) 대회·레이스 보상 트랙으로 승격해 비교 중)
 
 ## 2. 전체 실험 지도
 
@@ -37,6 +37,7 @@ flowchart TB
     META --> LEVEL["레벨 디자인 · 해금"]
     META --> CAREER["직급 · 커리어"]
     META --> ECONOMY["난이도 · 경제"]
+    META --> RACE["대회 · 레이스 보상"]
     ART --> BACKGROUND["배경 디자인 · Garage 공간"]
     ART --> CHARACTER["캐릭터 디자인"]
     ART --> UIART["UI · 아이콘"]
@@ -324,7 +325,8 @@ mindmap
 | Release Integration | MVP 릴리스 통합 | 최종 디자인·오디오 수직 슬라이스 + 플레이 코어 통합 | 검토 준비 | 타이틀→홈→안내→플레이→정산→수집·성장, 수집 A/B/C, HOME/WORK/REWARD BGM·행동 효과음, 로컬 상태 복구 검증 | [#113](https://github.com/aigemro/dream-bike-garage-lab/issues/113), [#114](https://github.com/aigemro/dream-bike-garage-lab/issues/114), [#192](https://github.com/aigemro/dream-bike-garage-lab/issues/192), [통합안](variants/mvp-release-vertical-slice.md) |
 | Release Integration | 컬렉션·드림 바이크 성장 메타 루프 | 주문 완료→해금→저장·복구→성장→홈 다음 목표 동기화 | 완료 (#220으로 개편) | 주문 3종 완주·중복 보상 방지·저장 손상 복구·강화 원자성·다음 목표 자동 갱신 E2E 검증 (Vitest + 화면 구동) | [#200](https://github.com/aigemro/dream-bike-garage-lab/issues/200)~[#205](https://github.com/aigemro/dream-bike-garage-lab/issues/205), [검증 결과](decisions/META_LOOP_VALIDATION_RESULT.md) |
 | Release Integration | 이해도·제작 메타 루프 | 납품 이해도 → 도감 등록 → 급여 부품 제작·완성 → 클릭 성장 | 검토 준비 | 이해도 누적·등록 시점, 부품 장착·완성 승격 원자성, 자전거별 성장 독립 저장, 다음 목표(제작→학습→강화→반복) 검증 (Vitest 37건 + 화면 구동) | [#220](https://github.com/aigemro/dream-bike-garage-lab/issues/220)~[#223](https://github.com/aigemro/dream-bike-garage-lab/issues/223), [검증 결과 §6](decisions/META_LOOP_VALIDATION_RESULT.md) |
-| Release Integration | Day·계정 기반 플레이 세션 | B: 활성 플레이 시간 + 계정별 진행 | 개발 중 (1차 데모) | 계정 A/B 분리, 백그라운드 타이머 정지, 중복 없는 Day 정산, 새로고침 복원 검증 | [#207](https://github.com/aigemro/dream-bike-garage-lab/issues/207), [#214](https://github.com/aigemro/dream-bike-garage-lab/issues/214), [실험 문서](DAY_ACCOUNT_EXPERIMENT.md) |
+| Release Integration | Day·계정 기반 플레이 세션 | B: 활성 플레이 시간 + 계정별 진행 | 검토 준비 (B안 통합 데모 · 하위 4/6 완료) | [#210](https://github.com/aigemro/dream-bike-garage-lab/issues/210) A/C 시간 규칙 비교 Variant, [#212](https://github.com/aigemro/dream-bike-garage-lab/issues/212) 로그인→Day→재로그인 E2E와 메인 적용 기준 정리 | [#207](https://github.com/aigemro/dream-bike-garage-lab/issues/207), [#210](https://github.com/aigemro/dream-bike-garage-lab/issues/210), [#212](https://github.com/aigemro/dream-bike-garage-lab/issues/212), [실험 문서](DAY_ACCOUNT_EXPERIMENT.md) |
+| Meta Progression | 대회·레이스 보상 | A: 사이드뷰 추적 · B: 8레인 전광판 · C: 2,400m 후 자동 전환 · D: 버튼 전환 · E: 시네마틱 중계 | 검토 준비 (A~E 체험 가능) | 관람 몰입 vs 순위 가독성 비교 후 채택안 결정, 채택 후 Day 통합(대회일 day-ready 출전 진입·상금 계정 코인 반영) | [#231](https://github.com/aigemro/dream-bike-garage-lab/issues/231), [A안](variants/race-side-follow.md), [B안](variants/race-lane-board.md), [C안](variants/race-hybrid-finish.md), [D안](variants/race-manual-switch.md), [E안](variants/race-cinematic-broadcast.md) |
 | Platform | 입력 방식 | A/B/C | 개발 중 (1차 데모) | 탭·드래그·하이브리드를 같은 보드에서 비교 플레이 테스트 | [#33](https://github.com/aigemro/dream-bike-garage-lab/issues/33), [PR #39](https://github.com/aigemro/dream-bike-garage-lab/pull/39) |
 | Platform | 반응형 화면 | A/B/C | 준비 (허브 등록) | 비교 데모 구현 후 모바일·태블릿·웹브라우저 조건별 비교 | [#4](https://github.com/aigemro/dream-bike-garage-lab/issues/4), [PR #39](https://github.com/aigemro/dream-bike-garage-lab/pull/39) |
 | Platform | 저장·복구 | A/B/C: localStorage·IndexedDB·통합 자동 저장 | 개발 중 (1차 데모) | 앱인토스 WebView 실기기 백그라운드·강제 종료 복구 판정 (#4·#117 연계) | [#3](https://github.com/aigemro/dream-bike-garage-lab/issues/3), [#5](https://github.com/aigemro/dream-bike-garage-lab/issues/5), [실험 문서](PERSISTENCE_EXPERIMENT.md) |
@@ -351,7 +353,7 @@ flowchart LR
 3. 같은 트랙은 초기 보드·주문·데이터를 가능한 한 동일하게 유지합니다.
 4. 구현 완료와 채택을 구분합니다. 실행 가능하더라도 비교 전에는 채택하지 않습니다.
 5. 실험 결과에는 측정값, 관찰, 장점, 한계, 메인 적용 여부를 남깁니다.
-6. 현재 MVP 밖의 브랜드·매치3·레이스·경영·과금 확장은 핵심 루프가 검증된 뒤 별도 트랙으로 승격합니다.
+6. 현재 MVP 밖의 브랜드·매치3·경영·과금 확장은 핵심 루프가 검증된 뒤 별도 트랙으로 승격합니다. 레이스는 [#231](https://github.com/aigemro/dream-bike-garage-lab/issues/231)로 승격해 보상 시스템 후보로 비교 중입니다.
 
 ## 10. 설계 자료 해석 기준
 

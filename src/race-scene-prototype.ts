@@ -555,7 +555,9 @@ class RaceScene extends Phaser.Scene {
       this.add.text(278, infoTop + 82, nextView === 'lane-board' ? '전체 중계 보기' : '내 자전거 보기', this.style(10, CREAM_TEXT, true))
         .setOrigin(0.5).setDepth(10);
       switchButton.on('pointerdown', () => {
-        if (this.phase !== 'racing') return;
+        // 결승 통과 후에는 전환을 막습니다: rebuildRaceView의 removeAllEvents()가
+        // 슬로모션 복원·showResult 예약을 함께 지워 결과 화면이 뜨지 않는 문제 방지
+        if (this.phase !== 'racing' || this.playerFinished) return;
         this.rebuildRaceView(nextView, nextView === 'lane-board' ? '8레인 전체 중계로 전환!' : '내 자전거 추적으로 전환!');
       });
     }
