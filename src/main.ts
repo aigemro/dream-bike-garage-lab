@@ -302,11 +302,11 @@ const tracks: Track[] = [
         demo: 'guided', issueNumber: 25, documentId: 'merge-guided',
       },
       {
-        id: 'intake-merge', label: 'D안', title: '입고 정리형 인접 머지',
-        description: '알바 체력으로 혼합 부품을 꺼내 1칸 작업대에서 3개를 모아 머지하고 고객 자전거를 조립합니다.',
-        status: '체험 가능', question: '입고 정리와 인접 머지가 자전거 가게 알바의 조립 재미를 유지하는가?',
-        controls: '입고 정리로 자동 배치하고, 탭 또는 드래그로 이동·교환합니다. 강조된 3칸을 머지한 뒤 장착·납품하세요. 체력은 실제 10분마다 회복하며 랩 가속 도구가 있습니다.',
-        intakeDemo: true, issueNumber: 243, documentId: 'merge-intake',
+        id: 'intake-merge', label: 'D안', title: '입고 상자 · 겹치기 머지',
+        description: '알바 체력으로 혼합 부품을 꺼내 1칸 작업대에서 같은 부품 2개를 겹쳐 머지하고 고객 자전거를 조립합니다.',
+        status: '체험 가능', question: '입고 상자와 겹치기 머지가 자전거 가게 알바의 조립 재미를 유지하는가?',
+        controls: '하단 입고 상자를 누르면 가까운 빈칸에 부품이 나옵니다. 같은 종류·레벨 2개를 드래그해 겹치면 즉시 머지됩니다. 빈칸은 이동, 다른 부품은 교환하며 탭 선택 후 대상 탭도 가능합니다. 체력은 실제 10분마다 회복하며 랩 가속 도구가 있습니다.',
+        intakeDemo: true, issueNumber: 245, documentId: 'merge-intake',
       },
       {
         id: 'board-size',
@@ -541,7 +541,7 @@ function renderDemo(track: Track, variant: Variant) {
     || variant.collectionDesignDemo || variant.profileDesignDemo || variant.artAudioDemo || variant.inputDemo
     || variant.systemDemo || variant.storageDemo || variant.boardSizeDemo || variant.coreLoopDemo
     || variant.releaseIntegrationDemo || variant.dayAccountDemo || variant.raceDemo || variant.raceCinematicDemo || variant.imageDemo);
-  const demoLabel = variant.intakeDemo ? '6×7 · 1칸 부품 · 체력 · 3-to-1 · 별도 저장' : variant.raceDemo || variant.raceCinematicDemo ? '동일 시뮬레이션·시드 재현 · 참가비 500 · 390×810'
+  const demoLabel = variant.intakeDemo ? '6×7 · 1칸 부품 · 체력 · 2-to-1 겹치기 · 별도 저장' : variant.raceDemo || variant.raceCinematicDemo ? '동일 시뮬레이션·시드 재현 · 참가비 500 · 390×810'
     : variant.dayAccountDemo ? '테스트 계정 A/B · 활성 플레이 시간 · 계정별 자동 저장'
     : variant.releaseIntegrationDemo ? '선택 디자인·오디오·저장 상태 통합 · 390×810'
     : variant.imageDemo ? '동일 Garage 장면 · 390×810 세로 화면'

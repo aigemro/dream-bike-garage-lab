@@ -19,9 +19,11 @@ export function recover(s: State, now = Date.now()) {
 }
 export function requirements(s: State): number[] { return [[2,2,1,1],[1,2,2,1],[2,1,1,2]][s.order % 3]; }
 export function nextSlot(s: State): number {
-  // Intake tray sits below board: bottom-left first, then right, then upward.
-  for (let row=6; row>=0; row--) for (let col=0; col<COLS; col++) if (!s.board[row*COLS+col]) return row*COLS+col;
-  return -1;
+  // Fixed tray under the board centre. Nearest empty cell first; ties go left.
+  const distance = (i: number) => (i % COLS - 2.5) ** 2 + (Math.floor(i / COLS) - 7) ** 2;
+  const slots = s.board.map((_, i) => i).filter(i => !s.board[i]);
+  slots.sort((a, b) => distance(a) - distance(b) || a - b);
+  return slots[0] ?? -1;
 }
 export function supply(s: State, now = Date.now(), rng = Math.random): boolean {
   recover(s, now); const slot = nextSlot(s);
@@ -35,22 +37,23 @@ export function supply(s: State, now = Date.now(), rng = Math.random): boolean {
   if (s.energy === CAP) s.anchor = now;
   s.energy--; s.supplied++; s.board[slot] = {kind,level}; return true;
 }
-export function neighbors(i: number) { return [i-COLS,i-1,i+1,i+COLS].filter(j => j>=0 && j<SIZE && Math.abs(i%COLS-j%COLS)+Math.abs(Math.floor(i/COLS)-Math.floor(j/COLS))===1); }
-export function mergeGroup(s: State, start: number): number[] {
-  const p=s.board[start]; if (!p || p.level>=4) return [];
-  const queue=[start], seen=new Set(queue);
-  for (let n=0;n<queue.length;n++) for (const j of neighbors(queue[n])) {
-    const q=s.board[j]; if (!seen.has(j) && q?.kind===p.kind && q.level===p.level) { seen.add(j); queue.push(j); }
+export type DropResult = 'merged' | 'moved' | 'swapped' | 'none';
+export function canMerge(s: State, from: number, to: number): boolean {
+  const a = s.board[from], b = s.board[to];
+  return from !== to && !!a && !!b && a.kind === b.kind && a.level === b.level && a.level < 4;
+}
+/** One release = one transaction. Adjacency is irrelevant and no chain is triggered. */
+export function drop(s: State, from: number, to: number): DropResult {
+  if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || to < 0 || from >= SIZE || to >= SIZE || from === to || !s.board[from]) return 'none';
+  if (canMerge(s, from, to)) {
+    s.board[to] = { kind: s.board[from]!.kind, level: s.board[from]!.level + 1 };
+    s.board[from] = null;
+    s.merges++;
+    return 'merged';
   }
-  return queue.length>=3 ? queue.slice(0,3) : [];
-}
-export function merge(s: State, start: number) {
-  const group=mergeGroup(s,start); if (!group.length) return false;
-  const p=s.board[start]!; group.forEach(i=>s.board[i]=null); s.board[start]={kind:p.kind,level:p.level+1}; s.merges++; return true;
-}
-export function move(s: State, from: number, to: number) {
-  if (!Number.isInteger(from)||!Number.isInteger(to)||from<0||to<0||from>=SIZE||to>=SIZE||!s.board[from]) return false;
-  [s.board[from],s.board[to]]=[s.board[to],s.board[from]]; return true;
+  const occupied = !!s.board[to];
+  [s.board[from], s.board[to]] = [s.board[to], s.board[from]];
+  return occupied ? 'swapped' : 'moved';
 }
 export function install(s: State, i: number) {
   const p=s.board[i]; if (!p || s.installed[p.kind] || p.level<requirements(s)[p.kind]) return false;
