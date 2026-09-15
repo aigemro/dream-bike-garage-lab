@@ -1,3 +1,4 @@
+import placementDoc from '../docs/variants/merge-placement.md?raw';
 import intakeDoc from '../docs/variants/merge-intake.md?raw';
 import doc0 from '../docs/variants/merge-free-board.md?raw';
 import doc1 from '../docs/variants/merge-order.md?raw';
@@ -81,6 +82,7 @@ import doc78 from '../docs/variants/race-manual-switch.md?raw';
 import doc79 from '../docs/variants/race-cinematic-broadcast.md?raw';
 
 const variantDocs: Record<string, string> = {
+  'merge-placement': placementDoc,
   'merge-intake': intakeDoc,
   'merge-free-board': doc0,
   'merge-order': doc1,
