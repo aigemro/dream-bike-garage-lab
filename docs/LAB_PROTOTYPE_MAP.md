@@ -290,7 +290,7 @@ mindmap
 | MVP Core Play | 머지 코어 | B: 주문 목표 중심 2-to-1 | 검토 준비 | 주문 카드 시각화 후 A/C와 목표 이해도 비교 | [#13](https://github.com/aigemro/dream-bike-garage-lab/issues/13), [PR #31](https://github.com/aigemro/dream-bike-garage-lab/pull/31) |
 | MVP Core Play | 머지 코어 | C: 자유 보드 + 주문 가이드 | 검토 준비 | 가이드 강도와 자유도의 균형 비교 | [#25](https://github.com/aigemro/dream-bike-garage-lab/issues/25), [PR #26](https://github.com/aigemro/dream-bike-garage-lab/pull/26) |
 | MVP Core Play | 머지 코어 | D v2: 입고 상자·겹치기 머지 | 검토 준비 | 상자 주변 자동 배치·2-to-1 드래그·직접 조립을 C안과 비교 | [#245](https://github.com/aigemro/dream-bike-garage-lab/issues/245), [실험 문서](variants/merge-intake.md) |
-| MVP Core Play | 머지 코어 | E: 직접 배치·인접 합성 | 검토 준비 | D안과 최초 배치·합성 방향·막힘 복구 비교 | [#247](https://github.com/aigemro/dream-bike-garage-lab/issues/247), [실험 문서](variants/merge-placement.md) |
+| MVP Core Play | 머지 코어 | E v2: 예정 배치·인접 합성 | 검토 준비 | D안과 예정 위치 판단·이동 제한·자동 진행·화면 밀도 비교 | [#249](https://github.com/aigemro/dream-bike-garage-lab/issues/249), [실험 문서](variants/merge-placement.md) |
 | MVP Core Play | 머지 코어 | 보드 크기·잠금 칸 검증 | 개발 중 (1차 데모) | 6×7/7×9/잠금 해제형 비교 플레이 테스트, 메인 보드 크기 결정 지원 | [#74](https://github.com/aigemro/dream-bike-garage-lab/issues/74) |
 | MVP Core Play | 부품 수급 | A: 즉시 생성 버튼형 | 개발 중 (1차 데모) | 동일 조건(5×4 보드, Lv.3 ×2 목표)에서 B/C와 템포 비교 플레이 테스트 | [#70](https://github.com/aigemro/dream-bike-garage-lab/issues/70), [#71](https://github.com/aigemro/dream-bike-garage-lab/issues/71) |
 | MVP Core Play | 부품 수급 | B: 택배 상자 개봉형 | 개발 중 (1차 데모) | 개봉 연출의 만족감과 템포 저하 비교 플레이 테스트 | [#72](https://github.com/aigemro/dream-bike-garage-lab/issues/72) |
