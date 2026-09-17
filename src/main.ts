@@ -311,11 +311,11 @@ const tracks: Track[] = [
         intakeDemo: true, issueNumber: 245, documentId: 'merge-intake',
       },
       {
-        id: 'placement-merge', label: 'E안', title: '직접 배치 · 인접 합성',
-        description: '입고 부품을 빈칸에 직접 놓고, 이동이 제한된 작업대에서 인접한 같은 부품 2개를 합성합니다.',
-        status: '체험 가능', question: '직접 배치와 합성 방향 선택이 작업대 퍼즐의 재미를 만드는가?',
-        controls: '상자 열기 → 입고 부품을 빈칸에 배치. 상하좌우 동일 부품만 겹쳐 합성하며 일반 이동·교환은 불가합니다. 보류 1칸·되돌리기·반품으로 막힘을 풀고 장착·납품하세요.',
-        placementDemo: true, issueNumber: 247, documentId: 'merge-placement',
+        id: 'placement-merge', label: 'E v2', title: '예정 배치 · 인접 합성',
+        description: '다음 입고 칸을 미리 보여주고 상자 개봉 시 자동 배치하며, 이동이 제한된 작업대에서 인접한 같은 부품 2개를 합성합니다.',
+        status: '체험 가능', question: '예정 위치를 읽고 인접 합성을 준비하는 과정이 작업대 퍼즐의 재미를 만드는가?',
+        controls: '점선 칸 확인 → 상자 열기 → 자동 배치. 일반 이동·교환은 불가하며 상하좌우 동일 부품만 겹쳐 합성합니다. 완성 부품은 자동 장착되고 자전거는 자동 납품됩니다.',
+        placementDemo: true, issueNumber: 249, documentId: 'merge-placement',
       },
       {
         id: 'board-size',
@@ -550,7 +550,7 @@ function renderDemo(track: Track, variant: Variant) {
     || variant.collectionDesignDemo || variant.profileDesignDemo || variant.artAudioDemo || variant.inputDemo
     || variant.systemDemo || variant.storageDemo || variant.boardSizeDemo || variant.coreLoopDemo
     || variant.releaseIntegrationDemo || variant.dayAccountDemo || variant.raceDemo || variant.raceCinematicDemo || variant.imageDemo);
-  const demoLabel = variant.placementDemo ? '6×7 · 직접 배치 · 이동 제한 · 인접 2개 합성 · 별도 저장' : variant.intakeDemo ? '6×7 · 1칸 부품 · 체력 · 2-to-1 겹치기 · 별도 저장' : variant.raceDemo || variant.raceCinematicDemo ? '동일 시뮬레이션·시드 재현 · 참가비 500 · 390×810'
+  const demoLabel = variant.placementDemo ? '6×7 · 예정 위치 자동 배치 · 이동 제한 · 자동 장착/납품' : variant.intakeDemo ? '6×7 · 1칸 부품 · 체력 · 2-to-1 겹치기 · 별도 저장' : variant.raceDemo || variant.raceCinematicDemo ? '동일 시뮬레이션·시드 재현 · 참가비 500 · 390×810'
     : variant.dayAccountDemo ? '테스트 계정 A/B · 활성 플레이 시간 · 계정별 자동 저장'
     : variant.releaseIntegrationDemo ? '선택 디자인·오디오·저장 상태 통합 · 390×810'
     : variant.imageDemo ? '동일 Garage 장면 · 390×810 세로 화면'
