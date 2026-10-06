@@ -9,6 +9,7 @@ import {
   type DayAccountProgress,
   type KeyValueStorage,
 } from './day-account-state';
+import { applyBikeUpgrade, applyOrderDelivery, bikeStats, createCollectionProgress } from './meta-progress';
 
 // 브라우저 localStorage를 모사한 인메모리 저장소. failSet이 켜지면 setItem이 용량 초과처럼 예외를 던집니다.
 function makeStorage(): KeyValueStorage & { store: Map<string, string>; failSet: boolean } {
@@ -106,5 +107,59 @@ describe('저장 실패 처리', () => {
     storage.removeItem = () => { throw new Error('blocked'); };
     const repository = new DayAccountRepository(storage);
     expect(repository.resetProgress(PLAYER)).toMatchObject({ playerId: PLAYER, coins: 2480 });
+  });
+});
+
+describe('이전 버전 Day 저장 호환', () => {
+  it('제한 시간 필드가 없던 Day는 기본 길이로 보정해 불러온다', () => {
+    const storage = makeStorage();
+    const legacyDay = { dayNumber: 3, status: 'paused', remainingMs: 4000, elapsedActiveMs: 6000, ordersCompleted: 1, earnings: 1000, pauseReason: 'background' };
+    saved(storage, { currentDayState: legacyDay as unknown as DayAccountProgress['currentDayState'] });
+    expect(new DayAccountRepository(storage).loadProgress(PLAYER).currentDayState).toMatchObject({
+      dayNumber: 3, status: 'paused', durationMs: DAY_DURATION_MS, remainingMs: 4000, pauseReason: 'background',
+    });
+  });
+});
+
+describe('계정별 컬렉션·성장 저장', () => {
+  const OTHER = 'player-other';
+
+  it('한 계정의 이해도·강화 진행이 다른 계정 슬롯에 보이지 않는다', () => {
+    const storage = makeStorage();
+    const repository = new DayAccountRepository(storage);
+    const collection = repository.loadCollection(PLAYER);
+    applyOrderDelivery(collection, 1);
+    repository.saveCollection(PLAYER, collection);
+    const upgraded = applyBikeUpgrade(collection, repository.loadGrowth(PLAYER), 5000, collection.selectedBikeId, '성능');
+    expect(upgraded.ok).toBe(true);
+    if (upgraded.ok) repository.saveGrowth(PLAYER, upgraded.growth);
+
+    expect(repository.loadCollection(PLAYER).understandingByBikeId['trail-mtb']).toBe(50);
+    expect(bikeStats(repository.loadGrowth(PLAYER), collection.selectedBikeId).성능).toBe(2);
+    // 다른 계정은 기본 상태에서 시작한다
+    expect(repository.loadCollection(OTHER)).toEqual(createCollectionProgress());
+    expect(bikeStats(repository.loadGrowth(OTHER), collection.selectedBikeId).성능).toBe(1);
+  });
+
+  it('진행 초기화는 해당 계정의 Day·컬렉션·성장만 지운다', () => {
+    const storage = makeStorage();
+    const repository = new DayAccountRepository(storage);
+    for (const player of [PLAYER, OTHER]) {
+      const collection = repository.loadCollection(player);
+      applyOrderDelivery(collection, 0);
+      repository.saveCollection(player, collection);
+      repository.saveProgress({ ...repository.loadProgress(player), coins: 7777 });
+    }
+    repository.resetProgress(PLAYER);
+    expect(repository.loadProgress(PLAYER).coins).toBe(2480);
+    expect(repository.loadCollection(PLAYER)).toEqual(createCollectionProgress());
+    expect(repository.loadProgress(OTHER).coins).toBe(7777);
+    expect(repository.loadCollection(OTHER).understandingByBikeId['urban-road']).toBe(50);
+  });
+
+  it('손상된 컬렉션 저장은 기본 컬렉션으로 복구한다', () => {
+    const storage = makeStorage();
+    storage.setItem(`dbg-lab-day-account-collection-v1:${PLAYER}`, '{broken');
+    expect(new DayAccountRepository(storage).loadCollection(PLAYER)).toEqual(createCollectionProgress());
   });
 });

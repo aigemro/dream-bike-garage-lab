@@ -1,12 +1,39 @@
 import type { AuthSession } from './auth-provider';
+import {
+  createReadyDay,
+  normalizeDayState,
+  normalizeHistory,
+  MAX_DAY_HISTORY,
+  type CurrentDayState,
+  type DayHistoryEntry,
+} from './day-session-rules';
+import {
+  createCollectionProgress,
+  createGrowthProgress,
+  parseCollectionProgress,
+  parseGrowthProgress,
+  serializeCollectionProgress,
+  serializeGrowthProgress,
+  type CollectionProgress,
+  type GrowthProgress,
+} from './meta-progress';
 
-// Lab에서 Day 종료·정산·다음 Day 전환을 빠르게 반복 검증하기 위한 축약 시간입니다.
-export const DAY_DURATION_MS = 10 * 1000;
+// Day 규칙(상태·시간·정산)은 day-session-rules가 단일 기준입니다. 기존 import 경로 호환을 위해 다시 내보냅니다.
+export {
+  DAY_DURATION_MS,
+  MAX_DAY_HISTORY,
+  createReadyDay,
+  type CurrentDayState,
+  type DayEndReason,
+  type DayHistoryEntry,
+  type DayStatus,
+} from './day-session-rules';
+
 const PROFILE_KEY = 'dbg-lab-day-account-profiles-v1';
 const PROGRESS_KEY_PREFIX = 'dbg-lab-day-account-progress-v1';
-
-export type DayStatus = 'ready' | 'active' | 'paused' | 'settlement' | 'completed';
-export type DayEndReason = 'time-limit' | 'manual-test';
+// 컬렉션·성장은 meta-progress 직렬화 규칙을 그대로 쓰되, 계정(playerId)별 키로 분리 저장합니다.
+const COLLECTION_KEY_PREFIX = 'dbg-lab-day-account-collection-v1';
+const GROWTH_KEY_PREFIX = 'dbg-lab-day-account-growth-v1';
 
 export type GameProfile = {
   playerId: string;
@@ -14,30 +41,6 @@ export type GameProfile = {
   nickname: string;
   garageName: string;
   createdAt: string;
-};
-
-export type DayHistoryEntry = {
-  dayNumber: number;
-  startedAt: string;
-  endedAt: string;
-  elapsedActiveMs: number;
-  ordersCompleted: number;
-  earnings: number;
-  endReason: DayEndReason;
-  settlementRevision: number;
-};
-
-export type CurrentDayState = {
-  dayNumber: number;
-  status: DayStatus;
-  startedAt: string | null;
-  elapsedActiveMs: number;
-  remainingMs: number;
-  pauseReason: string | null;
-  ordersCompleted: number;
-  earnings: number;
-  endReason: DayEndReason | null;
-  settlementRevision: number | null;
 };
 
 export type DayAccountProgress = {
@@ -50,6 +53,7 @@ export type DayAccountProgress = {
   orderIndex: number;
   tutorialDone: boolean;
   autoPlacement: boolean;
+  // 이전 버전 호환용 필드. 현재 선택 자전거는 계정별 컬렉션(selectedBikeId)이 기준입니다.
   selectedBikeId: string;
   settings: {
     bgm: boolean;
@@ -60,27 +64,8 @@ export type DayAccountProgress = {
   dayHistory: DayHistoryEntry[];
 };
 
-const DAY_STATUSES: DayStatus[] = ['ready', 'active', 'paused', 'settlement', 'completed'];
-// 계정 화면·정산 이력에 보관하는 최대 Day 수
-export const MAX_DAY_HISTORY = 14;
-
 // localStorage 대체 가능한 최소 저장소 인터페이스 (테스트·서버 어댑터 교체용)
 export type KeyValueStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
-
-export function createReadyDay(dayNumber = 1): CurrentDayState {
-  return {
-    dayNumber,
-    status: 'ready',
-    startedAt: null,
-    elapsedActiveMs: 0,
-    remainingMs: DAY_DURATION_MS,
-    pauseReason: null,
-    ordersCompleted: 0,
-    earnings: 0,
-    endReason: null,
-    settlementRevision: null,
-  };
-}
 
 export function createDefaultProgress(playerId: string): DayAccountProgress {
   return {
@@ -104,53 +89,6 @@ function numberOr(value: unknown, fallback: number) {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
 
-function normalizeDay(value: unknown, fallback: CurrentDayState): CurrentDayState {
-  if (!value || typeof value !== 'object') return fallback;
-  const day = value as Partial<CurrentDayState>;
-  const status = DAY_STATUSES.includes(day.status as DayStatus) ? day.status as DayStatus : fallback.status;
-  const dayNumber = Math.max(1, Math.floor(numberOr(day.dayNumber, fallback.dayNumber)));
-  const remainingMs = Math.min(DAY_DURATION_MS, Math.max(0, numberOr(day.remainingMs, fallback.remainingMs)));
-  return {
-    dayNumber,
-    status,
-    startedAt: typeof day.startedAt === 'string' ? day.startedAt : null,
-    elapsedActiveMs: Math.max(0, numberOr(day.elapsedActiveMs, fallback.elapsedActiveMs)),
-    remainingMs,
-    pauseReason: typeof day.pauseReason === 'string' ? day.pauseReason : null,
-    ordersCompleted: Math.max(0, Math.floor(numberOr(day.ordersCompleted, 0))),
-    earnings: Math.max(0, Math.floor(numberOr(day.earnings, 0))),
-    endReason: day.endReason === 'time-limit' || day.endReason === 'manual-test' ? day.endReason : null,
-    settlementRevision: typeof day.settlementRevision === 'number' ? day.settlementRevision : null,
-  };
-}
-
-// 손상된 이력 요소는 버리고, 숫자·문자열 필드는 안전한 값으로 보정합니다.
-// (요소 검증 없이 캐스팅하면 renderAccountProfile의 toLocaleString에서 예외가 납니다)
-function normalizeHistoryEntry(value: unknown): DayHistoryEntry | null {
-  if (!value || typeof value !== 'object') return null;
-  const entry = value as Partial<DayHistoryEntry>;
-  if (typeof entry.dayNumber !== 'number' || !Number.isFinite(entry.dayNumber) || entry.dayNumber < 1) return null;
-  const fallbackTime = new Date(0).toISOString();
-  return {
-    dayNumber: Math.floor(entry.dayNumber),
-    startedAt: typeof entry.startedAt === 'string' ? entry.startedAt : fallbackTime,
-    endedAt: typeof entry.endedAt === 'string' ? entry.endedAt : fallbackTime,
-    elapsedActiveMs: Math.max(0, numberOr(entry.elapsedActiveMs, 0)),
-    ordersCompleted: Math.max(0, Math.floor(numberOr(entry.ordersCompleted, 0))),
-    earnings: Math.max(0, Math.floor(numberOr(entry.earnings, 0))),
-    endReason: entry.endReason === 'time-limit' || entry.endReason === 'manual-test' ? entry.endReason : 'manual-test',
-    settlementRevision: Math.max(0, Math.floor(numberOr(entry.settlementRevision, 0))),
-  };
-}
-
-function normalizeHistory(value: unknown): DayHistoryEntry[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((entry) => normalizeHistoryEntry(entry))
-    .filter((entry): entry is DayHistoryEntry => entry !== null)
-    .slice(-MAX_DAY_HISTORY);
-}
-
 function normalizeProgress(value: unknown, playerId: string): DayAccountProgress {
   const fallback = createDefaultProgress(playerId);
   if (!value || typeof value !== 'object') return fallback;
@@ -171,7 +109,8 @@ function normalizeProgress(value: unknown, playerId: string): DayAccountProgress
       sfx: saved.settings?.sfx ?? fallback.settings.sfx,
       vibration: saved.settings?.vibration ?? fallback.settings.vibration,
     },
-    currentDayState: normalizeDay(saved.currentDayState, fallback.currentDayState),
+    // 손상된 이력 요소는 버리고 숫자 필드를 보정합니다 (renderAccountProfile의 toLocaleString 예외 방지)
+    currentDayState: normalizeDayState(saved.currentDayState, fallback.currentDayState),
     dayHistory: normalizeHistory(saved.dayHistory),
   };
 }
@@ -236,11 +175,40 @@ export class DayAccountRepository {
     return next;
   }
 
-  resetProgress(playerId: string) {
+  // 계정별 컬렉션(이해도·등록·제작·전시). 저장 원본이 없거나 손상되면 meta-progress 기본값으로 복구합니다.
+  loadCollection(playerId: string): CollectionProgress {
     try {
-      this.storage.removeItem(this.progressKey(playerId));
-    } catch (error) {
-      console.warn('[day-account] 진행 초기화 실패', error);
+      return parseCollectionProgress(this.storage.getItem(this.scopedKey(COLLECTION_KEY_PREFIX, playerId)));
+    } catch {
+      return createCollectionProgress();
+    }
+  }
+
+  saveCollection(playerId: string, collection: CollectionProgress) {
+    this.write(this.scopedKey(COLLECTION_KEY_PREFIX, playerId), serializeCollectionProgress(collection));
+  }
+
+  // 계정별 자전거 성장. 코인 차감과 같은 처리에서 함께 저장해야 강화 결과가 유실되지 않습니다.
+  loadGrowth(playerId: string): GrowthProgress {
+    try {
+      return parseGrowthProgress(this.storage.getItem(this.scopedKey(GROWTH_KEY_PREFIX, playerId)));
+    } catch {
+      return createGrowthProgress();
+    }
+  }
+
+  saveGrowth(playerId: string, growth: GrowthProgress) {
+    this.write(this.scopedKey(GROWTH_KEY_PREFIX, playerId), serializeGrowthProgress(growth));
+  }
+
+  // 계정 진행 초기화는 Day·재화 진행과 컬렉션·성장을 함께 지웁니다. 다른 계정 슬롯은 건드리지 않습니다.
+  resetProgress(playerId: string) {
+    for (const key of [this.progressKey(playerId), this.scopedKey(COLLECTION_KEY_PREFIX, playerId), this.scopedKey(GROWTH_KEY_PREFIX, playerId)]) {
+      try {
+        this.storage.removeItem(key);
+      } catch (error) {
+        console.warn('[day-account] 진행 초기화 실패', error);
+      }
     }
     return createDefaultProgress(playerId);
   }
@@ -257,7 +225,11 @@ export class DayAccountRepository {
   }
 
   private progressKey(playerId: string) {
-    return `${PROGRESS_KEY_PREFIX}:${playerId}`;
+    return this.scopedKey(PROGRESS_KEY_PREFIX, playerId);
+  }
+
+  private scopedKey(prefix: string, playerId: string) {
+    return `${prefix}:${playerId}`;
   }
 
   private readProfiles() {

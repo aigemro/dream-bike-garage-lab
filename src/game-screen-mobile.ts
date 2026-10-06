@@ -8,6 +8,7 @@ import { PARTS, ORDERS, type PartType, type Goal } from './merge-prototype';
 import { findFirstAvailablePlacement } from './auto-placement';
 import { cancelPartSelection } from './part-selection';
 import { orderMetaAt } from './meta-progress';
+import { formatDayClock, isDayUrgent } from './day-session-rules';
 
 type Point = { x: number; y: number };
 type Piece = { id: number; type: PartType; level: number; row: number; column: number; rotation: number; item: Phaser.GameObjects.Container };
@@ -33,7 +34,12 @@ export type GameScreenMobileHooks = {
   orderIndex?: number;
   autoPlacement?: boolean;
   continuousOrders?: boolean;
-  getDaySummary?: () => { dayNumber: number; remainingMs: number; durationMs: number; earnings: number };
+  // closing: 시간이 끝나 새 입력을 막고 진행 중인 장착·납품만 마무리하는 마감 단계
+  getDaySummary?: () => { dayNumber: number; remainingMs: number; durationMs: number; earnings: number; closing?: boolean };
+  // Day 마감·정산 중에는 택배 주문·개봉·배치·머지 입력을 받지 않습니다.
+  isInputLocked?: () => boolean;
+  // 부품 장착 연출이 진행 중이라 납품이 아직 확정되지 않았는지 알립니다 (Day 마감 대기용).
+  onBusyChange?: (busy: boolean) => void;
   onAutoPlacementChange?: (enabled: boolean) => void;
   onOrderComplete?: (orderIndex: number) => void | { reward: number; totalDayIncome: number };
   onSfx?: (event: 'tap' | 'parcel' | 'merge' | 'install' | 'complete' | 'error') => void;
@@ -67,6 +73,8 @@ class GameScreenMobileScene extends Phaser.Scene {
   private installQueue: Array<{ goal: Goal; from: Point; level: number }> = [];
   private installingPart = false;
   private orderCompleting = false;
+  private busy = false;
+  private lockNoticeShown = false;
   private info!: Phaser.GameObjects.Text;
   private metrics!: Phaser.GameObjects.Text;
   private orderTitle!: Phaser.GameObjects.Text;
@@ -103,16 +111,39 @@ class GameScreenMobileScene extends Phaser.Scene {
     const summary = this.hooks.getDaySummary?.();
     this.metrics.setText(summary ? '' : `${((this.time.now - this.startedAt) / 1000).toFixed(0)}s · 머지 ${this.merges}`);
     if (summary && this.dayBadgeText && this.dayTimerText && this.dayIncomeText && this.dayTimerPanel && this.dayTimerFill) {
-      const remainingSeconds = Math.max(0, Math.ceil(summary.remainingMs / 1000));
-      const urgent = summary.remainingMs <= 3000;
+      // 분 단위 Day(1분·3분 등)도 표시되도록 mm:ss로 표기하고, 마감 단계는 시간 대신 '마감'을 보여줍니다.
+      const urgent = summary.closing || isDayUrgent(summary.remainingMs, summary.durationMs);
       const remainingRatio = Phaser.Math.Clamp(summary.remainingMs / Math.max(1, summary.durationMs), 0, 1);
       this.dayBadgeText.setText(`DAY ${summary.dayNumber}`);
-      this.dayTimerText.setText(`00:${String(remainingSeconds).padStart(2, '0')}`).setColor(urgent ? '#fff1c6' : INK);
+      this.dayTimerText.setText(summary.closing ? '마감' : formatDayClock(summary.remainingMs)).setColor(urgent ? '#fff1c6' : INK);
       this.dayIncomeText.setText(`오늘 수입  ${summary.earnings.toLocaleString()}`);
       this.dayTimerPanel.setFillStyle(urgent ? 0xc95746 : 0xf4b84a);
       this.dayTimerFill.setDisplaySize(378 * remainingRatio, 4).setFillStyle(urgent ? 0xc95746 : 0x5e9a67);
     }
+    // 마감 중에는 택배 도착·자동 배치로 새 부품이 들어오지 않도록 공급 진행을 멈춥니다.
+    if (this.inputLocked()) return;
+    this.lockNoticeShown = false;
     this.tickParcels();
+  }
+
+  private inputLocked() {
+    return this.hooks.isInputLocked?.() ?? false;
+  }
+
+  // 잠긴 상태에서 들어온 입력은 무시하고 안내만 한 번 보여줍니다.
+  private rejectLockedInput() {
+    if (!this.inputLocked()) return false;
+    if (!this.lockNoticeShown) {
+      this.lockNoticeShown = true;
+      this.info.setText('영업 시간이 끝났습니다. 진행 중인 조립만 마무리하고 정산합니다.');
+    }
+    return true;
+  }
+
+  private setBusy(busy: boolean) {
+    if (this.busy === busy) return;
+    this.busy = busy;
+    this.hooks.onBusyChange?.(busy);
   }
 
   // 홈 A안과 같은 목재 공방 배경: 벽·바닥·판자 라인
@@ -259,6 +290,7 @@ class GameScreenMobileScene extends Phaser.Scene {
   }
 
   private handleParcelButton(type: PartType) {
+    if (this.rejectLockedInput()) return;
     this.hooks.onSfx?.('tap');
     this.clearPlacementGhost();
     const parcel = this.parcels.get(type) ?? { state: 'idle' as const, readyAt: 0 };
@@ -345,6 +377,7 @@ class GameScreenMobileScene extends Phaser.Scene {
   }
 
   private handleCell(row: number, column: number) {
+    if (this.rejectLockedInput()) return;
     this.clearPlacementGhost();
     const clicked = this.pieceAt(row, column);
     if (clicked && this.generatorPlacementActive && !this.selectedPiece && clicked.type === this.selectedGenerator && clicked.level === 1) {
@@ -404,6 +437,7 @@ class GameScreenMobileScene extends Phaser.Scene {
   }
 
   private toggleAutoPlacement() {
+    if (this.rejectLockedInput()) return;
     this.hooks.onSfx?.('tap');
     this.autoPlacementEnabled = !this.autoPlacementEnabled;
     this.hooks.onAutoPlacementChange?.(this.autoPlacementEnabled);
@@ -496,6 +530,7 @@ class GameScreenMobileScene extends Phaser.Scene {
   }
 
   private cancelSelection() {
+    if (this.rejectLockedInput()) return;
     const selectedName = this.selectedPiece ? this.partName(this.selectedPiece.type) : this.partName(this.selectedGenerator);
     const result = cancelPartSelection({
       selectedPiece: this.selectedPiece,
@@ -592,8 +627,11 @@ class GameScreenMobileScene extends Phaser.Scene {
     const next = this.installQueue.shift();
     if (!next) {
       if (this.goals.length > 0 && this.goals.every((goal) => goal.delivered)) this.completeOrder();
+      else this.setBusy(false);
       return;
     }
+    // 보드에서 소비된 부품이 장착 연출을 마칠 때까지는 납품이 확정되지 않은 상태입니다.
+    this.setBusy(true);
     this.installingPart = true;
     const part = PARTS.find((item) => item.type === next.goal.type)!;
     const target = this.bikeAnchor(next.goal.type);
@@ -633,9 +671,12 @@ class GameScreenMobileScene extends Phaser.Scene {
       // 보상·완료 수 반영은 즉시 처리합니다. 650ms 지연 안에 Day 시간이 끝나 씬이 파기되면
       // 지연 콜백이 실행되지 않아 보상이 누락되므로, 다음 주문 전환 연출만 지연합니다.
       const result = this.hooks.onOrderComplete?.(this.orderIndex);
+      // 납품이 확정됐으므로 Day 마감 대기를 풀어 줍니다. 아래 주문 전환은 연출일 뿐입니다.
+      this.setBusy(false);
       this.time.delayedCall(650, () => {
         this.orderCompleting = false;
-        this.orderIndex = (this.orderIndex + 1) % 2;
+        // 주문 3종(ORDERS)을 모두 순환합니다. 이전에는 2종만 돌아 세 번째 주문이 나오지 않았습니다.
+        this.orderIndex = (this.orderIndex + 1) % ORDERS.length;
         this.goals = ORDERS[this.orderIndex].map((goal) => ({ ...goal }));
         this.startedAt = this.time.now;
         this.drawOrderBike();
@@ -646,6 +687,7 @@ class GameScreenMobileScene extends Phaser.Scene {
       });
       return;
     }
+    this.setBusy(false);
     if (this.hooks.onOrderComplete) {
       this.time.delayedCall(900, () => this.hooks.onOrderComplete?.(this.orderIndex));
       return;
