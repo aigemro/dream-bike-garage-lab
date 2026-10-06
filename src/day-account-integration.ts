@@ -1,13 +1,25 @@
 import Phaser from 'phaser';
 import { BrowserMockAuthProvider, type AuthProvider, type AuthSession } from './auth-provider';
+import { DayAccountRepository, type DayAccountProgress, type GameProfile } from './day-account-state';
 import {
+  DAY_CLOSING_GRACE_MS,
   DAY_DURATION_MS,
-  DayAccountRepository,
+  DAY_DURATION_PRESETS_MS,
+  canAcceptPlayInput,
   createReadyDay,
-  type DayAccountProgress,
+  formatDayClock,
+  normalizeDurationMs,
+  normalizeRestoredDay,
+  pauseDay,
+  prepareNextDay,
+  recordOrderDelivery,
+  resumeDay,
+  settleDay,
+  startDay,
+  tickDay,
   type DayEndReason,
-  type GameProfile,
-} from './day-account-state';
+  type DayPauseReason,
+} from './day-session-rules';
 import { startTitleLoadingPrototype } from './title-loading-design';
 import { startHomeDesignPrototype } from './home-design-prototype';
 import { startGuideOverlayPrototype } from './guide-overlay-design';
@@ -16,12 +28,33 @@ import { startBikeCollectionDesignPrototype, type BikeCollectionDesignMode } fro
 import { startSettingsDrawerPrototype } from './settings-design';
 import { ReleaseAudio, type ReleaseAudioRoom, type ReleaseSfxEvent } from './release-audio';
 import { RIVERSIDE_RACE, daysUntilRace, isRaceDay, nextRaceDay } from './race-progress';
+import {
+  ORDER_METAS,
+  applyBikeUpgrade,
+  applyCraftPart,
+  applyOrderDelivery,
+  bikeStats,
+  computeNextGoal,
+  craftedBikeCount,
+  dreamGradeName,
+  dreamStage,
+  dreamTotalLevel,
+  markBikeSeen,
+  orderMetaAt,
+  type CollectionProgress,
+  type CraftPartType,
+  type DreamStatKey,
+  type GrowthProgress,
+} from './meta-progress';
+import { CATALOG_SIZE, catalogBikeById } from './bike-catalog';
 
 type DayAccountScreen = 'account' | 'profile-create' | 'title' | 'home' | 'guide' | 'day-ready' | 'game'
   | 'day-settlement' | 'catalog' | 'showcase' | 'dream' | 'profile' | 'settings';
 
 // Day 시간이 '진행 중'으로 취급되는 플레이 화면 (guide는 타이머는 멈추지만 Day 상태는 유지)
 const PLAY_SCREENS: DayAccountScreen[] = ['game', 'guide'];
+// Lab 측정용 Day 길이 선택값(브라우저 공통). 계정 진행에는 Day를 시작할 때 고정된 길이만 저장합니다.
+const DAY_DURATION_SETTING_KEY = 'dbg-lab-day-duration-ms-v1';
 
 const NAV: Array<{ screen: DayAccountScreen; label: string }> = [
   { screen: 'home', label: 'HOME' },
@@ -49,17 +82,31 @@ const SCREEN_LABELS: Record<DayAccountScreen, string> = {
   settings: '12 · 설정',
 };
 
-function formatTime(milliseconds: number) {
-  const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000));
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-}
+const PAUSE_LABELS: Record<DayPauseReason, string> = {
+  background: '앱 전환',
+  'screen-navigation': '화면 이동',
+  logout: '로그아웃',
+  destroy: '데모 종료',
+  restore: '다시 열기',
+};
 
 function escapeHtml(value: string) {
   return value.replace(/[&<>"']/g, (character) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;',
   })[character]!);
+}
+
+function durationLabel(durationMs: number) {
+  return durationMs < 60_000 ? `${Math.round(durationMs / 1000)}초` : `${Math.round(durationMs / 60_000)}분`;
+}
+
+function loadDayDurationSetting() {
+  try {
+    const saved = Number(localStorage.getItem(DAY_DURATION_SETTING_KEY));
+    return DAY_DURATION_PRESETS_MS.includes(saved as typeof DAY_DURATION_PRESETS_MS[number]) ? saved : DAY_DURATION_MS;
+  } catch {
+    return DAY_DURATION_MS;
+  }
 }
 
 export class DayAccountIntegrationController {
@@ -70,9 +117,16 @@ export class DayAccountIntegrationController {
   private session: AuthSession | null = null;
   private profile: GameProfile | null = null;
   private state: DayAccountProgress | null = null;
+  // 계정별 컬렉션·성장. 로그인한 계정의 슬롯에서만 읽고 씁니다.
+  private collection: CollectionProgress | null = null;
+  private growth: GrowthProgress | null = null;
   private screen: DayAccountScreen = 'account';
   private lastTickAt = 0;
-  private lastCheckpointSecond = -1;
+  private lastCheckpointBucket = -1;
+  // 게임 화면이 장착 연출 중이라 납품이 아직 확정되지 않았는지 (Day 마감 대기 판단용)
+  private sceneBusy = false;
+  private closingStartedAt = 0;
+  private dayDurationMs = loadDayDurationSetting();
   private readonly stageId = `day-account-stage-${Math.random().toString(36).slice(2)}`;
   private readonly timerId: number;
   private readonly onVisibilityChange = () => this.handleVisibilityChange();
@@ -91,7 +145,7 @@ export class DayAccountIntegrationController {
     window.clearInterval(this.timerId);
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
     // 데모 초기화·라우트 이탈로 파기될 때 'active' 상태가 저장되지 않도록 먼저 일시정지합니다.
-    this.pauseDay('destroy');
+    this.pauseCurrentDay('destroy');
     this.persist();
     this.game?.destroy(true);
     this.audio.destroy();
@@ -106,13 +160,37 @@ export class DayAccountIntegrationController {
   }
 
   private restoreAccountContext() {
-    if (!this.session) {
-      this.profile = null;
+    this.profile = this.session ? this.repository.getProfile(this.session.accountId) : null;
+    if (!this.profile) {
       this.state = null;
+      this.collection = null;
+      this.growth = null;
       return;
     }
-    this.profile = this.repository.getProfile(this.session.accountId);
-    this.state = this.profile ? this.repository.loadProgress(this.profile.playerId) : null;
+    this.state = this.repository.loadProgress(this.profile.playerId);
+    this.collection = this.repository.loadCollection(this.profile.playerId);
+    this.growth = this.repository.loadGrowth(this.profile.playerId);
+    this.applyRestoreRules();
+  }
+
+  // 새로고침·재로그인으로 다시 열린 Day를 안전한 상태로 맞춥니다.
+  // 진행 중(active)이던 Day는 일시정지로, 마감 중(closing)이던 Day는 바로 시간 종료 정산합니다.
+  private applyRestoreRules() {
+    if (!this.state) return;
+    const saved = this.state.currentDayState;
+    let restored = normalizeRestoredDay(saved);
+    // 아직 시작하지 않은 Day는 Lab에서 선택한 Day 길이로 표시를 맞춥니다 (진행 중인 Day는 그대로).
+    if (restored.status === 'ready' && restored.durationMs !== this.dayDurationMs) {
+      restored = createReadyDay(restored.dayNumber, this.dayDurationMs);
+    }
+    if (restored.status === 'closing') {
+      this.state.currentDayState = restored;
+      this.settleCurrentDay('time-limit');
+      return;
+    }
+    if (restored === saved) return;
+    this.state.currentDayState = restored;
+    this.persist();
   }
 
   private renderShell() {
@@ -122,6 +200,7 @@ export class DayAccountIntegrationController {
           <div><span>LAB TEST CONTROLS</span><strong id="day-account-screen-label"></strong></div>
           <div class="release-state day-account-state">
             <button id="day-account-audio" type="button"></button>
+            <button id="day-account-duration" type="button" title="다음에 시작하는 Day의 제한 시간 (Lab 측정용)"></button>
             <button id="day-account-end" type="button">Lab · Day 종료</button>
             <button id="day-account-logout" type="button">로그아웃</button>
           </div>
@@ -149,8 +228,9 @@ export class DayAccountIntegrationController {
       this.persist();
       this.refreshShell();
     });
+    this.parent.querySelector<HTMLButtonElement>('#day-account-duration')?.addEventListener('click', () => this.cycleDayDuration());
     this.parent.querySelector<HTMLButtonElement>('#day-account-end')?.addEventListener('click', () => {
-      if (!this.state || !['active', 'paused'].includes(this.state.currentDayState.status)) return;
+      if (!this.state || !['active', 'paused', 'closing'].includes(this.state.currentDayState.status)) return;
       this.endDay('manual-test');
     });
     this.parent.querySelector<HTMLButtonElement>('#day-account-logout')?.addEventListener('click', () => void this.logout());
@@ -162,9 +242,10 @@ export class DayAccountIntegrationController {
     }
     // game·guide(첫 플레이 안내)를 벗어나 다른 화면으로 가면 Day를 일시정지합니다.
     // (guide는 startDay 직후 'active' 상태로 진입하므로 game만 검사하면 홈에 '영업 중'으로 남습니다)
-    if (PLAY_SCREENS.includes(this.screen) && !PLAY_SCREENS.includes(screen)) this.pauseDay('screen-navigation');
+    if (PLAY_SCREENS.includes(this.screen) && !PLAY_SCREENS.includes(screen)) this.pauseCurrentDay('screen-navigation');
     this.game?.destroy(true);
     this.game = undefined;
+    this.sceneBusy = false;
     this.screen = screen;
     const stage = this.parent.querySelector<HTMLElement>(`#${this.stageId}`);
     if (!stage) return;
@@ -174,7 +255,8 @@ export class DayAccountIntegrationController {
 
     if (screen === 'account') return this.renderAccount(stage);
     if (screen === 'profile-create') return this.renderProfileCreate(stage);
-    if (!this.state || !this.profile) return;
+    if (!this.state || !this.profile || !this.collection || !this.growth) return;
+    const collection = this.collection;
 
     if (screen === 'title') {
       this.game = startTitleLoadingPrototype(this.stageId, {
@@ -187,10 +269,13 @@ export class DayAccountIntegrationController {
       this.game = startHomeDesignPrototype(this.stageId, 'warm-pixel-garage', {
         coins: this.state.coins,
         completedOrders: this.state.completedOrders,
+        progress: this.buildHomeProgress(),
         dayNumber: this.state.currentDayState.dayNumber,
         dayRemainingMs: this.state.currentDayState.remainingMs,
         dayStatusLabel: this.dayStatusLabel(),
         onPlay: () => this.openPlay(),
+        onCraft: (bikeId) => { collection.selectedBikeId = bikeId; this.saveCollection(); this.show('dream'); },
+        onHeroBike: (bikeId) => { collection.selectedBikeId = bikeId; this.saveCollection(); this.show('dream'); },
         onCollection: () => this.show('catalog'),
         onShowcase: () => this.show('showcase'),
         onProfile: () => this.show('profile'),
@@ -213,34 +298,30 @@ export class DayAccountIntegrationController {
       return;
     }
     if (screen === 'game') {
-      this.resumeDay();
+      this.resumeCurrentDay();
       this.game = startGameScreenMobilePrototype(this.stageId, {
         orderIndex: this.state.orderIndex,
         autoPlacement: this.state.autoPlacement,
         continuousOrders: true,
-        getDaySummary: () => ({
-          dayNumber: this.state?.currentDayState.dayNumber ?? 1,
-          remainingMs: this.state?.currentDayState.remainingMs ?? 0,
-          durationMs: DAY_DURATION_MS,
-          earnings: this.state?.currentDayState.earnings ?? 0,
-        }),
+        getDaySummary: () => {
+          const day = this.state?.currentDayState;
+          return {
+            dayNumber: day?.dayNumber ?? 1,
+            remainingMs: day?.remainingMs ?? 0,
+            durationMs: day?.durationMs ?? DAY_DURATION_MS,
+            earnings: day?.earnings ?? 0,
+            closing: day?.status === 'closing',
+          };
+        },
+        // 머지 코어가 바뀌어도 Day는 '입력 허용 여부'와 '확정된 납품'만 주고받습니다.
+        isInputLocked: () => !this.state || !canAcceptPlayInput(this.state.currentDayState),
+        onBusyChange: (busy) => { this.sceneBusy = busy; },
         onAutoPlacementChange: (enabled) => {
           if (!this.state) return;
           this.state.autoPlacement = enabled;
           this.persist();
         },
-        onOrderComplete: (completedOrderIndex) => {
-          if (!this.state) return;
-          const reward = 1000 + completedOrderIndex * 400;
-          this.state.completedOrders += 1;
-          this.state.currentDayState.ordersCompleted += 1;
-          this.state.currentDayState.earnings += reward;
-          this.state.coins += reward;
-          this.state.orderIndex = (completedOrderIndex + 1) % 2;
-          this.persist();
-          this.refreshShell();
-          return { reward, totalDayIncome: this.state.currentDayState.earnings };
-        },
+        onOrderComplete: (completedOrderIndex) => this.completeOrder(completedOrderIndex),
         onSfx: (event) => this.play(event),
       });
       return;
@@ -251,17 +332,44 @@ export class DayAccountIntegrationController {
       const mode: BikeCollectionDesignMode = screen === 'catalog' ? 'warm-catalog' : screen === 'showcase' ? 'warm-showcase' : 'warm-dream-growth';
       this.game = startBikeCollectionDesignPrototype(this.stageId, mode, {
         coins: this.state.coins,
-        initialBikeId: this.state.selectedBikeId,
+        initialBikeId: collection.selectedBikeId,
+        // 계정별 컬렉션 진행을 그대로 연결합니다 (릴리스 통합과 같은 규칙, 저장 위치만 계정 슬롯).
+        ownedBikeIds: [...collection.craftedBikeIds],
+        registeredBikeIds: [...collection.registeredBikeIds],
+        understandingByBikeId: { ...collection.understandingByBikeId },
+        craftPartsByBikeId: Object.fromEntries(Object.entries(collection.craftPartsByBikeId).map(([id, parts]) => [id, [...parts]])),
+        // 자전거 만들기: 코인 차감과 부품 장착을 한 번에 적용·저장하고 결과만 화면에 돌려줍니다.
+        onCraftPart: (bikeId: string, part: CraftPartType) => {
+          if (!this.state) return { ok: false, reason: 'unknown' as const, coins: 0, installedParts: [], completed: false };
+          const result = applyCraftPart(collection, this.state.coins, bikeId, part);
+          if (result.ok) {
+            this.state.coins = result.coins;
+            this.saveCollection();
+            this.persist();
+            this.refreshShell();
+            return { ok: true, coins: result.coins, installedParts: [...result.installedParts], completed: result.completed };
+          }
+          return {
+            ok: false,
+            reason: result.reason,
+            coins: result.coins,
+            installedParts: [...(collection.craftPartsByBikeId[bikeId] ?? [])],
+            completed: false,
+          };
+        },
+        newBikeIds: [...collection.newBikeIds],
+        showcaseSlots: [...collection.showcaseSlots],
+        onShowcaseChange: (slots) => { collection.showcaseSlots = slots; this.saveCollection(); },
+        onBikeSeen: (bikeId) => { markBikeSeen(collection, bikeId); this.saveCollection(); },
+        // 자전거 강화: 코인 차감과 강화 반영을 같은 처리에서 저장합니다.
+        // (이전 Day 데모는 이 훅이 없어 코인만 차감·저장되고 강화 단계는 화면을 나가면 사라졌습니다)
+        dreamStats: bikeStats(this.growth, collection.selectedBikeId),
+        onDreamUpgrade: (stat: DreamStatKey) => this.upgradeSelectedBike(stat),
         onHome: () => this.show('home'),
         onCatalog: () => this.show('catalog'),
         onShowcase: () => this.show('showcase'),
         onDreamGrowth: () => this.show('dream'),
-        onBikeDetail: (bikeId) => {
-          if (!this.state) return;
-          this.state.selectedBikeId = bikeId;
-          this.persist();
-          this.show('dream');
-        },
+        onBikeDetail: (bikeId) => { collection.selectedBikeId = bikeId; this.saveCollection(); this.show('dream'); },
         onCoinsChange: (coins) => {
           if (!this.state) return;
           this.state.coins = coins;
@@ -282,7 +390,10 @@ export class DayAccountIntegrationController {
       },
       onReset: () => {
         if (!this.profile) return;
+        // 이 계정의 Day·재화·컬렉션·성장만 초기화합니다.
         this.state = this.repository.resetProgress(this.profile.playerId);
+        this.collection = this.repository.loadCollection(this.profile.playerId);
+        this.growth = this.repository.loadGrowth(this.profile.playerId);
         this.audio.setEnabled(this.state.settings.bgm, this.state.settings.sfx);
         window.setTimeout(() => this.show('title'), 0);
       },
@@ -297,12 +408,48 @@ export class DayAccountIntegrationController {
     });
   }
 
+  // 납품 확정: 코인·누적 납품·이해도는 즉시 반영하고, Day 통계는 정산 전까지 기록합니다.
+  private completeOrder(completedOrderIndex: number) {
+    if (!this.state || !this.collection) return;
+    const reward = orderMetaAt(completedOrderIndex)?.reward ?? 1000 + completedOrderIndex * 400;
+    this.state.coins += reward;
+    this.state.completedOrders += 1;
+    this.state.orderIndex = (completedOrderIndex + 1) % ORDER_METAS.length;
+    this.state.currentDayState = recordOrderDelivery(this.state.currentDayState, reward).day;
+    applyOrderDelivery(this.collection, completedOrderIndex);
+    this.saveCollection();
+    this.persist();
+    this.refreshShell();
+    return { reward, totalDayIncome: this.state.currentDayState.earnings };
+  }
+
+  private upgradeSelectedBike(stat: DreamStatKey) {
+    const collection = this.collection!;
+    const growth = this.growth!;
+    const coins = this.state?.coins ?? 0;
+    const result = applyBikeUpgrade(collection, growth, coins, collection.selectedBikeId, stat);
+    if (result.ok && this.state) {
+      this.growth = result.growth;
+      this.state.coins = result.coins;
+      this.saveGrowth();
+      this.persist();
+      this.refreshShell();
+    }
+    return {
+      ok: result.ok,
+      reason: result.ok ? undefined : result.reason,
+      coins: result.coins,
+      stats: { ...result.stats },
+      stageUp: result.ok ? result.stageUp : false,
+    };
+  }
+
   private renderAccount(stage: HTMLElement) {
     stage.innerHTML = `
       <section class="day-account-panel account-login-panel">
         <p class="day-account-eyebrow">BROWSER MOCK AUTH · ISSUE #211</p>
         <h2>정비사 계정으로 로그인</h2>
-        <p>실제 비밀번호를 저장하지 않는 Lab 테스트입니다. 계정마다 프로필·Day·코인·주문 진행이 분리됩니다.</p>
+        <p>실제 비밀번호를 저장하지 않는 Lab 테스트입니다. 계정마다 프로필·Day·코인·주문·컬렉션·성장 진행이 분리됩니다.</p>
         <div class="mock-account-grid">
           ${this.auth.listAccounts().map((account) => `
             <button type="button" data-mock-account="${account.accountId}">
@@ -320,7 +467,7 @@ export class DayAccountIntegrationController {
           // 계정별 BGM·SFX 설정을 즉시 적용합니다 (로그아웃 시 true/true로 리셋된 값이 남지 않도록)
           this.audio.setEnabled(this.state?.settings.bgm ?? true, this.state?.settings.sfx ?? true);
           this.audio.unlock();
-          this.show(this.profile ? (this.state?.currentDayState.status === 'settlement' ? 'day-settlement' : 'title') : 'profile-create');
+          this.show(this.initialScreen());
         } catch (error) {
           if (message) message.textContent = error instanceof Error ? error.message : '로그인에 실패했습니다.';
         }
@@ -345,8 +492,8 @@ export class DayAccountIntegrationController {
       const garageName = stage.querySelector<HTMLInputElement>('#profile-garage')?.value ?? '';
       const message = stage.querySelector<HTMLElement>('#profile-create-message');
       try {
-        this.profile = this.repository.createProfile(this.session!, nickname, garageName);
-        this.state = this.repository.loadProgress(this.profile.playerId);
+        this.repository.createProfile(this.session!, nickname, garageName);
+        this.restoreAccountContext();
         this.persist();
         this.show('title');
       } catch (error) {
@@ -363,12 +510,12 @@ export class DayAccountIntegrationController {
         <p class="day-account-eyebrow">${escapeHtml(this.profile.garageName)} · WORK PLAN</p>
         <div class="day-number-badge">DAY ${day.dayNumber}</div>
         <h2>오늘 공방을 열까요?</h2>
-        <p>${formatTime(DAY_DURATION_MS)} 동안 플레이하면 오늘 수입을 정산합니다. 게임 밖에서는 시간이 멈춥니다.</p>
+        <p>${formatDayClock(this.dayDurationMs)} 동안 플레이하면 오늘 수입을 정산합니다. 게임 밖에서는 시간이 멈춥니다.</p>
         ${this.renderDayCalendar(day.dayNumber)}
-        <div class="day-goal-grid"><div><span>오늘 검증</span><strong>납품·정산 전환</strong></div><div><span>현재 코인</span><strong>${this.state.coins.toLocaleString()}</strong></div><div><span>지난 기록</span><strong>${this.state.dayHistory.length}일</strong></div></div>
+        <div class="day-goal-grid"><div><span>오늘 영업</span><strong>${durationLabel(this.dayDurationMs)}</strong></div><div><span>현재 코인</span><strong>${this.state.coins.toLocaleString()}</strong></div><div><span>지난 기록</span><strong>${this.state.dayHistory.length}일</strong></div></div>
         <button id="start-day" class="day-account-primary" type="button">DAY ${day.dayNumber} START</button>
       </section>`;
-    stage.querySelector<HTMLButtonElement>('#start-day')?.addEventListener('click', () => this.startDay());
+    stage.querySelector<HTMLButtonElement>('#start-day')?.addEventListener('click', () => this.beginDay());
   }
 
   // 공방 달력 (#231 후속): 대회 주기(5일)에 맞춘 한 줄 5칸 달력으로 대회일을 표시합니다.
@@ -405,13 +552,13 @@ export class DayAccountIntegrationController {
       <section class="day-account-panel day-settlement-panel">
         <p class="day-account-eyebrow">DAY ${day.dayNumber} · SETTLEMENT r${day.settlementRevision ?? this.state.revision}</p>
         <h2>${escapeHtml(this.profile.nickname)} 정비사, 오늘도 수고했어요!</h2>
-        <p>${reason} 미완료 주문은 다음 Day로 이월하고 임시 보드는 초기화합니다.</p>
+        <p>${reason} 미완료 주문은 다음 Day에 이어서 진행합니다. 현재 작업대(C안)는 보드를 저장하지 않아 다음 Day에 비워지며, 보드 이월은 머지 코어 저장 방식에 따라 정합니다.</p>
         <div class="settlement-income"><span>오늘 수입</span><strong>+ ${day.earnings.toLocaleString()} COIN</strong></div>
-        <div class="settlement-grid"><div><span>완료 주문</span><strong>${day.ordersCompleted}건</strong></div><div><span>종료 Day</span><strong>DAY ${day.dayNumber}</strong></div><div><span>활성 시간</span><strong>${formatTime(day.elapsedActiveMs)}</strong></div><div><span>누적 코인</span><strong>${this.state.coins.toLocaleString()}</strong></div></div>
+        <div class="settlement-grid"><div><span>완료 주문</span><strong>${day.ordersCompleted}건</strong></div><div><span>종료 Day</span><strong>DAY ${day.dayNumber}</strong></div><div><span>활성 시간</span><strong>${formatDayClock(day.elapsedActiveMs)}</strong></div><div><span>누적 코인</span><strong>${this.state.coins.toLocaleString()}</strong></div></div>
         <button id="prepare-next-day" class="day-account-primary" type="button">DAY ${day.dayNumber + 1} 준비하기</button>
         <button id="settlement-profile" type="button">작업 기록 보기</button>
       </section>`;
-    stage.querySelector<HTMLButtonElement>('#prepare-next-day')?.addEventListener('click', () => this.prepareNextDay());
+    stage.querySelector<HTMLButtonElement>('#prepare-next-day')?.addEventListener('click', () => this.goToNextDay());
     stage.querySelector<HTMLButtonElement>('#settlement-profile')?.addEventListener('click', () => this.show('profile'));
   }
 
@@ -423,127 +570,206 @@ export class DayAccountIntegrationController {
         <p class="day-account-eyebrow">PLAYER ACCOUNT · GAME PROGRESS</p>
         <div class="profile-id-card"><div><span>정비사</span><strong>${escapeHtml(this.profile.nickname)}</strong><em>${escapeHtml(this.profile.garageName)}</em></div><div><span>계정</span><strong>${escapeHtml(this.session.displayLabel)}</strong><em>${escapeHtml(this.profile.playerId)}</em></div></div>
         <div class="profile-progress-grid"><div><span>현재 Day</span><strong>${this.state.currentDayState.dayNumber}</strong></div><div><span>누적 납품</span><strong>${this.state.completedOrders}</strong></div><div><span>코인</span><strong>${this.state.coins.toLocaleString()}</strong></div><div><span>저장 revision</span><strong>${this.state.revision}</strong></div></div>
-        <div class="day-history-list"><h3>최근 Day 기록 · 3일</h3>${recent.length ? recent.map((entry) => `<p><strong>DAY ${entry.dayNumber}</strong><span>주문 ${entry.ordersCompleted} · 급여 ${entry.earnings.toLocaleString()} · ${formatTime(entry.elapsedActiveMs)}</span></p>`).join('') : '<p><span>아직 정산된 Day가 없습니다.</span></p>'}</div>
+        <div class="day-history-list"><h3>최근 Day 기록 · 3일</h3>${recent.length ? recent.map((entry) => `<p><strong>DAY ${entry.dayNumber}</strong><span>주문 ${entry.ordersCompleted} · 급여 ${entry.earnings.toLocaleString()} · ${formatDayClock(entry.elapsedActiveMs)}</span></p>`).join('') : '<p><span>아직 정산된 Day가 없습니다.</span></p>'}</div>
         <button id="profile-home" class="day-account-primary" type="button">Garage Home</button>
       </section>`;
     stage.querySelector<HTMLButtonElement>('#profile-home')?.addEventListener('click', () => this.show('home'));
   }
 
+  // 홈 화면에 표시할 계정별 메타 루프 진행 요약 (릴리스 통합과 같은 규칙)
+  private buildHomeProgress() {
+    const collection = this.collection!;
+    const growth = this.growth!;
+    const orderMeta = orderMetaAt(this.state?.orderIndex ?? 0) ?? ORDER_METAS[0];
+    const goal = computeNextGoal(collection, growth);
+    const selectedCrafted = collection.craftedBikeIds.includes(collection.selectedBikeId);
+    const hero = (selectedCrafted ? catalogBikeById(collection.selectedBikeId) : undefined) ?? catalogBikeById('dream-road')!;
+    const heroStats = bikeStats(growth, hero.id);
+    return {
+      ownedCount: craftedBikeCount(collection),
+      catalogSize: CATALOG_SIZE,
+      orderName: orderMeta.name,
+      orderCategory: orderMeta.bikeCategory,
+      orderReward: orderMeta.reward,
+      nextGoalLabel: goal.kind === 'understand' ? goal.bikeName
+        : goal.kind === 'craft' ? `${goal.bikeName} 제작`
+        : goal.kind === 'upgrade' ? `${goal.bikeName} ${goal.stat} 강화`
+        : '주문 반복 플레이',
+      nextGoalHint: goal.kind === 'understand'
+        ? `이해도 ${goal.understanding}% · 납품 ${goal.deliveriesLeft}회 남음`
+        : goal.kind === 'craft'
+          ? `다음 부품 ${goal.partName} · ${goal.cost.toLocaleString()}코인`
+          : goal.kind === 'upgrade'
+            ? `강화 비용 ${goal.cost.toLocaleString()}코인`
+            : '모든 목표 달성 · 급여를 모아보세요',
+      craft: goal.kind === 'craft'
+        ? { bikeId: goal.bikeId, bikeName: goal.bikeName, installedCount: goal.installedCount, totalParts: goal.totalParts }
+        : undefined,
+      growthPercent: Math.round((dreamTotalLevel(heroStats) - 3) / 9 * 100),
+      heroBike: {
+        id: hero.id,
+        name: hero.name,
+        category: hero.category,
+        color: hero.color,
+        grade: dreamGradeName(heroStats),
+        stage: dreamStage(heroStats),
+      },
+    };
+  }
+
   private openPlay() {
     if (!this.state) return this.show(this.session ? 'profile-create' : 'account');
     const status = this.state.currentDayState.status;
+    if (status === 'closing') return this.endDay('time-limit');
     if (status === 'settlement') return this.show('day-settlement');
     if (status === 'ready' || status === 'completed') return this.show('day-ready');
     this.show(this.state.tutorialDone ? 'game' : 'guide');
   }
 
-  private startDay() {
+  private beginDay() {
     if (!this.state) return;
-    const dayNumber = this.state.currentDayState.dayNumber;
-    this.state.currentDayState = {
-      ...createReadyDay(dayNumber),
-      status: 'active',
-      startedAt: new Date().toISOString(),
-    };
+    const started = startDay(this.state.currentDayState, new Date().toISOString(), this.dayDurationMs);
+    if (started === this.state.currentDayState) return;
+    this.state.currentDayState = started;
     this.lastTickAt = performance.now();
-    this.lastCheckpointSecond = -1;
+    this.lastCheckpointBucket = -1;
     this.persist();
     this.show(this.state.tutorialDone ? 'game' : 'guide');
   }
 
   private tickDay() {
-    if (!this.state || this.screen !== 'game' || document.hidden || this.state.currentDayState.status !== 'active') {
-      this.lastTickAt = performance.now();
+    const now = performance.now();
+    if (!this.state) {
+      this.lastTickAt = now;
       return;
     }
-    const now = performance.now();
+    const day = this.state.currentDayState;
+    if (day.status === 'closing') {
+      this.lastTickAt = now;
+      // 진행 중이던 장착이 확정되면(또는 대기 시간이 지나거나 화면을 떠나면) 정산합니다.
+      const graceOver = now - this.closingStartedAt >= DAY_CLOSING_GRACE_MS;
+      if (!this.sceneBusy || graceOver || this.screen !== 'game' || document.hidden) this.endDay('time-limit');
+      return;
+    }
+    if (this.screen !== 'game' || document.hidden || day.status !== 'active') {
+      this.lastTickAt = now;
+      return;
+    }
     const delta = this.lastTickAt ? Math.min(1000, now - this.lastTickAt) : 0;
     this.lastTickAt = now;
-    const day = this.state.currentDayState;
-    day.elapsedActiveMs += delta;
-    day.remainingMs = Math.max(0, day.remainingMs - delta);
-    const checkpointSecond = Math.floor(day.remainingMs / 5000);
-    if (checkpointSecond !== this.lastCheckpointSecond) {
-      this.lastCheckpointSecond = checkpointSecond;
+    const { day: next, timeUp } = tickDay(day, delta);
+    this.state.currentDayState = next;
+    if (timeUp) {
+      // 새 입력은 막고, 장착 연출 중인 납품이 있으면 확정될 때까지 짧게 기다립니다.
+      this.closingStartedAt = now;
+      this.persist();
+      this.refreshShell();
+      if (!this.sceneBusy) this.endDay('time-limit');
+      return;
+    }
+    const checkpointBucket = Math.floor(next.remainingMs / 5000);
+    if (checkpointBucket !== this.lastCheckpointBucket) {
+      this.lastCheckpointBucket = checkpointBucket;
       this.persist();
     }
     this.refreshShell();
-    if (day.remainingMs <= 0) this.endDay('time-limit');
   }
 
-  private pauseDay(reason: string) {
-    if (!this.state || this.state.currentDayState.status !== 'active') return;
-    this.state.currentDayState.status = 'paused';
-    this.state.currentDayState.pauseReason = reason;
-    this.persist();
-    this.refreshShell();
-  }
-
-  private resumeDay() {
+  private pauseCurrentDay(reason: DayPauseReason) {
     if (!this.state) return;
-    const day = this.state.currentDayState;
-    if (day.status !== 'paused' && day.status !== 'active') return;
-    day.status = 'active';
-    day.pauseReason = null;
-    this.lastTickAt = performance.now();
+    const paused = pauseDay(this.state.currentDayState, reason);
+    if (paused === this.state.currentDayState) return;
+    this.state.currentDayState = paused;
     this.persist();
     this.refreshShell();
+  }
+
+  private resumeCurrentDay() {
+    if (!this.state) return;
+    this.lastTickAt = performance.now();
+    const resumed = resumeDay(this.state.currentDayState);
+    if (resumed === this.state.currentDayState) return;
+    this.state.currentDayState = resumed;
+    this.persist();
+    this.refreshShell();
+  }
+
+  // 정산은 Day마다 한 번만 적용됩니다. 화면 전환 없이 상태만 확정합니다.
+  private settleCurrentDay(reason: DayEndReason) {
+    if (!this.state) return false;
+    const result = settleDay(this.state.currentDayState, this.state.dayHistory, {
+      reason,
+      endedAt: new Date().toISOString(),
+      settlementRevision: this.state.revision + 1,
+    });
+    if (!result.settled) return false;
+    this.state.currentDayState = result.day;
+    this.state.dayHistory = result.history;
+    this.persist();
+    return true;
   }
 
   private endDay(reason: DayEndReason) {
-    if (!this.state) return;
-    const day = this.state.currentDayState;
-    if (day.status === 'settlement' || day.status === 'completed' || day.status === 'ready') return;
-    const settlementRevision = this.state.revision + 1;
-    day.status = 'settlement';
-    day.pauseReason = null;
-    day.endReason = reason;
-    day.settlementRevision = settlementRevision;
-    if (reason === 'time-limit') day.remainingMs = 0;
-    if (!this.state.dayHistory.some((entry) => entry.dayNumber === day.dayNumber)) {
-      this.state.dayHistory.push({
-        dayNumber: day.dayNumber,
-        startedAt: day.startedAt ?? new Date().toISOString(),
-        endedAt: new Date().toISOString(),
-        elapsedActiveMs: day.elapsedActiveMs,
-        ordersCompleted: day.ordersCompleted,
-        earnings: day.earnings,
-        endReason: reason,
-        settlementRevision,
-      });
-    }
-    this.persist();
+    if (!this.settleCurrentDay(reason)) return;
     this.show('day-settlement');
   }
 
-  private prepareNextDay() {
-    if (!this.state || this.state.currentDayState.status !== 'settlement') return;
-    this.state.currentDayState.status = 'completed';
-    const nextNumber = this.state.currentDayState.dayNumber + 1;
-    this.state.currentDayState = createReadyDay(nextNumber);
+  private goToNextDay() {
+    if (!this.state) return;
+    const next = prepareNextDay(this.state.currentDayState, this.dayDurationMs);
+    if (next === this.state.currentDayState) return;
+    this.state.currentDayState = next;
     this.persist();
     this.show('home');
   }
 
+  // Lab 측정 도구: 다음에 시작하는 Day의 제한 시간을 10초 → 1분 → 3분 순서로 바꿉니다.
+  private cycleDayDuration() {
+    const index = DAY_DURATION_PRESETS_MS.findIndex((value) => value === this.dayDurationMs);
+    this.dayDurationMs = normalizeDurationMs(DAY_DURATION_PRESETS_MS[(index + 1) % DAY_DURATION_PRESETS_MS.length]);
+    try {
+      localStorage.setItem(DAY_DURATION_SETTING_KEY, String(this.dayDurationMs));
+    } catch {
+      // 저장이 막혀도 현재 탭에서는 선택값을 그대로 씁니다.
+    }
+    // 아직 시작하지 않은 Day는 표시 시간도 새 길이로 맞춥니다. 진행 중인 Day는 바꾸지 않습니다.
+    if (this.state?.currentDayState.status === 'ready') {
+      this.state.currentDayState = createReadyDay(this.state.currentDayState.dayNumber, this.dayDurationMs);
+      this.persist();
+    }
+    this.refreshShell();
+    if (this.screen === 'day-ready' || this.screen === 'home') this.show(this.screen);
+  }
+
   private async logout() {
-    this.pauseDay('logout');
+    this.pauseCurrentDay('logout');
     this.persist();
     await this.auth.logout();
     this.session = null;
     this.profile = null;
     this.state = null;
+    this.collection = null;
+    this.growth = null;
     this.audio.setEnabled(true, true);
     this.show('account');
   }
 
   private handleVisibilityChange() {
-    if (document.hidden) this.pauseDay('background');
-    else if (this.screen === 'game' && this.state?.currentDayState.status === 'paused' && this.state.currentDayState.pauseReason === 'background') this.resumeDay();
+    if (document.hidden) this.pauseCurrentDay('background');
+    else if (this.screen === 'game' && this.state?.currentDayState.status === 'paused' && this.state.currentDayState.pauseReason === 'background') this.resumeCurrentDay();
   }
 
   private persist() {
     if (!this.state) return;
     this.state = this.repository.saveProgress(this.state);
+  }
+
+  private saveCollection() {
+    if (this.profile && this.collection) this.repository.saveCollection(this.profile.playerId, this.collection);
+  }
+
+  private saveGrowth() {
+    if (this.profile && this.growth) this.repository.saveGrowth(this.profile.playerId, this.growth);
   }
 
   private play(event: ReleaseSfxEvent) {
@@ -561,6 +787,7 @@ export class DayAccountIntegrationController {
   private refreshShell() {
     const label = this.parent.querySelector<HTMLElement>('#day-account-screen-label');
     const audio = this.parent.querySelector<HTMLButtonElement>('#day-account-audio');
+    const duration = this.parent.querySelector<HTMLButtonElement>('#day-account-duration');
     const end = this.parent.querySelector<HTMLButtonElement>('#day-account-end');
     const logout = this.parent.querySelector<HTMLButtonElement>('#day-account-logout');
     if (label) label.textContent = SCREEN_LABELS[this.screen] + (this.repository.lastSaveError ? ' · ⚠ 저장 실패 (메모리 진행만 유지)' : '');
@@ -568,7 +795,11 @@ export class DayAccountIntegrationController {
       audio.textContent = this.state?.settings.bgm === false ? '♫ OFF' : '♫ ON';
       audio.disabled = !this.state;
     }
-    if (end) end.hidden = !this.state || !['active', 'paused'].includes(this.state.currentDayState.status);
+    if (duration) {
+      duration.textContent = `Day ${durationLabel(this.dayDurationMs)}`;
+      duration.disabled = !this.state;
+    }
+    if (end) end.hidden = !this.state || !['active', 'paused', 'closing'].includes(this.state.currentDayState.status);
     if (logout) logout.hidden = !this.session;
     this.parent.querySelectorAll<HTMLButtonElement>('[data-day-screen]').forEach((button) => {
       button.disabled = !this.profile;
@@ -578,10 +809,12 @@ export class DayAccountIntegrationController {
   }
 
   private dayStatusLabel() {
-    const status = this.state?.currentDayState.status;
-    if (status === 'active') return '영업 중';
-    if (status === 'paused') return '일시정지';
-    if (status === 'settlement') return '정산';
+    const day = this.state?.currentDayState;
+    if (!day) return '준비';
+    if (day.status === 'active') return '영업 중';
+    if (day.status === 'paused') return day.pauseReason ? `일시정지 · ${PAUSE_LABELS[day.pauseReason]}` : '일시정지';
+    if (day.status === 'closing') return '마감 중';
+    if (day.status === 'settlement') return '정산';
     return '준비';
   }
 }
