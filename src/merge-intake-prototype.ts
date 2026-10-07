@@ -1,137 +1,424 @@
-import { KINDS, CAP, RECOVERY, fresh, restore, recover, requirements, nextSlot, supply, canMerge, drop, install, deliver, upgrade } from './merge-intake-state';
-import './merge-intake.css';
-const KEY='dbg-lab-merge-intake-v1';
-const icons=['△','◉','⚙','┬'];
-export function startMergeIntake(parent: string) {
-  const root=document.getElementById(parent)!;
-  let storageOK=true;
-  let raw: string|null=null; try { raw=localStorage.getItem(KEY); } catch { storageOK=false; }
-  let s=restore(raw), selected=-1, message='사장님: 입고 부품을 정리해 고객 자전거를 조립해 주세요. 같은 부품 2개를 끌어 겹쳐 보세요.', accelerated=false;
-  let pointer: { index: number; id: number; x: number; y: number; dragging: boolean } | null = null;
-  let ghost: HTMLElement | null = null;
-  let blockClickUntil = 0;
-  let effect: { index: number; origin?: DOMRect } | null = null;
-  const save=()=>{ try {localStorage.setItem(KEY,JSON.stringify(s));} catch {storageOK=false;} };
-  function bike() {
-    const [frame,wheels,drive,bar]=s.installed;
-    return `<svg viewBox="0 0 260 105" aria-label="고객 자전거 조립 ${s.installed.filter(Boolean).length}/4" role="img"><g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="5"><g stroke="${wheels?'#425d53':'#d7d8d1'}"><circle cx="60" cy="70" r="28"/><circle cx="200" cy="70" r="28"/></g><path stroke="${frame?'#c77432':'#d7d8d1'}" d="M60 70L99 25L125 70L60 70M99 25L183 25L125 70M183 25L200 70M99 25L94 15M85 15H105"/><g stroke="${drive?'#425d53':'#d7d8d1'}"><circle cx="125" cy="70" r="9"/><path d="M125 70L139 80L147 80"/></g><path stroke="${bar?'#425d53':'#d7d8d1'}" d="M183 25L178 10H202L207 17"/></g></svg>`;
+// 머지 코어 D v3: 일반 프로젝트 게임 화면(게임 화면 디자인 B안 · 390×810) 디자인 정렬
+// 화면 구성과 연출은 E안과 같은 merge-play-screen을 쓰고, 규칙은 merge-intake-state
+// (가운데→바깥 입고·자유 이동·거리 무관 2개 겹치기·직접 장착)를 사용합니다.
+import Phaser from 'phaser';
+import { ReleaseAudio, type ReleaseSfxEvent } from './release-audio';
+import {
+  CAP, KINDS, SIZE, fresh, restore, recover, nextSlot, supply, supplyBlock, canMerge, mergeTargets, drop, canInstall, install, returnPart,
+  type State, type ProgressEvent, type DropResult, type Part,
+} from './merge-intake-state';
+import { NONE, resolveTap, resolveDrop, resolveInstall, type InputOutcome } from './merge-intake-input';
+import {
+  ALERT, MUTED, CREAM, BROWN, RED, GREEN, AMBER, PART_COLORS, SMALL_LEFT, SMALL_RIGHT,
+  cellCenter, cellAt, inOrderCard, recoveryLabel, drawBackdrop, drawHeader, makePiece, OrderCard, drawBoard, createNextMarker,
+  InfoLine, drawShelf, smallButton, BoxButton, infoPanel, EnergyPanel, Motion, launchMergeDemo,
+  type DemoHooks, type MergeDemoHandle, type Tone,
+} from './merge-play-screen';
+
+/** 기존 D안 저장 키를 유지해 v1·v2 진행을 v3로 이전합니다. */
+export const KEY = 'dbg-lab-merge-intake-v1';
+const RETURN_ARM_MS = 2500;
+const ORDER_NOTE = '부품을 골라 직접 장착';
+type Drag = { from: number; x: number; y: number; dragging: boolean; hover: number; overCard: boolean; ghost?: Phaser.GameObjects.Container };
+
+class MergeIntakeScene extends Phaser.Scene {
+  private s!: State;
+  private selected = NONE;
+  private accelerated = false;
+  private accelTicks = 0;
+  private alive = false;
+  private generation = 0;
+  private queue: Promise<void> = Promise.resolve();
+  private view = { order: 0, installed: [false, false, false, false], coins: 0 };
+  private pieces = new Map<number, Phaser.GameObjects.Container>();
+  private hidden = new Set<number>(); // 입고·이동 연출이 끝날 때까지 숨겨 두는 칸
+  private drag?: Drag;
+  private returnArmedUntil = 0;
+  private readonly audio = new ReleaseAudio();
+  private motion!: Motion;
+  private metrics!: Phaser.GameObjects.Text;
+  private order!: OrderCard;
+  private nextMarker!: Phaser.GameObjects.Container;
+  private highlight!: Phaser.GameObjects.Graphics;
+  private dropHint!: Phaser.GameObjects.Graphics;
+  private info!: InfoLine;
+  private box!: BoxButton;
+  private installButton!: Phaser.GameObjects.Rectangle;
+  private installLabel!: Phaser.GameObjects.Text;
+  private returnButton!: Phaser.GameObjects.Rectangle;
+  private returnLabel!: Phaser.GameObjects.Text;
+  private energy!: EnergyPanel;
+  private benchTitle!: Phaser.GameObjects.Text;
+  private benchSub!: Phaser.GameObjects.Text;
+
+  constructor(private readonly hooks: DemoHooks) { super('merge-intake-d-v3'); }
+
+  create() {
+    this.alive = true;
+    this.motion = new Motion(this, window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true);
+    this.audio.setEnabled(false, true); // 랩 체험은 효과음만 사용합니다.
+    this.s = restore(this.hooks.load(), Date.now());
+    this.syncView();
+    drawBackdrop(this);
+    this.metrics = drawHeader(this);
+    this.order = new OrderCard(this, (kind) => this.apply(resolveInstall(this.s, this.selected, kind)));
+    drawBoard(this, (index, pointer) => this.onDown(index, pointer));
+    this.nextMarker = createNextMarker(this, this.motion.reduced);
+    this.highlight = this.add.graphics().setDepth(5);
+    this.dropHint = this.add.graphics().setDepth(6);
+    this.info = new InfoLine(this, () => this.deselect());
+    this.drawShelf();
+    this.input.on('pointermove', this.onMove, this);
+    this.input.on('pointerup', this.onUp, this);
+    this.input.on('gameout', this.cancelDrag, this);
+    this.time.addEvent({ delay: 1000, loop: true, callback: () => this.tick() });
+    this.events.once('shutdown', () => this.shutdown());
+    this.events.once('destroy', () => this.shutdown());
+    const saved = this.persist();
+    this.renderAll();
+    this.info.set(saved
+      ? '사장님: 입고 부품을 정리해 고객 자전거를 조립해 주세요. 같은 부품을 차례로 누르면 합쳐져요.'
+      : '저장할 수 없어 이 화면에서만 진행돼요. 같은 부품을 차례로 누르면 합쳐져요.');
+    this.changed();
   }
-  function render() {
-    const slot=nextSlot(s), p=s.board[selected], req=requirements(s);
-    const detailsOpen = root.querySelector('details')?.open ?? false;
-    const focused = (document.activeElement as HTMLElement | null)?.dataset.cell;
-    root.innerHTML=`<section class="intake-game" aria-label="입고 정리형 머지 D안">
-      <header><strong>자전거 가게 · 입고 정리</strong><span>급여 ${s.coins} C</span></header>
-      <div class="intake-energy"><b>⚡ 알바 체력 ${s.energy}/${CAP}</b><span data-clock></span></div>
-      <div class="intake-order"><div><b>고객 주문 ${s.order+1} · ${['통학 자전거','시티 자전거','주말 자전거'][s.order%3]}</b><small>부품 선택 → 장착 · 모두 장착하면 납품 +500 C</small></div>${bike()}<div class="intake-slots">${KINDS.map((k,i)=>`<span class="${s.installed[i]?'done':''}">${icons[i]} ${k}<br>${s.installed[i]?'장착 완료':`Lv.${req[i]} 필요`}</span>`).join('')}</div></div>
-      <div class="intake-board" role="group" aria-label="6열 7행 작업대">${s.board.map((part,i)=>`<button data-cell="${i}" class="intake-cell ${part?`kind-${part.kind}`:''} ${selected===i?'selected':''} ${canMerge(s,selected,i)?'merge-target':''} ${slot===i?'next-slot':''}" aria-pressed="${selected===i}" aria-label="${Math.floor(i/6)+1}행 ${i%6+1}열 ${part?`${KINDS[part.kind]} 레벨 ${part.level}`:slot===i?'다음 입고 위치':'빈칸'}">${part?`<b>${icons[part.kind]}</b><span>${KINDS[part.kind]}</span><small>Lv.${part.level}</small>`:slot===i?'<small>다음 입고</small>':''}</button>`).join('')}</div>
-      <div class="intake-tray"><button data-action="supply" ${slot<0||s.energy<1?'disabled':''}><b>📦 입고 상자</b><span>${slot<0?'작업대가 가득 찼어요':s.energy<1?'체력 회복 중':'눌러서 부품 꺼내기 · −1⚡'}</span></button><small>상자 가까운 점선 칸에 자동 배치</small></div>
-      <div class="intake-actions"><button data-action="install" ${p&&!s.installed[p.kind]&&p.level>=req[p.kind]?'':'disabled'}>자전거에 장착</button><button data-action="cancel" ${selected<0?'disabled':''}>선택 취소</button><button data-action="return" ${p?'':'disabled'}>재고 반납</button><button data-action="deliver" ${s.installed.every(Boolean)?'':'disabled'}>자전거 납품</button></div>
-      <p class="intake-message" role="status">${message}</p>
-      <footer><span>내 드림 바이크 ${'★'.repeat(s.growth)}${'☆'.repeat(3-s.growth)}</span><button data-action="upgrade" ${s.growth>=3||s.coins<500?'disabled':''}>${s.growth>=3?'성장 완료':'성장 −500 C'}</button></footer>
-      <details ${detailsOpen?'open':''}><summary>조작 안내 · 랩 테스트 도구</summary><p>같은 종류·레벨 2개를 끌어 겹치면 바로 합쳐집니다. 거리는 상관없습니다. 빈칸에 놓으면 이동하고 다른 부품에 놓으면 서로 자리를 바꿉니다. 드래그 대신 부품 선택 후 대상 칸을 눌러도 됩니다. 선택 부품과 합칠 수 있는 대상을 테두리로 표시합니다. Lv.4는 최대이며 같은 Lv.4끼리는 위치만 교환합니다. 반납한 부품은 사라지고 체력은 반환되지 않습니다.</p><p>입고 부품: Lv.1 80% / Lv.2 20%. 70%는 미장착 종류 중 선택, 나머지는 전체 종류 중 선택합니다. 미장착 종류가 4회 연속 안 나오면 다음에 보장합니다. 체력은 실제 10분마다 1 회복하며 Day와 무관합니다.</p><button data-action="charge">테스트: 체력 충전</button><button data-action="speed">테스트: 10초 회복 ${accelerated?'ON':'OFF'}</button><button data-action="reset">D안 저장 초기화</button><p>공급 ${s.supplied}회 · 머지 ${s.merges}회 · 납품 ${s.order}대</p></details><small data-save>${storageOK?'D안 자동 저장 · 기존 실험과 별도':'저장 불가: 이 화면에서만 진행됩니다.'}</small>
-    </section>`;
-    updateClock();
-    if (focused !== undefined) root.querySelector<HTMLButtonElement>(`[data-cell="${focused}"]`)?.focus({preventScroll:true});
-    if (effect) {
-      const cell = root.querySelector<HTMLElement>(`[data-cell="${effect.index}"]`);
-      if (cell && !window.matchMedia('(prefers-reduced-motion: reduce)').matches && typeof cell.animate === 'function') {
-        const dest = cell.getBoundingClientRect(), origin = effect.origin;
-        cell.animate(origin ? [
-          { transform: `translate(${origin.x+origin.width/2-dest.x-dest.width/2}px,${origin.y+origin.height/2-dest.y-dest.height/2}px) scale(.55)`, opacity: .3 },
-          { transform: 'translate(0,0) scale(1)', opacity: 1 }
-        ] : [{ transform: 'scale(1.15)', backgroundColor: '#ffe19a' }, { transform: 'scale(1)' }], {duration:240,easing:'ease-out'});
+
+  // ── 랩 도구 · 생명주기 ──
+  labCharge() {
+    if (!this.alive) return;
+    this.s.energy = CAP; this.s.anchor = Date.now();
+    this.persist(); this.renderShelf(); this.info.set('테스트용 체력을 충전했어요.');
+    this.changed();
+  }
+  labSetAccelerated(on: boolean) {
+    this.accelerated = on; this.accelTicks = 0;
+    if (this.alive) this.renderShelf();
+  }
+  labReset() {
+    if (!this.alive) return;
+    this.resetQueue();
+    this.s = fresh(Date.now());
+    this.selected = NONE; this.syncView(); this.persist(); this.renderAll();
+    this.info.set('D안 첫 주문을 시작합니다. 같은 부품을 겹쳐 합성하고 직접 장착하세요.');
+    this.changed();
+  }
+  flush() {
+    if (!this.alive) return;
+    this.cancelDrag();
+    recover(this.s, Date.now());
+    this.persist();
+  }
+  private shutdown() {
+    if (!this.alive) return;
+    this.alive = false;
+    this.audio.destroy();
+    this.motion.clear();
+  }
+
+  private drawShelf() {
+    // 게임 화면 B안의 '택배 선반' 자리와 크기에 D안의 입고 상자·장착·반납을 둡니다.
+    drawShelf(this, '입고 상자 · INTAKE BOX', '자유 이동 · 거리 무관 2개 겹치기');
+    this.box = new BoxButton(this, '입고 상자 열기', () => this.onSupply());
+    [this.installButton, this.installLabel] = smallButton(this, SMALL_LEFT, '↑\n장착', () => this.apply(resolveInstall(this.s, this.selected)));
+    [this.returnButton, this.returnLabel] = smallButton(this, SMALL_RIGHT, '↗\n반납', () => this.onReturn());
+    this.energy = new EnergyPanel(this);
+    ({ title: this.benchTitle, sub: this.benchSub } = infoPanel(this, 286));
+  }
+
+  // ── 표시 ──
+  private renderAll() { this.renderBoard(); this.renderOrder(); this.renderHeader(); this.renderShelf(); }
+
+  private renderBoard() {
+    this.pieces.forEach(piece => piece.destroy(true));
+    this.pieces.clear();
+    this.s.board.forEach((part, index) => {
+      if (!part) return;
+      const piece = makePiece(this, part, cellCenter(index));
+      if (this.hidden.has(index)) piece.setAlpha(0);
+      this.pieces.set(index, piece);
+    });
+    const slot = nextSlot(this.s);
+    this.nextMarker.setVisible(slot >= 0);
+    if (slot >= 0) this.nextMarker.setPosition(cellCenter(slot).x, cellCenter(slot).y);
+    this.renderHighlights();
+  }
+
+  private renderHighlights() {
+    this.highlight.clear();
+    const active = this.selected !== NONE && !!this.s.board[this.selected];
+    this.pieces.forEach((piece, index) => piece.setScale(active && index === this.selected ? 1.06 : 1));
+    this.info.showCancel(active);
+    this.renderOrder();
+    if (!active) return;
+    const center = cellCenter(this.selected);
+    this.highlight.lineStyle(3, CREAM, 1).strokeRect(center.x - 26, center.y - 26, 52, 52);
+    for (const target of mergeTargets(this.s, this.selected)) {
+      const at = cellCenter(target);
+      this.highlight.fillStyle(GREEN, 0.2).fillRect(at.x - 22, at.y - 22, 44, 44);
+      this.highlight.lineStyle(4, GREEN, 1).strokeRect(at.x - 24, at.y - 24, 48, 48);
+    }
+  }
+
+  // 선택(또는 끌고 있는) 부품을 장착할 수 있으면 해당 칩을 초록으로, 끌어 놓을 수 없으면 빨강으로 표시합니다.
+  private renderOrder(dragFrom = NONE) {
+    const from = dragFrom !== NONE ? dragFrom : this.selected;
+    const part = from === NONE ? null : this.s.board[from];
+    const current = this.view.order === this.s.order;
+    const highlight = part && current && (dragFrom !== NONE || canInstall(this.s, from)) ? { kind: part.kind, ok: canInstall(this.s, from) } : undefined;
+    this.order.render(this.view.order, this.view.installed, ORDER_NOTE, highlight);
+  }
+  private renderHeader() { this.metrics.setText(`급여 ${this.view.coins.toLocaleString()} C · 머지 ${this.s.merges}`); }
+
+  private renderShelf() {
+    const block = supplyBlock(this.s);
+    this.box.render({
+      blocked: Boolean(block),
+      status: block === 'full'
+        ? '작업대가 가득 찼어요 · 합성·반납으로 자리 확보'
+        : block === 'energy'
+          ? `체력 회복 중 · 다음 +1 ${recoveryLabel(this.s.anchor)}`
+          : '가운데 점선 칸부터 자동 배치',
+      statusColor: block ? ALERT : MUTED,
+      cost: '⚡ −1',
+      costColor: ALERT,
+    });
+    const canPut = this.selected !== NONE && canInstall(this.s, this.selected);
+    this.installButton.setFillStyle(canPut ? GREEN : BROWN).setAlpha(canPut ? 1 : 0.45);
+    this.installLabel.setAlpha(canPut ? 1 : 0.6);
+    const canReturn = this.selected !== NONE && !!this.s.board[this.selected];
+    const armed = canReturn && this.time.now < this.returnArmedUntil;
+    this.returnButton.setFillStyle(armed ? RED : BROWN).setAlpha(canReturn ? 1 : 0.45);
+    this.returnLabel.setText(armed ? '한 번 더\n눌러 반납' : '↗\n반납').setAlpha(canReturn ? 1 : 0.6);
+    this.energy.render(this.s.energy, this.s.anchor, this.accelerated);
+    this.benchTitle.setText(`작업대 빈칸 ${this.s.board.filter(part => !part).length}/${SIZE}`);
+    this.benchSub.setText(`합성 ${this.s.merges} · 반납 ${this.s.returned}`);
+  }
+
+  // ── 입력: 탭 선택 → 대상 탭 (게임 화면 B안과 동일), 드래그 놓기·주문 카드로 끌어 장착 ──
+  private onDown(index: number, pointer: Phaser.Input.Pointer) {
+    if (this.drag) return;
+    this.drag = { from: index, x: pointer.x, y: pointer.y, dragging: false, hover: NONE, overCard: false };
+  }
+
+  private onMove(pointer: Phaser.Input.Pointer) {
+    const drag = this.drag;
+    if (!drag || !pointer.isDown || !this.s.board[drag.from]) return;
+    if (!drag.dragging) {
+      if (Phaser.Math.Distance.Between(drag.x, drag.y, pointer.x, pointer.y) < 8) return;
+      drag.dragging = true;
+      drag.ghost = makePiece(this, this.s.board[drag.from]!, { x: pointer.x, y: pointer.y }).setDepth(40).setScale(1.1).setAlpha(0.92);
+      this.pieces.get(drag.from)?.setAlpha(0.35);
+    }
+    drag.ghost?.setPosition(pointer.x, pointer.y - 10);
+    const overCard = inOrderCard(pointer.x, pointer.y);
+    if (overCard !== drag.overCard) { drag.overCard = overCard; this.renderOrder(overCard ? drag.from : NONE); }
+    const over = overCard ? NONE : cellAt(pointer.x, pointer.y);
+    if (over === drag.hover) return;
+    drag.hover = over;
+    this.dropHint.clear();
+    if (over === NONE || over === drag.from) return;
+    const at = cellCenter(over);
+    // 합성(초록) · 빈칸 이동(크림) · 자리 교환(노랑)
+    const color = canMerge(this.s, drag.from, over) ? GREEN : this.s.board[over] ? AMBER : CREAM;
+    this.dropHint.lineStyle(4, color, 1).strokeRect(at.x - 24, at.y - 24, 48, 48);
+  }
+
+  private onUp(pointer: Phaser.Input.Pointer) {
+    const drag = this.drag;
+    if (!drag) return;
+    this.clearDrag(drag);
+    if (!drag.dragging) { this.apply(resolveTap(this.s, this.selected, drag.from)); return; }
+    this.apply(inOrderCard(pointer.x, pointer.y)
+      ? resolveInstall(this.s, drag.from)
+      : resolveDrop(this.s, drag.from, cellAt(pointer.x, pointer.y)));
+  }
+
+  private cancelDrag() { if (this.drag) this.clearDrag(this.drag); }
+  private clearDrag(drag: Drag) {
+    this.drag = undefined;
+    this.dropHint.clear();
+    drag.ghost?.destroy(true);
+    this.pieces.get(drag.from)?.setAlpha(this.hidden.has(drag.from) ? 0 : 1);
+    if (drag.overCard) this.renderOrder();
+  }
+
+  private apply(outcome: InputOutcome) {
+    this.returnArmedUntil = 0;
+    if (outcome.install !== undefined) { this.performInstall(outcome.install); return; }
+    if (outcome.drop) { this.performDrop(outcome.drop.from, outcome.drop.to); return; }
+    this.selected = outcome.selected;
+    this.say(outcome.message, outcome.tone);
+    this.renderHighlights();
+    this.renderShelf();
+  }
+
+  private deselect() {
+    this.selected = NONE;
+    this.returnArmedUntil = 0;
+    this.say('선택을 취소했어요.');
+    this.renderHighlights();
+    this.renderShelf();
+  }
+
+  // ── 행동 ──
+  private onSupply() {
+    this.cancelDrag();
+    recover(this.s, Date.now());
+    const block = supplyBlock(this.s);
+    if (block) {
+      this.say(block === 'full'
+        ? '작업대에 빈칸이 없어요. 합성하거나 부품을 반납해 자리를 만드세요.'
+        : '알바 체력이 부족해요. 회복을 기다려 주세요.', 'error');
+      this.renderShelf();
+      return;
+    }
+    const result = supply(this.s, Date.now(), Math.random);
+    if (!result) return;
+    const placed = result.events[0];
+    if (placed.type !== 'placed') return;
+    this.hidden.add(placed.index);
+    this.commit(`${KINDS[placed.part.kind]} Lv.${placed.part.level} 입고! 같은 부품을 골라 겹쳐 보세요.`);
+    this.playEvents(result.events);
+  }
+
+  private performDrop(from: number, to: number) {
+    const moving = this.s.board[from], other = this.s.board[to];
+    const result: DropResult = drop(this.s, from, to);
+    if (result === 'none' || !moving) return;
+    this.selected = to;
+    if (result === 'moved') this.hidden.add(to);
+    if (result === 'swapped') { this.hidden.add(to); this.hidden.add(from); }
+    this.commit(result === 'merged'
+      ? `${KINDS[moving.kind]} Lv.${moving.level + 1} 합성!${canInstall(this.s, to) ? ' 이제 장착할 수 있어요.' : ''}`
+      : result === 'swapped' ? '두 부품의 자리를 바꿨어요.' : '빈칸으로 옮겼어요.');
+    this.playDrop(result, from, to, moving, other);
+  }
+
+  private performInstall(index: number) {
+    const result = install(this.s, index);
+    if (!result) return;
+    this.selected = NONE;
+    const installed = result.events[0], delivered = result.events.find(event => event.type === 'delivered');
+    this.commit(delivered?.type === 'delivered'
+      ? `${delivered.name} 납품 완료! 급여 +${delivered.reward.toLocaleString()} C`
+      : installed.type === 'installed' ? `${KINDS[installed.kind]} 장착 완료 · 남은 부품을 준비하세요.` : '');
+    this.playEvents(result.events);
+  }
+
+  private onReturn() {
+    this.cancelDrag();
+    const part = this.selected === NONE ? null : this.s.board[this.selected];
+    if (!part) {
+      this.say('반납할 부품을 먼저 눌러 선택하세요.', 'error');
+      return;
+    }
+    if (this.time.now >= this.returnArmedUntil) {
+      this.returnArmedUntil = this.time.now + RETURN_ARM_MS;
+      this.say('한 번 더 누르면 선택한 부품을 반납해요. 부품은 사라지고 체력은 돌아오지 않아요.');
+      this.renderShelf();
+      this.time.delayedCall(RETURN_ARM_MS + 50, () => { if (this.alive) this.renderShelf(); });
+      return;
+    }
+    returnPart(this.s, this.selected);
+    this.selected = NONE;
+    this.commit(`${KINDS[part.kind]} Lv.${part.level} 반납 완료 · 빈칸을 확보했어요.`);
+    this.sfx('tap');
+  }
+
+  private commit(message: string) {
+    this.returnArmedUntil = 0;
+    this.persist();
+    this.renderBoard();
+    this.renderHeader();
+    this.renderShelf();
+    this.info.set(message);
+    this.changed();
+  }
+
+  private tick() {
+    if (!this.alive) return;
+    const before = this.s.energy;
+    recover(this.s, Date.now());
+    if (this.accelerated && ++this.accelTicks % 10 === 0 && this.s.energy < CAP) { this.s.energy++; this.s.anchor = Date.now(); }
+    if (before !== this.s.energy) { this.persist(); this.changed(); }
+    this.renderShelf();
+  }
+
+  private say(message: string, tone: Tone = 'info') {
+    this.info.set(message, tone);
+    this.sfx(tone === 'error' ? 'error' : 'tap');
+  }
+  private persist() { return this.hooks.save(JSON.stringify(this.s)); }
+  private syncView() { this.view = { order: this.s.order, installed: [...this.s.installed], coins: this.s.coins }; }
+  private changed() {
+    this.hooks.onChange?.(`공급 ${this.s.supplied} · 합성 ${this.s.merges} · 반납 ${this.s.returned} · 납품 ${this.s.order}`);
+  }
+  private sfx(event: ReleaseSfxEvent) { this.audio.play(event); }
+  private reveal(index: number) { if (this.hidden.delete(index)) this.pieces.get(index)?.setAlpha(1); }
+
+  // ── 연출: 상태는 즉시 반영하고, 주문 카드·급여 표시는 순서대로 따라갑니다 ──
+  private enqueue(step: () => Promise<void>) {
+    const generation = this.generation;
+    this.queue = this.queue.then(() => (this.alive && generation === this.generation ? step() : undefined));
+  }
+  private resetQueue() {
+    this.generation++;
+    this.queue = Promise.resolve();
+    this.hidden.clear();
+    this.motion.clear();
+  }
+
+  private playDrop(result: DropResult, from: number, to: number, moving: Part, other: Part | null) {
+    this.hooks.onMotion?.({ type: result, from, to });
+    this.enqueue(async () => {
+      if (result === 'merged') {
+        this.sfx('merge');
+        await this.motion.slide(moving, cellCenter(from), cellCenter(to), true);
+        const piece = this.s.board[to] ? this.pieces.get(to) : undefined;
+        await this.motion.pop(piece, { kind: moving.kind, level: moving.level + 1 }, cellCenter(to), piece && this.selected === to ? 1.06 : 1);
+        return;
       }
-      effect = null;
-    }
+      this.sfx('tap');
+      await Promise.all([
+        this.motion.slide(moving, cellCenter(from), cellCenter(to)),
+        result === 'swapped' && other ? this.motion.slide(other, cellCenter(to), cellCenter(from)) : Promise.resolve(),
+      ]);
+      this.reveal(to);
+      this.reveal(from);
+    });
   }
-  function updateClock() {
-    const remaining=Math.max(0,Math.ceil((RECOVERY-(Date.now()-s.anchor))/1000));
-    const el=root.querySelector('[data-clock]'); if(el) el.textContent=s.energy===CAP?'충전 완료':accelerated?'랩: 10초마다 +1':`다음 +1 ${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')}`;
-  }
-  const click=(e:Event)=>{
-    if(pointer?.dragging || (performance.now() < blockClickUntil && (e as MouseEvent).detail !== 0)) return;
-    const target=(e.target as Element).closest<HTMLButtonElement>('button'); if(!target) return;
-    if(target.dataset.cell!==undefined) {
-      const i=Number(target.dataset.cell);
-      if(selected===i) selected=-1;
-      else if(selected>=0) applyDrop(selected,i);
-      else if(s.board[i]) { selected=i; message='같은 부품에 겹치면 머지, 빈칸은 이동, 다른 부품은 위치 교환입니다.'; }
-    } else switch(target.dataset.action) {
-      case 'supply': {
-        const index=nextSlot(s), origin=target.getBoundingClientRect();
-        if(supply(s)) { effect={index,origin}; selected=-1; message=`${KINDS[s.board[index]!.kind]} Lv.${s.board[index]!.level} 입고! 같은 부품에 끌어 겹쳐 보세요.`; }
-        break;
+
+  private playEvents(events: ProgressEvent[]) {
+    this.enqueue(async () => {
+      for (const event of events) {
+        this.hooks.onMotion?.(event);
+        if (event.type === 'placed') {
+          this.sfx('parcel');
+          await this.motion.arrive(event.part, cellCenter(event.index));
+          this.reveal(event.index);
+        } else if (event.type === 'installed') {
+          await this.motion.install(cellCenter(event.from), this.order.bikeAnchor(event.order, event.kind), PART_COLORS[event.kind]);
+          this.sfx('install');
+          if (this.view.order === event.order) { this.view.installed[event.kind] = true; this.renderOrder(); }
+        } else {
+          this.sfx('complete');
+          await this.motion.delivered(event.name, event.reward, () => {
+            this.view = { order: event.order, installed: [false, false, false, false], coins: this.view.coins + event.reward };
+            this.renderOrder();
+            this.renderHeader();
+            this.sfx('reward');
+          });
+        }
       }
-      case 'install': if(install(s,selected)) {selected=-1;message='고객 자전거에 부품을 장착했어요.';} break;
-      case 'cancel': selected=-1; break;
-      case 'return': if(s.board[selected] && window.confirm('선택한 부품을 재고로 반납할까요? 부품이 사라지며 체력은 돌아오지 않습니다.')) {s.board[selected]=null;selected=-1;message='반납하여 빈칸을 확보했어요.';} break;
-      case 'deliver': if(deliver(s)) {selected=-1;message='납품 완료! 급여 500 C를 받았어요. 남은 부품으로 다음 주문을 준비하세요.';} break;
-      case 'upgrade': if(upgrade(s)) message='급여로 내 드림 바이크를 성장시켰어요!'; break;
-      case 'charge': s.energy=CAP;s.anchor=Date.now();message='랩 테스트용 체력을 충전했습니다.';break;
-      case 'speed': accelerated=!accelerated;message=`랩 회복 가속 ${accelerated?'ON':'OFF'} · 화면을 나가면 해제됩니다.`;break;
-      case 'reset': if(window.confirm('D안의 보드·체력·급여·성장을 초기화할까요?')) {s=fresh();selected=-1;message='첫 주문을 시작합니다. 같은 부품 2개를 겹쳐 머지하세요.';} break;
-    }
-    save();render();
-  };
-  function applyDrop(from: number, to: number) {
-    const result=drop(s,from,to);
-    selected=to;
-    message=result==='merged'?'두 부품을 합쳤어요! 필요한 레벨이면 자전거에 장착하세요.':result==='swapped'?'두 부품의 자리를 바꿨어요.':result==='moved'?'빈칸으로 옮겼어요.':'원래 위치에 놓았어요.';
-    if(result==='merged') effect={index:to};
+    });
   }
-  function clearDrag() {
-    const id=pointer?.id;
-    pointer=null;
-    if(id!==undefined && root.hasPointerCapture?.(id)) root.releasePointerCapture(id);
-    ghost?.remove();ghost=null;
-    root.querySelectorAll('.drag-source,.drop-merge,.drop-move,.drop-swap').forEach(el=>el.classList.remove('drag-source','drop-merge','drop-move','drop-swap'));
-  }
-  const down=(e:PointerEvent)=>{
-    if(pointer || e.isPrimary===false || e.button!==0) return;
-    blockClickUntil=0;
-    const cell=(e.target as Element).closest<HTMLElement>('[data-cell]');
-    if(cell&&s.board[Number(cell.dataset.cell)]) pointer={index:Number(cell.dataset.cell),id:e.pointerId,x:e.clientX,y:e.clientY,dragging:false};
-  };
-  const drag=(e:PointerEvent)=>{
-    if(!pointer || pointer.id!==e.pointerId) return;
-    if(!pointer.dragging && Math.hypot(e.clientX-pointer.x,e.clientY-pointer.y)<8) return;
-    e.preventDefault();
-    if(!pointer.dragging) {
-      pointer.dragging=true;
-      root.setPointerCapture(e.pointerId);
-      const source=root.querySelector<HTMLElement>(`[data-cell="${pointer.index}"]`)!;
-      ghost=source.cloneNode(true) as HTMLElement;
-      ghost.removeAttribute('data-cell');ghost.removeAttribute('aria-pressed');ghost.setAttribute('aria-hidden','true');ghost.tabIndex=-1;
-      ghost.className='intake-drag-ghost';ghost.style.width=`${source.getBoundingClientRect().width}px`;
-      document.body.append(ghost);source.classList.add('drag-source');
-    }
-    ghost!.style.left=`${e.clientX}px`;ghost!.style.top=`${e.clientY-18}px`;
-    root.querySelectorAll('.drop-merge,.drop-move,.drop-swap').forEach(el=>el.classList.remove('drop-merge','drop-move','drop-swap'));
-    const cell=document.elementFromPoint(e.clientX,e.clientY)?.closest<HTMLElement>('[data-cell]');
-    if(cell&&root.contains(cell)&&Number(cell.dataset.cell)!==pointer.index) {
-      const to=Number(cell.dataset.cell);
-      cell.classList.add(canMerge(s,pointer.index,to)?'drop-merge':s.board[to]?'drop-swap':'drop-move');
-    }
-  };
-  const up=(e:PointerEvent)=>{
-    if(!pointer || pointer.id!==e.pointerId) return;
-    const from=pointer;
-    if(!from.dragging) {clearDrag();return;}
-    const cell=document.elementFromPoint(e.clientX,e.clientY)?.closest<HTMLElement>('[data-cell]');
-    clearDrag();blockClickUntil=performance.now()+500;
-    if(cell&&root.contains(cell)) applyDrop(from.index,Number(cell.dataset.cell));
-    else {selected=from.index;message='작업대 밖에 놓아 이동을 취소했어요.';}
-    save();render();
-  };
-  const cancel=()=>{if(pointer?.dragging)blockClickUntil=performance.now()+500;clearDrag();};
-  root.addEventListener('click',click);root.addEventListener('pointerdown',down);
-  window.addEventListener('pointermove',drag,{passive:false});window.addEventListener('pointerup',up);window.addEventListener('pointercancel',cancel);
-  root.addEventListener('lostpointercapture',cancel);window.addEventListener('blur',cancel);
-  const flush=()=>{recover(s);save();};window.addEventListener('pagehide',flush);
-  const visibility=()=>{cancel();flush();if(!document.hidden)render();};document.addEventListener('visibilitychange',visibility);
-  let ticks=0;
-  const timer=window.setInterval(()=>{const before=s.energy;recover(s);if(accelerated && ++ticks%10===0 && s.energy<CAP){s.energy++;s.anchor=Date.now();}if(before!==s.energy){save();if(!pointer)render();}else updateClock();},1000);
-  save();render();
-  return {destroy(){cancel();flush();clearInterval(timer);root.removeEventListener('lostpointercapture',cancel);window.removeEventListener('blur',cancel);window.removeEventListener('pointermove',drag);root.removeEventListener('click',click);root.removeEventListener('pointerdown',down);window.removeEventListener('pointerup',up);window.removeEventListener('pointercancel',cancel);window.removeEventListener('pagehide',flush);document.removeEventListener('visibilitychange',visibility);root.innerHTML='';}};
+}
+
+/**
+ * D v3 체험 화면을 시작합니다. toolsId가 있으면 그 요소에 랩 테스트 도구(체력 충전·가속·초기화)를 그립니다.
+ */
+export function startMergeIntake(parent: string, toolsId?: string): MergeDemoHandle {
+  return launchMergeDemo({
+    parent, toolsId, key: KEY, resetLabel: 'D안', saveLabel: 'D안 자동 저장 · 기존 v1·v2 진행 이전 지원',
+    createScene: (hooks) => new MergeIntakeScene(hooks),
+  });
 }

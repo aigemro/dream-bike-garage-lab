@@ -12,8 +12,8 @@ function board(parts: Record<number, [number, number]> = {}): State {
 describe('E v3 입력 판정 (게임 화면 B안과 같은 탭 선택 → 대상 탭)', () => {
   it('빈칸 탭은 선택하지 않고, 점선 칸이면 부품 상자를 안내한다', () => {
     const s = board();
-    expect(resolveTap(s, NONE, 38)).toMatchObject({ selected: NONE, tone: 'info' });
-    expect(resolveTap(s, NONE, 38).message).toContain('부품 상자');
+    expect(resolveTap(s, NONE, 21)).toMatchObject({ selected: NONE, tone: 'info' });
+    expect(resolveTap(s, NONE, 21).message).toContain('부품 상자');
     expect(resolveTap(s, NONE, 0).message).toContain('빈칸');
   });
 

@@ -1,20 +1,17 @@
 // 머지 코어 E v3 규칙 (순수 로직 · Phaser 비의존)
-// E v2의 예정 칸 자동 입고·이동 금지·상하좌우 2개 합성은 유지하고,
-// 주문은 일반 프로젝트와 같은 3종(요구 레벨·이름·보상)을 사용합니다.
+// 예정 칸 자동 입고·이동 금지·상하좌우 2개 합성을 유지하고, 주문·입고 순서·체력·입고 확률은
+// D안과 같은 merge-core-shared를 사용합니다(일반 프로젝트 주문 3종, 가운데→바깥 입고).
 // v3 추가: 연쇄 합성 보너스, 납품 직후 다음 주문 자동 장착, 요구 레벨에 가장 가까운 부품 우선 장착.
-import { ORDER_METAS, type OrderMeta } from './meta-progress';
+import {
+  KINDS, SIZE, CAP, MAX_LEVEL, COLS, orderMeta, requirements, starterBoard, nextIntakeSlot, recoverEnergy, rollPart,
+  isInteger, validPart, validBoard, validInstalled, type Part,
+} from './merge-core-shared';
 
-export const KINDS = ['프레임', '휠셋', '구동계', '핸들바'] as const;
-// bike-pixel-sprite의 부품 그룹과 같은 순서 (kind 인덱스 → 픽셀 아이콘·대표색)
-export const PART_TYPES = ['frame', 'wheel', 'drivetrain', 'handlebar'] as const;
-export type PartType = (typeof PART_TYPES)[number];
-export const COLS = 6, ROWS = 7, SIZE = COLS * ROWS, CAP = 30, RECOVERY = 600_000, MAX_LEVEL = 4;
-// 일반 프로젝트 주문 3종의 부품별 요구 레벨 (merge-prototype ORDERS와 같은 값 · 프레임·휠셋·구동계·핸들바 순)
-export const ORDER_LEVELS: readonly (readonly number[])[] = [[2, 2, 1, 1], [3, 2, 2, 1], [2, 3, 2, 2]];
+export { KINDS, PART_TYPES, COLS, ROWS, SIZE, CAP, RECOVERY, MAX_LEVEL, ORDER_LEVELS, orderMeta, requirements } from './merge-core-shared';
+export type { Part, PartType } from './merge-core-shared';
 // 상자를 열지 않고 이어서 합성한 횟수(연쇄)가 기준에 닿으면 보너스를 받습니다.
 export const COMBO_FREE_BOX = 3, COMBO_GUARANTEE = 5;
 
-export type Part = { kind: number; level: number };
 export type Snapshot = {
   board: (Part | null)[]; installed: boolean[]; order: number; coins: number;
   merges: number; returned: number; combo: number; freeBoxes: number; guarantees: number;
@@ -33,41 +30,19 @@ export type ProgressEvent =
 export type ActionResult = { events: ProgressEvent[] };
 export type SupplyBlock = 'full' | 'energy';
 
-/** 누적 납품 수로 현재 주문 메타(이름·보상·자전거 종류)를 찾습니다. */
-export function orderMeta(order: number): OrderMeta { return ORDER_METAS[order % ORDER_METAS.length]; }
-export function requirements(s: Pick<Snapshot, 'order'>): readonly number[] { return ORDER_LEVELS[s.order % ORDER_LEVELS.length]; }
-
 export function fresh(now = Date.now()): State {
-  const board: (Part | null)[] = Array(SIZE).fill(null);
-  [0, 1, 6].forEach(i => board[i] = { kind: 0, level: 1 });
-  [2, 3, 8].forEach(i => board[i] = { kind: 1, level: 1 });
-  board[4] = { kind: 2, level: 1 }; board[5] = { kind: 3, level: 1 };
   const s: State = {
-    version: 3, board, energy: CAP, anchor: now, order: 0, installed: [false, false, false, false], coins: 0,
+    version: 3, board: starterBoard(), energy: CAP, anchor: now, order: 0, installed: [false, false, false, false], coins: 0,
     misses: 0, supplied: 0, merges: 0, returned: 0, combo: 0, freeBoxes: 0, guarantees: 0, freeUsed: 0, undo: null,
   };
   settle(s, []); // 첫 주문의 Lv.1 구동계·핸들바는 시작과 함께 장착됩니다.
   return s;
 }
 
-export function recover(s: State, now = Date.now()) {
-  if (now < s.anchor) { s.anchor = now; return; }
-  if (s.energy >= CAP) { s.anchor = now; return; }
-  const ticks = Math.floor((now - s.anchor) / RECOVERY);
-  s.energy = Math.min(CAP, s.energy + ticks);
-  s.anchor = s.energy === CAP ? now : s.anchor + ticks * RECOVERY;
-}
+export function recover(s: State, now = Date.now()) { recoverEnergy(s, now); }
 
-/** 보드 아래 중앙에서 가까운 빈칸 (아래 행 우선 · 가운데 열 우선 · 같으면 왼쪽). 없으면 -1 */
-export function nextSlot(s: Pick<Snapshot, 'board'>): number {
-  let best = -1, score = Number.MAX_SAFE_INTEGER;
-  for (let i = 0; i < SIZE; i++) if (!s.board[i]) {
-    const row = Math.floor(i / COLS), col = i % COLS;
-    const value = (ROWS - 1 - row) * 10 + Math.min(Math.abs(col - 2), Math.abs(col - 3));
-    if (value < score) { score = value; best = i; }
-  }
-  return best;
-}
+/** 다음 입고 칸 (보드 가운데에서 바깥 고리 순, 고리 안은 시계 방향). 없으면 -1 */
+export function nextSlot(s: Pick<Snapshot, 'board'>): number { return nextIntakeSlot(s.board); }
 
 // 요구 레벨 이상 부품 중 가장 낮은 레벨을 먼저 쓰고, 레벨이 같으면 칸 순서가 빠른 부품을 씁니다.
 function pickInstall(board: (Part | null)[], kind: number, level: number): number {
@@ -109,19 +84,13 @@ export function supply(s: State, now = Date.now(), rng = Math.random): ActionRes
   recover(s, now);
   const index = nextSlot(s);
   if (index < 0 || (s.freeBoxes < 1 && s.energy < 1)) return null;
-  const needs = KINDS.map((_, k) => k).filter(k => !s.installed[k]);
-  const guaranteed = s.guarantees > 0 && needs.length > 0;
-  const focus = needs.length > 0 && (guaranteed || s.misses >= 4 || rng() < .7);
-  const pool = focus ? needs : [0, 1, 2, 3];
-  const kind = pool[Math.min(pool.length - 1, Math.floor(rng() * pool.length))];
-  const level = rng() < .2 ? 2 : 1;
-  s.misses = needs.includes(kind) ? 0 : s.misses + 1;
+  const roll = rollPart(s.installed, s.misses, rng, s.guarantees > 0);
+  s.misses = roll.misses;
   const free = s.freeBoxes > 0;
   if (free) { s.freeBoxes--; s.freeUsed++; } else { if (s.energy >= CAP) s.anchor = now; s.energy--; }
-  if (guaranteed) s.guarantees--;
-  const part = { kind, level };
-  s.board[index] = part; s.supplied++; s.combo = 0; s.undo = null;
-  const events: ProgressEvent[] = [{ type: 'placed', index, part: { ...part }, free, guaranteed }];
+  if (roll.guaranteed) s.guarantees--;
+  s.board[index] = roll.part; s.supplied++; s.combo = 0; s.undo = null;
+  const events: ProgressEvent[] = [{ type: 'placed', index, part: { ...roll.part }, free, guaranteed: roll.guaranteed }];
   settle(s, events);
   return { events };
 }
@@ -177,25 +146,16 @@ export function returnPart(s: State, index: number) {
   return true;
 }
 
-const integer = (x: unknown, min: number, max = Number.MAX_SAFE_INTEGER): x is number =>
-  typeof x === 'number' && Number.isSafeInteger(x) && x >= min && x <= max;
-function validPart(p: unknown): boolean {
-  if (p === null) return true;
-  if (!p || typeof p !== 'object') return false;
-  const part = p as Part;
-  return integer(part.kind, 0, KINDS.length - 1) && integer(part.level, 1, MAX_LEVEL);
-}
 function validBase(value: unknown): value is Snapshot {
   if (!value || typeof value !== 'object') return false;
   const s = value as Snapshot;
-  return Array.isArray(s.board) && s.board.length === SIZE && s.board.every(validPart)
-    && Array.isArray(s.installed) && s.installed.length === KINDS.length && s.installed.every(x => typeof x === 'boolean')
-    && integer(s.order, 0) && integer(s.coins, 0) && integer(s.merges, 0) && integer(s.returned, 0);
+  return validBoard(s.board) && validInstalled(s.installed)
+    && isInteger(s.order, 0) && isInteger(s.coins, 0) && isInteger(s.merges, 0) && isInteger(s.returned, 0);
 }
 function validSnapshot(value: unknown): value is Snapshot {
   if (!validBase(value)) return false;
   const s = value as Snapshot;
-  return integer(s.combo, 0) && integer(s.freeBoxes, 0) && integer(s.guarantees, 0);
+  return isInteger(s.combo, 0) && isInteger(s.freeBoxes, 0) && isInteger(s.guarantees, 0);
 }
 
 /**
@@ -208,8 +168,8 @@ export function restore(raw: string | null, now = Date.now()): State {
     if (!input || typeof input !== 'object' || ![1, 2, 3].includes(input.version)) return fresh(now);
     const v3 = input.version === 3;
     if (!(v3 ? validSnapshot(input) : validBase(input))) return fresh(now);
-    if (!integer(input.energy, 0, CAP) || !integer(input.anchor, 0) || !integer(input.misses, 0) || !integer(input.supplied, 0)) return fresh(now);
-    if (v3 && !integer(input.freeUsed, 0)) return fresh(now);
+    if (!isInteger(input.energy, 0, CAP) || !isInteger(input.anchor, 0) || !isInteger(input.misses, 0) || !isInteger(input.supplied, 0)) return fresh(now);
+    if (v3 && !isInteger(input.freeUsed, 0)) return fresh(now);
     const base = input as Snapshot;
     const restored: State = {
       ...snapshot({ ...base, combo: v3 ? base.combo : 0, freeBoxes: v3 ? base.freeBoxes : 0, guarantees: v3 ? base.guarantees : 0 }),
