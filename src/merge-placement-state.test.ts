@@ -28,7 +28,7 @@ describe('E v3 주문·자동 장착', () => {
     expect(s.installed).toEqual([false, false, true, true]);
     expect(s.board[4]).toBeNull();
     expect(s.board[5]).toBeNull();
-    expect(nextSlot(s)).toBe(38);
+    expect(nextSlot(s)).toBe(21);
   });
 
   it('첫 주문은 프레임·휠셋 합성으로 장착하고 1,000 C를 받아 다음 주문으로 넘어간다', () => {
@@ -80,9 +80,9 @@ describe('E v3 상자·인접 합성', () => {
   it('예정 칸에 바로 배치하고 체력을 1 쓴다', () => {
     const s = fresh(0);
     const result = supply(s, 0, () => .9)!;
-    expect(result.events[0]).toMatchObject({ type: 'placed', index: 38, part: { kind: 3, level: 1 }, free: false, guaranteed: false });
+    expect(result.events[0]).toMatchObject({ type: 'placed', index: 21, part: { kind: 3, level: 1 }, free: false, guaranteed: false });
     expect(s.energy).toBe(CAP - 1);
-    expect(nextSlot(s)).toBe(39);
+    expect(nextSlot(s)).toBe(20);
   });
 
   it('작업대가 가득 차거나 체력이 없으면 추첨·차감하지 않는다', () => {
@@ -222,8 +222,8 @@ describe('E v3 체력·저장', () => {
     (v1.board as unknown[])[4] = { kind: 2, level: 1 };
     (v1.board as unknown[])[5] = { kind: 3, level: 1 };
     const migrated = restore(JSON.stringify(v1), 0);
-    expect(migrated.board[38]).toEqual({ kind: 2, level: 1 });
-    expect(migrated.board[39]).toEqual({ kind: 3, level: 2 });
+    expect(migrated.board[21]).toEqual({ kind: 2, level: 1 });
+    expect(migrated.board[20]).toEqual({ kind: 3, level: 2 });
     expect(migrated.undo).toBeNull();
   });
 });
