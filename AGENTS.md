@@ -27,6 +27,7 @@
 - Preview: `npm run preview`
 
 - Test: `npx vitest run` (순수 규칙 모듈의 `src/*.test.ts`)
+- Balance sim: `npm run sim` (E안·Day C 경제 시뮬레이션, [docs/balance/E_DAY_C_BALANCE.md](docs/balance/E_DAY_C_BALANCE.md))
 
 검증은 `npx vitest run`과 `npm run build` 통과 기준입니다.
 `main` 병합 시 GitHub Pages([aigemro.github.io/dream-bike-garage-lab](https://aigemro.github.io/dream-bike-garage-lab/))로 자동 배포됩니다. `vite.config.ts`의 `base: '/dream-bike-garage-lab/'`를 유지합니다.
