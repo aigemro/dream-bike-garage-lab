@@ -10,6 +10,7 @@ import {
   type KeyValueStorage,
 } from './day-account-state';
 import { applyBikeUpgrade, applyOrderDelivery, bikeStats, createCollectionProgress } from './meta-progress';
+import { drop, fresh, restore } from './merge-placement-state';
 
 // 브라우저 localStorage를 모사한 인메모리 저장소. failSet이 켜지면 setItem이 용량 초과처럼 예외를 던집니다.
 function makeStorage(): KeyValueStorage & { store: Map<string, string>; failSet: boolean } {
@@ -161,5 +162,30 @@ describe('계정별 컬렉션·성장 저장', () => {
     const storage = makeStorage();
     storage.setItem(`dbg-lab-day-account-collection-v1:${PLAYER}`, '{broken');
     expect(new DayAccountRepository(storage).loadCollection(PLAYER)).toEqual(createCollectionProgress());
+  });
+});
+
+describe('계정별 E안 작업대 저장', () => {
+  const OTHER = 'player-other';
+
+  it('작업대는 계정마다 따로 저장되고 v3 규칙으로 복구된다', () => {
+    const storage = makeStorage();
+    const repository = new DayAccountRepository(storage);
+    const board = fresh(0, 2);
+    drop(board, 1, 0);
+    expect(repository.savePlacement(PLAYER, JSON.stringify(board))).toBe(true);
+    expect(restore(repository.loadPlacement(PLAYER), 0)).toEqual(board);
+    expect(repository.loadPlacement(OTHER)).toBeNull();
+  });
+
+  it('진행 초기화는 해당 계정의 작업대만 지우고, 저장 실패는 거짓으로 알린다', () => {
+    const storage = makeStorage();
+    const repository = new DayAccountRepository(storage);
+    for (const player of [PLAYER, OTHER]) repository.savePlacement(player, JSON.stringify(fresh(0)));
+    repository.resetProgress(PLAYER);
+    expect(repository.loadPlacement(PLAYER)).toBeNull();
+    expect(repository.loadPlacement(OTHER)).not.toBeNull();
+    storage.failSet = true;
+    expect(repository.savePlacement(PLAYER, '{}')).toBe(false);
   });
 });

@@ -4,7 +4,7 @@
 import Phaser from 'phaser';
 import { ReleaseAudio, type ReleaseSfxEvent } from './release-audio';
 import {
-  CAP, KINDS, COMBO_FREE_BOX, COMBO_GUARANTEE,
+  CAP, KINDS, ORDER_LEVELS, COMBO_FREE_BOX, COMBO_GUARANTEE,
   fresh, restore, recover, nextSlot, supply, supplyBlock, drop, undo, returnPart, canMerge, mergeTargets,
   type State, type ProgressEvent,
 } from './merge-placement-state';
@@ -12,14 +12,31 @@ import { NONE, resolveTap, resolveDrop, type InputOutcome } from './merge-placem
 import {
   CREAM_TEXT, SUCCESS, ALERT, MUTED, INK, CREAM, BROWN, BORDER, RED, GREEN, AMBER, PART_COLORS, ROW2_Y, SMALL_LEFT, SMALL_RIGHT,
   cellCenter, cellAt, drawBackdrop, drawHeader, makePiece, OrderCard, drawBoard, createNextMarker, InfoLine, drawShelf,
-  smallButton, BoxButton, infoPanel, EnergyPanel, Motion, launchMergeDemo, recoveryLabel,
-  type DemoHooks, type MergeDemoHandle, type Tone,
+  smallButton, BoxButton, infoPanel, EnergyPanel, Motion, launchMergeDemo, recoveryLabel, createMergeGame, DayHeader,
+  type DemoHooks, type MergeDemoHandle, type Tone, type DaySummary,
 } from './merge-play-screen';
 
 /** 기존 E안 저장 키를 유지해 v1·v2 진행을 v3로 이전합니다. */
 export const KEY = 'dbg-lab-merge-placement-e-v1';
 const RETURN_ARM_MS = 2500;
 type Drag = { from: number; x: number; y: number; dragging: boolean; hover: number; ghost?: Phaser.GameObjects.Container };
+
+/**
+ * Day 세션 연결 계약 (DAY_SESSION_MAIN_APPLICATION.md 4.2).
+ * E안은 납품을 행동 시점에 동기적으로 확정하므로 '연출 중' 알림 없이 납품 1건마다 onOrderDelivered를 한 번 호출합니다.
+ */
+export type PlacementDayLink = {
+  load(): string | null;
+  save(raw: string): boolean;
+  /** 저장된 작업대가 없을 때 이어서 시작할 주문 순번 */
+  initialOrder: number;
+  getDay(): DaySummary;
+  /** 참이면 상자 열기·합성·반품·되돌리기를 받지 않습니다 (Day 마감·일시정지). */
+  isInputLocked(): boolean;
+  onOrderDelivered(result: { orderIndex: number; reward: number }): void;
+  onSfx(event: ReleaseSfxEvent): void;
+};
+type SceneHooks = DemoHooks & { day?: PlacementDayLink };
 
 class MergePlacementScene extends Phaser.Scene {
   private s!: State;
@@ -36,7 +53,8 @@ class MergePlacementScene extends Phaser.Scene {
   private returnArmedUntil = 0;
   private readonly audio = new ReleaseAudio();
   private motion!: Motion;
-  private metrics!: Phaser.GameObjects.Text;
+  private metrics?: Phaser.GameObjects.Text;
+  private dayHeader?: DayHeader;
   private order!: OrderCard;
   private nextMarker!: Phaser.GameObjects.Container;
   private highlight!: Phaser.GameObjects.Graphics;
@@ -52,16 +70,22 @@ class MergePlacementScene extends Phaser.Scene {
   private comboDots: Phaser.GameObjects.Rectangle[] = [];
   private tokenText!: Phaser.GameObjects.Text;
 
-  constructor(private readonly hooks: DemoHooks) { super('merge-placement-e-v3'); }
+  constructor(private readonly hooks: SceneHooks) { super('merge-placement-e-v3'); }
 
   create() {
     this.alive = true;
     this.motion = new Motion(this, window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true);
     this.audio.setEnabled(false, true); // 랩 체험은 효과음만 사용합니다.
-    this.s = restore(this.hooks.load(), Date.now());
+    const raw = this.hooks.load();
+    this.s = raw === null && this.hooks.day ? fresh(Date.now(), this.hooks.day.initialOrder) : restore(raw, Date.now());
     this.syncView();
     drawBackdrop(this);
-    this.metrics = drawHeader(this);
+    if (this.hooks.day) {
+      this.dayHeader = new DayHeader(this);
+      this.dayHeader.render(this.hooks.day.getDay());
+    } else {
+      this.metrics = drawHeader(this);
+    }
     this.order = new OrderCard(this);
     drawBoard(this, (index, pointer) => this.onDown(index, pointer));
     this.nextMarker = createNextMarker(this, this.motion.reduced);
@@ -77,10 +101,24 @@ class MergePlacementScene extends Phaser.Scene {
     this.events.once('destroy', () => this.shutdown());
     const saved = this.persist();
     this.renderAll();
-    this.info.set(saved
-      ? '점선 칸이 다음 입고 자리예요. 상하좌우로 맞닿은 같은 부품을 눌러 합성하세요.'
-      : '저장할 수 없어 이 화면에서만 진행돼요. 점선 칸이 다음 입고 자리예요.');
+    this.info.set(!saved
+      ? '저장할 수 없어 이 화면에서만 진행돼요. 점선 칸이 다음 입고 자리예요.'
+      : this.hooks.day
+        ? '영업 시작! 점선 칸이 다음 입고 자리예요. 맞닿은 같은 부품을 눌러 합성하세요.'
+        : '점선 칸이 다음 입고 자리예요. 상하좌우로 맞닿은 같은 부품을 눌러 합성하세요.');
     this.changed();
+  }
+
+  update() {
+    if (this.alive && this.hooks.day) this.dayHeader?.render(this.hooks.day.getDay());
+  }
+
+  // Day 마감·일시정지 중에는 새 입력을 받지 않습니다.
+  private inputLocked() {
+    if (!this.hooks.day?.isInputLocked()) return false;
+    this.cancelDrag();
+    this.say('영업 시간이 끝났어요. 오늘 정산을 준비하고 있어요.', 'error');
+    return true;
   }
 
   // ── 랩 도구 · 생명주기 ──
@@ -110,6 +148,8 @@ class MergePlacementScene extends Phaser.Scene {
   }
   private shutdown() {
     if (!this.alive) return;
+    recover(this.s, Date.now());
+    this.persist();
     this.alive = false;
     this.audio.destroy();
     this.motion.clear();
@@ -165,7 +205,7 @@ class MergePlacementScene extends Phaser.Scene {
   }
 
   private renderOrder() { this.order.render(this.view.order, this.view.installed, '완성 즉시 자동 장착'); }
-  private renderHeader() { this.metrics.setText(`급여 ${this.view.coins.toLocaleString()} C · 머지 ${this.s.merges}`); }
+  private renderHeader() { this.metrics?.setText(`급여 ${this.view.coins.toLocaleString()} C · 머지 ${this.s.merges}`); }
 
   private renderShelf() {
     const block = supplyBlock(this.s);
@@ -197,7 +237,7 @@ class MergePlacementScene extends Phaser.Scene {
 
   // ── 입력: 탭 선택 → 대상 탭 (게임 화면 B안과 동일), 드래그 놓기도 같은 규칙 ──
   private onDown(index: number, pointer: Phaser.Input.Pointer) {
-    if (this.drag) return;
+    if (this.drag || this.inputLocked()) return;
     this.drag = { from: index, x: pointer.x, y: pointer.y, dragging: false, hover: NONE };
   }
 
@@ -256,6 +296,7 @@ class MergePlacementScene extends Phaser.Scene {
 
   // ── 행동 ──
   private onSupply() {
+    if (this.inputLocked()) return;
     this.cancelDrag();
     recover(this.s, Date.now());
     const block = supplyBlock(this.s);
@@ -280,6 +321,7 @@ class MergePlacementScene extends Phaser.Scene {
   }
 
   private onUndo() {
+    if (this.inputLocked()) return;
     this.cancelDrag();
     if (!undo(this.s)) {
       this.say('되돌릴 행동이 없어요. 새 상자를 열면 되돌리기 기록이 지워져요.', 'error');
@@ -293,6 +335,7 @@ class MergePlacementScene extends Phaser.Scene {
   }
 
   private onReturn() {
+    if (this.inputLocked()) return;
     this.cancelDrag();
     const part = this.selected === NONE ? null : this.s.board[this.selected];
     if (!part) {
@@ -315,7 +358,11 @@ class MergePlacementScene extends Phaser.Scene {
 
   private commit(events: ProgressEvent[]) {
     this.returnArmedUntil = 0;
+    const delivered = events.filter(event => event.type === 'delivered');
+    // Day 세션에서는 급여가 바로 계정에 들어가므로, 납품이 포함된 행동은 되돌리지 않습니다.
+    if (this.hooks.day && delivered.length > 0) this.s.undo = null;
     this.persist();
+    delivered.forEach(event => this.hooks.day?.onOrderDelivered({ orderIndex: (event.order - 1) % ORDER_LEVELS.length, reward: event.reward }));
     this.arriving = new Set(events.flatMap(event => (event.type === 'placed' && this.s.board[event.index] ? [event.index] : [])));
     this.renderBoard();
     this.renderHeader();
@@ -364,7 +411,10 @@ class MergePlacementScene extends Phaser.Scene {
   private changed() {
     this.hooks.onChange?.(`공급 ${this.s.supplied} · 합성 ${this.s.merges} · 반품 ${this.s.returned} · 납품 ${this.s.order} · 무료 상자 사용 ${this.s.freeUsed}`);
   }
-  private sfx(event: ReleaseSfxEvent) { this.audio.play(event); }
+  private sfx(event: ReleaseSfxEvent) {
+    if (this.hooks.day) this.hooks.day.onSfx(event);
+    else this.audio.play(event);
+  }
 
   // ── 연출: 상태는 즉시 반영하고, 주문 카드·급여 표시는 이벤트 순서대로 따라갑니다 ──
   private enqueue(events: ProgressEvent[]) {
@@ -422,4 +472,11 @@ export function startMergePlacement(parent: string, toolsId?: string): MergeDemo
     parent, toolsId, key: KEY, resetLabel: 'E안', saveLabel: 'E안 자동 저장 · 기존 v1·v2 진행 이전 지원',
     createScene: (hooks) => new MergePlacementScene(hooks),
   });
+}
+
+/**
+ * Day 세션 화면에 E v3 작업대를 띄웁니다. 저장·Day 표시·입력 잠금·납품 통지는 Day 컨트롤러가 맡습니다.
+ */
+export function startPlacementForDay(parent: string, link: PlacementDayLink): Phaser.Game {
+  return createMergeGame(parent, new MergePlacementScene({ load: link.load, save: link.save, day: link }));
 }

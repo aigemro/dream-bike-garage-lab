@@ -30,9 +30,10 @@ export type ProgressEvent =
 export type ActionResult = { events: ProgressEvent[] };
 export type SupplyBlock = 'full' | 'energy';
 
-export function fresh(now = Date.now()): State {
+/** order: 시작할 주문 순번(Day 세션처럼 이미 진행 중인 계정에 처음 연결할 때 기존 주문 순서를 잇습니다) */
+export function fresh(now = Date.now(), order = 0): State {
   const s: State = {
-    version: 3, board: starterBoard(), energy: CAP, anchor: now, order: 0, installed: [false, false, false, false], coins: 0,
+    version: 3, board: starterBoard(), energy: CAP, anchor: now, order: Math.max(0, Math.floor(order)), installed: [false, false, false, false], coins: 0,
     misses: 0, supplied: 0, merges: 0, returned: 0, combo: 0, freeBoxes: 0, guarantees: 0, freeUsed: 0, undo: null,
   };
   settle(s, []); // 첫 주문의 Lv.1 구동계·핸들바는 시작과 함께 장착됩니다.

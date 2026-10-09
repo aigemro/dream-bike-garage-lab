@@ -23,6 +23,14 @@ describe('E v3 주문·자동 장착', () => {
     expect(requirements({ order: 4 })).toEqual([3, 2, 2, 1]);
   });
 
+  it('시작 주문을 지정하면 그 주문 요구 기준으로 시작 부품을 장착한다', () => {
+    const s = fresh(0, 1);
+    expect(s.order).toBe(1);
+    expect(requirements(s)).toEqual([3, 2, 2, 1]);
+    expect(s.installed).toEqual([false, false, false, true]);
+    expect(s.board[4]).toEqual({ kind: 2, level: 1 });
+  });
+
   it('시작할 때 이미 요구를 채운 부품은 바로 장착한다', () => {
     const s = fresh(0);
     expect(s.installed).toEqual([false, false, true, true]);
