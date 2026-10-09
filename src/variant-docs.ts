@@ -1,4 +1,5 @@
 import placementDoc from '../docs/variants/merge-placement.md?raw';
+import raceSeasonDoc from '../docs/variants/race-season.md?raw';
 import orderPoolDoc from '../docs/variants/order-pool.md?raw';
 import firstShiftTutorialDoc from '../docs/variants/first-shift-tutorial.md?raw';
 import energyRefillDoc from '../docs/variants/energy-refill.md?raw';
@@ -89,6 +90,7 @@ import doc79 from '../docs/variants/race-cinematic-broadcast.md?raw';
 
 const variantDocs: Record<string, string> = {
   'merge-placement': placementDoc,
+  'race-season': raceSeasonDoc,
   'order-pool': orderPoolDoc,
   'first-shift-tutorial': firstShiftTutorialDoc,
   'energy-refill': energyRefillDoc,

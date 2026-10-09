@@ -11,6 +11,7 @@ import {
   createGrowthProgress, dreamStage, nextCraftPart, type BikeStats, type CollectionProgress, type GrowthProgress,
 } from './meta-progress';
 import { AD_REFILL_AMOUNT } from './energy-refill';
+import { SEASON_LABELS, simulateSeason, type SeasonVariant } from './race-season';
 import { CURRENT_AVG_UNITS, POOL_VARIANT_LABELS, orderableBikeCount, simulatePool, type PoolVariant } from './order-pool';
 import { HINT_EMPTY_THRESHOLD, applyRescue, emptyCells, isStuck, recommendMerge } from './merge-assist';
 import { RIVERSIDE_ENDURANCE_RACE, createSeededRandom, isRaceDay, raceRewardForRank, simulateRace, type RaceMeta } from './race-progress';
@@ -505,6 +506,15 @@ export function buildBalanceReport(options: ReportOptions = FULL_REPORT): string
   for (const variant of ['cycle', 'tiers', 'board', 'regulars'] as PoolVariant[]) {
     const r = simulatePool(variant, { perUnit });
     lines.push(`| ${POOL_VARIANT_LABELS[variant]} | ${orderableBikeCount(variant)}대 | ${dayOf(r.daysTo10Registered)} | ${dayOf(r.daysToAllRegistered)} | ${dayOf(r.daysTo10Owned)} | ${dayOf(r.goalsExhaustedDay)} / ${r.goalsExhaustedRealDay ?? '-'}일 | ${r.ordersToExhaust ?? '-'}건 | ${coins(r.coinsAtDay30)} | ${fixed(r.avgEnergyPerOrder, 2)} |`);
+  }
+  // 표 9: 대회 난이도·보상 곡선(#267). 주문 풀 A안으로 성장하며 5 Day마다 대회에 나가는 60 Day 시즌
+  lines.push('', '### 표 9. 대회 난이도·보상 방안별 시즌 결과 (#267, 60 Day = 대회 12회)', '');
+  lines.push('주문 풀 A안으로 성장하며 다음 대회 참가비만 남기고 코인을 제작·강화에 씁니다. 출전 전 확률은 같은 조건에서 시드 120개로 잰 값이고, 결과가 정해지지 않은 대회는 우승 또는 시상대 확률이 15~85%인 대회입니다.', '');
+  lines.push('| 방안 | 우승 | 시상대 | 결과가 정해지지 않은 대회 | 대회 순수익 | 아이템 코인 환산 | 비고 |', '|---|---|---|---|---|---|---|');
+  for (const variant of ['current', 'league', 'course', 'rewards'] as SeasonVariant[]) {
+    const r = simulateSeason(variant);
+    const note = r.finalTier ? `최종 등급 ${r.finalTier}` : r.courseMatchRate !== undefined ? `코스 맞춤 자전거 출전 ${percent(r.courseMatchRate)}` : r.dreamUnlockDay ? `드림 머신 등록 Day ${r.dreamUnlockDay}` : `첫 대회부터 우승 확률 95% 이상`;
+    lines.push(`| ${SEASON_LABELS[variant]} | ${percent(r.winRate)} | ${percent(r.podiumRate)} | ${percent(r.uncertainRate)} | ${coins(r.netCoins)} | ${coins(r.itemCoins)} | ${note} |`);
   }
   return lines.join('\n');
 }
