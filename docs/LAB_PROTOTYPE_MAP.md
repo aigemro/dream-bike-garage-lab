@@ -1,9 +1,48 @@
 # Dream Bike Garage Lab 프로토타입 지도
 
-> 기준일: 2026-08-22
+> 기준일: 2026-10-09 (0절 현재 상태 요약) · 1~10절은 2026-08-22 기록
 > 대상: `aigemro/dream-bike-garage-lab`
 
 이 문서는 Dream Bike Garage Lab에서 진행 중인 기술 실험을 **트랙 → 프로토타입 → 비교·결정** 구조로 한눈에 확인하기 위한 공식 지도입니다. 새로운 방안이 생기면 기존 안을 덮어쓰지 않고 해당 트랙 아래에 Prototype을 추가합니다.
+
+## 0. 현재 상태 요약 (2026-10-09)
+
+근거: [#261 10/9 게임 기능 검토](https://github.com/aigemro/dream-bike-garage-lab/issues/261), 메인 `dc3517e`.
+
+현재 메인 게임 루프는 **주문 → 부품 상자(체력 1) → 가운데→바깥 자동 입고 → 맞닿은 같은 부품 2-to-1 합성 → 즉시 장착·납품 → 주문 3건 = 하루 일정·정산 → 이해도·제작·강화 → 5일마다 대회**입니다. 1절의 택배·자유 배치 루프는 이 구조로 대체됐습니다.
+
+### 메인에 적용된 Lab 결과
+
+| 트랙 | 채택안 | 메인 |
+|---|---|---|
+| 머지 코어 | E v3 (가운데→바깥 입고·이동 금지·인접 합성·연쇄 보너스) | aigemro/dream-bike-garage#78 |
+| Day 세션 | C안 주문 N건 = 하루 일정 + 체력 단일 제한 (수치는 메인 #77 결정 대기) | aigemro/dream-bike-garage#78 |
+| 수집·보상·성장 | 이해도 → 도감 등록 → 부품 제작 → 강화, 주문별 고정 급여 | aigemro/dream-bike-garage#63 |
+| 대회·레이스 | E안 시네마틱 중계, 5 Day 주기 | aigemro/dream-bike-garage#72 |
+| 화면 디자인 | 홈 A, 게임 화면 B, 수집 A·B·C, 프로필 A, 정산 A, 안내 A, 설정 A, 타이틀 A | 메인 출시 흐름 |
+| 아트·오디오 | 캐릭터·UI·애니메이션·BGM·효과음 A안 | 메인 출시 흐름 |
+| 입력·조립 | 탭+드래그 하이브리드, 목표 레벨 자동 장착 | aigemro/dream-bike-garage#78 |
+
+### 진행 중인 실험
+
+| 우선 | 이슈 | 질문 | 상위 트랙 |
+|---|---|---|---|
+| P0 | [#262](https://github.com/aigemro/dream-bike-garage-lab/issues/262) | 경제 시뮬레이터로 하루 주문 수·체력·대회 수치 후보표 | 보상·성장 |
+| P0 | [#263](https://github.com/aigemro/dream-bike-garage-lab/issues/263) | 체력 소진 흐름과 보상형 광고 충전 연결 지점 | Day·계정 [#207](https://github.com/aigemro/dream-bike-garage-lab/issues/207) |
+| P0 | [#264](https://github.com/aigemro/dream-bike-garage-lab/issues/264) | E안 작업대 막힘 줄이기(합성 추천·막힘 구제) | 보드 막힘·복구 [#145](https://github.com/aigemro/dream-bike-garage-lab/issues/145) |
+| P1 | [#265](https://github.com/aigemro/dream-bike-garage-lab/issues/265) | 첫 영업 상호작용 튜토리얼 | 첫 플레이 튜토리얼 [#115](https://github.com/aigemro/dream-bike-garage-lab/issues/115) |
+| P1 | [#266](https://github.com/aigemro/dream-bike-garage-lab/issues/266) | 주문 풀 확장과 도감 자전거 해금 경로 | 주문 반복 [#144](https://github.com/aigemro/dream-bike-garage-lab/issues/144) |
+| P2 | [#267](https://github.com/aigemro/dream-bike-garage-lab/issues/267) | 대회 난이도·보상 곡선 | 대회·레이스 |
+
+새 실험은 메인 현행 루프와 가장 가까운 **Day C안 데모**(RELEASE INTEGRATION → Day·계정 기반 플레이 세션 → C안)를 기반으로 만듭니다.
+
+### 실기기·플랫폼 검증 (메인 앱인토스 SDK 적용 뒤)
+
+[#4](https://github.com/aigemro/dream-bike-garage-lab/issues/4) 반응형·Safe Area, [#5](https://github.com/aigemro/dream-bike-garage-lab/issues/5) 라이프사이클, [#6](https://github.com/aigemro/dream-bike-garage-lab/issues/6) SDK·로그인, [#7](https://github.com/aigemro/dream-bike-garage-lab/issues/7) 성능·오류 수집, [#8](https://github.com/aigemro/dream-bike-garage-lab/issues/8) 결제·광고, [#117](https://github.com/aigemro/dream-bike-garage-lab/issues/117) 출시 QA, [#212](https://github.com/aigemro/dream-bike-garage-lab/issues/212) 로그인→Day E2E
+
+### 종료한 비교 (보류·대체)
+
+부품 수급 A~D(E안 자동 입고로 대체), 머지 코어 A~D(E 채택), Day A·B안(C안 적용), 보상 B·C, 홈 B~D, 프로필 B·C, 배경 16/32비트·UI 친화형, 반응형 B·C. 각 이슈의 종료 댓글에 사유를 남겼습니다.
 
 ## 1. 기준 설계와 범위
 

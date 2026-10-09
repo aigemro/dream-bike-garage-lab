@@ -26,7 +26,9 @@
 - Build: `npm run build` (`tsc -b && vite build`)
 - Preview: `npm run preview`
 
-테스트 프레임워크는 아직 없습니다(도메인 규칙 분리 시 Vitest 도입 검토). 검증은 `npm run build` 통과 기준입니다.
+- Test: `npx vitest run` (순수 규칙 모듈의 `src/*.test.ts`)
+
+검증은 `npx vitest run`과 `npm run build` 통과 기준입니다.
 `main` 병합 시 GitHub Pages([aigemro.github.io/dream-bike-garage-lab](https://aigemro.github.io/dream-bike-garage-lab/))로 자동 배포됩니다. `vite.config.ts`의 `base: '/dream-bike-garage-lab/'`를 유지합니다.
 
 ## 코드 구조 (현재 기준)
