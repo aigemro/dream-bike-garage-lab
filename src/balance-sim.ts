@@ -10,6 +10,7 @@ import {
   applyBikeUpgrade, applyCraftPart, applyOrderDelivery, bikeStats, computeNextGoal, createCollectionProgress,
   createGrowthProgress, dreamStage, nextCraftPart, type BikeStats, type CollectionProgress, type GrowthProgress,
 } from './meta-progress';
+import { HINT_EMPTY_THRESHOLD, applyRescue, emptyCells, isStuck, recommendMerge } from './merge-assist';
 import { RIVERSIDE_ENDURANCE_RACE, createSeededRandom, isRaceDay, raceRewardForRank, simulateRace, type RaceMeta } from './race-progress';
 
 // ── 플레이어 모델 ──
@@ -93,7 +94,7 @@ function chooseDiscard(s: State, rng: () => number): number {
 }
 
 export type StepResult = {
-  action: 'merge' | 'box' | 'free-box' | 'discard' | 'blocked';
+  action: 'merge' | 'box' | 'free-box' | 'discard' | 'rescue' | 'blocked';
   // 이번 행동으로 확정된 납품 (주문 목록 위치·보상)
   deliveries: Array<{ orderIndex: number; reward: number }>;
 };
@@ -106,16 +107,27 @@ function deliveriesOf(events: ProgressEvent[]) {
 }
 
 /**
- * 봇이 한 번 행동합니다. 합성 → (꽉 찼으면) 반품 → 무료 상자 → 체력 상자 순서입니다.
+ * 막힘 완화 보조(#264). hint: 빈칸이 기준 이하로 남으면 추천 쌍을 그대로 따릅니다(추천을 항상 따르는 상한).
+ * rescue: 막힘일 때 남은 정리 횟수가 있으면 반품 대신 정리합니다. 남은 횟수는 호출 측이 하루마다 채웁니다.
+ */
+export type Assist = { hint?: boolean; hintEmpty?: number; rescue?: { remaining: number } };
+
+/**
+ * 봇이 한 번 행동합니다. 합성 → (꽉 찼으면) 정리·반품 → 무료 상자 → 체력 상자 순서입니다.
  * 체력은 호출 측이 관리하며, canSpendEnergy가 거짓이면 체력 상자를 열지 않고 'blocked'를 돌려줍니다.
  */
-export function botStep(s: State, skill: Skill, rng: () => number, canSpendEnergy: boolean): StepResult {
-  const merge = chooseMerge(s, skill, rng);
+export function botStep(s: State, skill: Skill, rng: () => number, canSpendEnergy: boolean, assist: Assist = {}): StepResult {
+  const hinted = assist.hint && emptyCells(s) <= (assist.hintEmpty ?? HINT_EMPTY_THRESHOLD) ? recommendMerge(s) : null;
+  const merge: [number, number] | null = hinted ? [hinted.from, hinted.to] : chooseMerge(s, skill, rng);
   if (merge) return { action: 'merge', deliveries: deliveriesOf(drop(s, merge[0], merge[1])!.events) };
   if (supplyBlock({ ...s, energy: CAP }) === 'full') {
     // 미뤄 둔 합성이 있으면 반품보다 먼저 합성합니다.
     const held = skill === 'chain' ? chooseMerge(s, 'expert', rng) : null;
     if (held) return { action: 'merge', deliveries: deliveriesOf(drop(s, held[0], held[1])!.events) };
+    if (assist.rescue && assist.rescue.remaining > 0 && isStuck(s) && applyRescue(s)) {
+      assist.rescue.remaining -= 1;
+      return { action: 'rescue', deliveries: [] };
+    }
     returnPart(s, chooseDiscard(s, rng));
     s.undo = null;
     return { action: 'discard', deliveries: [] };
@@ -146,38 +158,52 @@ export type WorkbenchSummary = {
   discardsPerOrder: number;
   // 막힘(꽉 참 + 합성 쌍 없음)을 한 번 이상 겪은 회차 비율
   stuckRunRate: number;
+  // 반품(부품 손실)이 한 번 이상 필요했던 회차 비율
+  discardRunRate: number;
+  rescuesPerOrder: number;
 };
 
-export function simulateWorkbench(options: { skill: Skill; runs: number; orders: number; seed?: number }): WorkbenchSummary {
+export type WorkbenchAssistOptions = { hint?: boolean; hintEmpty?: number; rescuePerDay?: number; orderTarget?: number };
+
+export function simulateWorkbench(options: { skill: Skill; runs: number; orders: number; seed?: number; assist?: WorkbenchAssistOptions }): WorkbenchSummary {
   const energyPerOrder: number[] = [];
-  let boxes = 0, freeBoxes = 0, merges = 0, discards = 0, stuckRuns = 0;
+  let boxes = 0, freeBoxes = 0, merges = 0, discards = 0, rescues = 0, stuckRuns = 0, discardRuns = 0;
+  const rescuePerDay = options.assist?.rescuePerDay ?? 0;
+  const orderTarget = options.assist?.orderTarget ?? 3;
   for (let run = 0; run < options.runs; run += 1) {
     const rng = createSeededRandom((options.seed ?? 1000) + run);
     const s = fresh(0);
     let stuck = false;
+    let discarded = false;
     let delivered = 0;
     let energy = 0;
+    // 정리 횟수는 하루(주문 orderTarget건)마다 다시 채웁니다.
+    const assist: Assist = { hint: options.assist?.hint, hintEmpty: options.assist?.hintEmpty, rescue: rescuePerDay > 0 ? { remaining: rescuePerDay } : undefined };
     // 한 행동에 납품이 여러 건 확정될 수 있으므로(남은 부품으로 다음 주문까지 바로 완성) 납품 건수로 셉니다.
     // 그때 쓴 체력은 첫 납품에 넣고, 이어서 확정된 납품은 체력 0으로 기록합니다.
     for (let guard = 0; guard < options.orders * 5000 && delivered < options.orders; guard += 1) {
-      const step = botStep(s, options.skill, rng, true);
+      const step = botStep(s, options.skill, rng, true, assist);
       if (step.action === 'box') { energy += 1; boxes += 1; }
       if (step.action === 'free-box') { freeBoxes += 1; boxes += 1; }
       if (step.action === 'merge') merges += 1;
-      if (step.action === 'discard') { discards += 1; stuck = true; }
+      if (step.action === 'discard') { discards += 1; stuck = true; discarded = true; }
+      if (step.action === 'rescue') { rescues += 1; stuck = true; }
       for (let i = 0; i < step.deliveries.length && delivered < options.orders; i += 1) {
         energyPerOrder.push(energy);
         energy = 0;
         delivered += 1;
+        if (assist.rescue && delivered % orderTarget === 0) assist.rescue.remaining = rescuePerDay;
       }
     }
     if (stuck) stuckRuns += 1;
+    if (discarded) discardRuns += 1;
   }
   const total = options.runs * options.orders;
   return {
     skill: options.skill, runs: options.runs, orders: options.orders, energyPerOrder,
     boxesPerOrder: boxes / total, freeBoxesPerOrder: freeBoxes / total, mergesPerOrder: merges / total,
     discardsPerOrder: discards / total, stuckRunRate: stuckRuns / options.runs,
+    discardRunRate: discardRuns / options.runs, rescuesPerOrder: rescues / total,
   };
 }
 
@@ -399,6 +425,22 @@ export function buildBalanceReport(options: ReportOptions = FULL_REPORT): string
   for (const skill of skills) {
     const w = workbench[skill];
     lines.push(`| ${SKILL_LABELS[skill]} | ${fixed(mean(w.energyPerOrder), 2)} | ${percentile(w.energyPerOrder, 0.5)} / ${percentile(w.energyPerOrder, 0.9)} | ${fixed(w.boxesPerOrder, 2)} (무료 ${fixed(w.freeBoxesPerOrder, 2)}) | ${fixed(w.mergesPerOrder, 2)} | ${fixed(w.discardsPerOrder, 3)} | ${percent(w.stuckRunRate)} |`);
+  }
+
+  lines.push('', `### 표 6. 막힘 완화 보조 효과 (#264, 주문 ${options.workbenchOrders}건 × ${options.workbenchRuns}회)`, '');
+  lines.push(`추천은 빈칸이 ${HINT_EMPTY_THRESHOLD}칸 이하일 때 추천 쌍을 항상 따르는 상한입니다. 정리는 하루(주문 3건)에 1회입니다.`, '');
+  lines.push('| 플레이어 · 보조 | 주문당 체력 | 막힘을 겪은 회차 | 반품이 필요했던 회차 | 주문당 반품 | 주문당 정리 |', '|---|---|---|---|---|---|');
+  const assistRows: Array<[string, Skill, WorkbenchAssistOptions]> = [
+    ['초보 · 보조 없음(현행)', 'novice', {}],
+    ['초보 · B안 합성 추천', 'novice', { hint: true }],
+    ['초보 · B안 (빈칸 10칸 이하부터 추천)', 'novice', { hint: true, hintEmpty: 10 }],
+    ['초보 · C안 막힘 구제(정리)', 'novice', { rescuePerDay: 1 }],
+    ['초보 · B+C', 'novice', { hint: true, rescuePerDay: 1 }],
+    ['숙련 · 보조 없음', 'expert', {}],
+  ];
+  for (const [label, skill, assist] of assistRows) {
+    const w = Object.keys(assist).length === 0 ? workbench[skill] : simulateWorkbench({ skill, runs: options.workbenchRuns, orders: options.workbenchOrders, assist });
+    lines.push(`| ${label} | ${fixed(mean(w.energyPerOrder), 2)} | ${percent(w.stuckRunRate)} | ${percent(w.discardRunRate)} | ${fixed(w.discardsPerOrder, 3)} | ${fixed(w.rescuesPerOrder, 3)} |`);
   }
 
   lines.push('', '### 표 2. 하루 체력과 "체력 한 통으로 하루 마침" 비율', '');

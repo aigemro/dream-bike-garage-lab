@@ -10,6 +10,10 @@ import {
 } from './merge-placement-state';
 import { NONE, resolveTap, resolveDrop, type InputOutcome } from './merge-placement-input';
 import {
+  applyRescue, isStuck, localDate, parseRescueRecord, recommendMerge, rescueRemaining, shouldShowHint, useRescue, RESCUE_PER_DAY,
+  type RescueRecord,
+} from './merge-assist';
+import {
   CREAM_TEXT, SUCCESS, ALERT, MUTED, INK, CREAM, BROWN, BORDER, RED, GREEN, AMBER, PART_COLORS, ROW2_Y, SMALL_LEFT, SMALL_RIGHT,
   cellCenter, cellAt, drawBackdrop, drawHeader, makePiece, OrderCard, drawBoard, createNextMarker, InfoLine, drawShelf,
   smallButton, BoxButton, infoPanel, EnergyPanel, Motion, launchMergeDemo, recoveryLabel, createMergeGame, DayHeader,
@@ -36,11 +40,21 @@ export type PlacementDayLink = {
   onOrderDelivered(result: { orderIndex: number; reward: number }): void;
   onSfx(event: ReleaseSfxEvent): void;
 };
-type SceneHooks = DemoHooks & { day?: PlacementDayLink };
+/**
+ * 막힘 완화 보조(#264). hint: B안 합성 추천, rescue: C안 막힘 구제(하루 1회 정리).
+ * 정리 횟수는 작업대 저장과 따로 `${KEY}-rescue`에 기기 날짜 기준으로 저장합니다.
+ */
+export type PlacementAssist = 'hint' | 'rescue';
+type SceneHooks = DemoHooks & { day?: PlacementDayLink; assist?: PlacementAssist; rescueKey?: string };
 
 class MergePlacementScene extends Phaser.Scene {
   private s!: State;
   private selected = NONE;
+  // 막힘 완화 보조 상태
+  private hintGfx!: Phaser.GameObjects.Graphics;
+  private hintShown = false;
+  private lastInputAt = 0;
+  private rescueRecord: RescueRecord | null = null;
   private accelerated = false;
   private accelTicks = 0;
   private alive = false;
@@ -91,6 +105,9 @@ class MergePlacementScene extends Phaser.Scene {
     this.nextMarker = createNextMarker(this, this.motion.reduced);
     this.highlight = this.add.graphics().setDepth(5);
     this.dropHint = this.add.graphics().setDepth(6);
+    this.hintGfx = this.add.graphics().setDepth(7);
+    this.lastInputAt = this.time.now;
+    this.rescueRecord = this.loadRescue();
     this.info = new InfoLine(this, () => this.deselect());
     this.drawShelf();
     this.input.on('pointermove', this.onMove, this);
@@ -106,6 +123,7 @@ class MergePlacementScene extends Phaser.Scene {
       : this.hooks.day
         ? '영업 시작! 점선 칸이 다음 입고 자리예요. 맞닿은 같은 부품을 눌러 합성하세요.'
         : '점선 칸이 다음 입고 자리예요. 상하좌우로 맞닿은 같은 부품을 눌러 합성하세요.');
+    this.showStuckNotice();
     this.changed();
   }
 
@@ -137,6 +155,8 @@ class MergePlacementScene extends Phaser.Scene {
     this.resetQueue();
     this.s = fresh(Date.now());
     this.selected = NONE; this.syncView(); this.persist(); this.renderAll();
+    this.rescueRecord = null;
+    this.saveRescue();
     this.info.set('E안 첫 주문을 시작합니다. 점선 칸이 다음 입고 자리예요.');
     this.changed();
   }
@@ -172,7 +192,7 @@ class MergePlacementScene extends Phaser.Scene {
   }
 
   // ── 표시 ──
-  private renderAll() { this.renderBoard(); this.renderOrder(); this.renderHeader(); this.renderShelf(); }
+  private renderAll() { this.clearHint(); this.renderBoard(); this.renderOrder(); this.renderHeader(); this.renderShelf(); }
 
   private renderBoard() {
     this.pieces.forEach(piece => piece.destroy(true));
@@ -210,7 +230,18 @@ class MergePlacementScene extends Phaser.Scene {
   private renderShelf() {
     const block = supplyBlock(this.s);
     const free = this.s.freeBoxes > 0, sure = this.s.guarantees > 0;
-    this.box.render({
+    if (this.rescueMode() && isStuck(this.s)) {
+      // C안: 막힘이면 상자 버튼이 '무료 정리' 버튼이 됩니다.
+      const remaining = rescueRemaining(this.rescueRecord, localDate());
+      this.box.render({
+        blocked: remaining === 0,
+        highlight: remaining > 0,
+        status: remaining > 0 ? '막힘! 눌러서 무료 정리 · 부품 2개 회수' : '오늘 정리를 썼어요 · 반품으로 자리 확보',
+        statusColor: remaining > 0 ? SUCCESS : ALERT,
+        cost: `정리 ${remaining}/${RESCUE_PER_DAY}`,
+        costColor: remaining > 0 ? SUCCESS : ALERT,
+      });
+    } else this.box.render({
       blocked: Boolean(block),
       highlight: free,
       status: block === 'full'
@@ -237,6 +268,7 @@ class MergePlacementScene extends Phaser.Scene {
 
   // ── 입력: 탭 선택 → 대상 탭 (게임 화면 B안과 동일), 드래그 놓기도 같은 규칙 ──
   private onDown(index: number, pointer: Phaser.Input.Pointer) {
+    this.markInput();
     if (this.drag || this.inputLocked()) return;
     this.drag = { from: index, x: pointer.x, y: pointer.y, dragging: false, hover: NONE };
   }
@@ -287,6 +319,7 @@ class MergePlacementScene extends Phaser.Scene {
   }
 
   private deselect() {
+    this.markInput();
     this.selected = NONE;
     this.returnArmedUntil = 0;
     this.say('선택을 취소했어요.');
@@ -296,13 +329,17 @@ class MergePlacementScene extends Phaser.Scene {
 
   // ── 행동 ──
   private onSupply() {
+    this.markInput();
     if (this.inputLocked()) return;
     this.cancelDrag();
     recover(this.s, Date.now());
+    if (this.rescueMode() && isStuck(this.s)) { this.onRescue(); return; }
     const block = supplyBlock(this.s);
     if (block) {
       this.say(block === 'full'
-        ? '작업대에 빈칸이 없어요. 합성하거나 부품을 반품해 자리를 만드세요.'
+        ? (this.hooks.assist === 'hint' && !isStuck(this.s)
+          ? '작업대에 빈칸이 없어요. 반짝이는 추천 쌍부터 합성해 보세요.'
+          : '작업대에 빈칸이 없어요. 합성하거나 부품을 반품해 자리를 만드세요.')
         : '알바 체력이 부족해요. 회복을 기다리거나 연쇄 합성으로 무료 상자를 모아 보세요.', 'error');
       this.renderShelf();
       return;
@@ -320,7 +357,29 @@ class MergePlacementScene extends Phaser.Scene {
     this.commit(result.events);
   }
 
+  // C안: 막힘일 때 하루 1회 무료 정리
+  private onRescue() {
+    const today = localDate();
+    if (rescueRemaining(this.rescueRecord, today) <= 0) {
+      this.say('오늘 정리는 이미 썼어요. 부품을 눌러 고른 뒤 반품으로 자리를 만드세요.', 'error');
+      this.renderShelf();
+      return;
+    }
+    const result = applyRescue(this.s);
+    if (!result) return;
+    this.rescueRecord = useRescue(this.rescueRecord, today);
+    this.saveRescue();
+    this.resetQueue();
+    this.selected = NONE; this.returnArmedUntil = 0;
+    this.persist(); this.renderAll();
+    result.removed.forEach(({ index }) => this.motion.floatText(cellCenter(index).x, cellCenter(index).y - 10, '회수', CREAM_TEXT));
+    this.sfx('reward');
+    this.info.set(`정리 완료 · ${result.removed.map(({ part }) => `${KINDS[part.kind]} Lv.${part.level}`).join(', ')} 회수. 다음 상자는 무료이고 필요한 부품이 나와요.`);
+    this.changed();
+  }
+
   private onUndo() {
+    this.markInput();
     if (this.inputLocked()) return;
     this.cancelDrag();
     if (!undo(this.s)) {
@@ -335,6 +394,7 @@ class MergePlacementScene extends Phaser.Scene {
   }
 
   private onReturn() {
+    this.markInput();
     if (this.inputLocked()) return;
     this.cancelDrag();
     const part = this.selected === NONE ? null : this.s.board[this.selected];
@@ -368,8 +428,63 @@ class MergePlacementScene extends Phaser.Scene {
     this.renderHeader();
     this.renderShelf();
     this.info.set(this.describe(events));
+    this.showStuckNotice();
     this.enqueue(events);
     this.changed();
+    this.maybeHint();
+  }
+
+  // ── 막힘 완화 보조 (#264) ──
+  private rescueMode() { return this.hooks.assist === 'rescue'; }
+
+  // 보조 방안에서 막힘이면 원인과 탈출 방법을 안내합니다.
+  private showStuckNotice() {
+    if (!this.hooks.assist || !isStuck(this.s)) return;
+    this.info.set(this.rescueMode() && rescueRemaining(this.rescueRecord, localDate()) > 0
+      ? '작업대가 막혔어요(빈칸·합성 쌍 없음). 상자 버튼을 눌러 무료 정리를 쓰세요.'
+      : '작업대가 막혔어요(빈칸·합성 쌍 없음). 필요 없는 부품을 골라 반품하세요.', 'error');
+  }
+
+  private markInput() {
+    this.lastInputAt = this.time.now;
+    this.clearHint();
+  }
+
+  // B안: 선택 중이 아니고, 빈칸이 6칸 이하이거나 8초 동안 입력이 없으면 먼저 합칠 쌍 1개를 반짝입니다.
+  private maybeHint() {
+    if (!this.alive || this.hooks.assist !== 'hint' || this.hintShown || this.drag) return;
+    if (!shouldShowHint(this.s, this.time.now - this.lastInputAt, this.selected !== NONE && !!this.s.board[this.selected])) return;
+    const pick = recommendMerge(this.s);
+    if (!pick) return;
+    this.hintShown = true;
+    this.hintGfx.clear().setAlpha(1);
+    for (const index of [pick.from, pick.to]) {
+      const at = cellCenter(index);
+      this.hintGfx.lineStyle(4, AMBER, 1).strokeRect(at.x - 25, at.y - 25, 50, 50);
+    }
+    if (!this.motion.reduced) this.tweens.add({ targets: this.hintGfx, alpha: { from: 1, to: 0.3 }, duration: 520, yoyo: true, repeat: -1 });
+    const effect = pick.delivers ? '납품까지 이어져요' : pick.installs > 0 ? '바로 장착돼요' : '다음 합성 자리가 남아요';
+    this.info.set(`추천 · 노랗게 반짝이는 ${KINDS[pick.part.kind]} Lv.${pick.part.level} 두 개를 먼저 합치면 ${effect}.`);
+  }
+
+  private clearHint() {
+    if (!this.hintGfx) return;
+    this.tweens.killTweensOf(this.hintGfx);
+    this.hintGfx.clear().setAlpha(1);
+    this.hintShown = false;
+  }
+
+  private loadRescue() {
+    if (!this.rescueMode() || !this.hooks.rescueKey) return null;
+    try { return parseRescueRecord(localStorage.getItem(this.hooks.rescueKey)); } catch { return null; }
+  }
+
+  private saveRescue() {
+    if (!this.rescueMode() || !this.hooks.rescueKey) return;
+    try {
+      if (this.rescueRecord) localStorage.setItem(this.hooks.rescueKey, JSON.stringify(this.rescueRecord));
+      else localStorage.removeItem(this.hooks.rescueKey);
+    } catch { /* 저장할 수 없으면 이 화면에서만 횟수를 셉니다. */ }
   }
 
   private describe(events: ProgressEvent[]) {
@@ -400,6 +515,7 @@ class MergePlacementScene extends Phaser.Scene {
     if (this.accelerated && ++this.accelTicks % 10 === 0 && this.s.energy < CAP) { this.s.energy++; this.s.anchor = Date.now(); }
     if (before !== this.s.energy) { this.persist(); this.changed(); }
     this.renderShelf();
+    this.maybeHint();
   }
 
   private say(message: string, tone: Tone = 'info') {
@@ -467,10 +583,14 @@ class MergePlacementScene extends Phaser.Scene {
 /**
  * E v3 체험 화면을 시작합니다. toolsId가 있으면 그 요소에 랩 테스트 도구(체력 충전·가속·초기화)를 그립니다.
  */
-export function startMergePlacement(parent: string, toolsId?: string): MergeDemoHandle {
+export function startMergePlacement(parent: string, toolsId?: string, assist?: PlacementAssist): MergeDemoHandle {
+  // 보조 방안은 기준선(E v3)과 진행이 섞이지 않도록 저장 키를 나눕니다.
+  const key = assist ? `${KEY}-${assist}` : KEY;
+  const label = assist === 'hint' ? 'E안 합성 추천' : assist === 'rescue' ? 'E안 막힘 구제' : 'E안';
   return launchMergeDemo({
-    parent, toolsId, key: KEY, resetLabel: 'E안', saveLabel: 'E안 자동 저장 · 기존 v1·v2 진행 이전 지원',
-    createScene: (hooks) => new MergePlacementScene(hooks),
+    parent, toolsId, key, resetLabel: label,
+    saveLabel: assist ? `${label} 자동 저장 · 기준선 E v3와 별도 진행` : 'E안 자동 저장 · 기존 v1·v2 진행 이전 지원',
+    createScene: (hooks) => new MergePlacementScene({ ...hooks, assist, rescueKey: `${key}-rescue` }),
   });
 }
 

@@ -84,7 +84,7 @@ describe('작업대 효율', () => {
   });
 
   it('하루 체력은 연속 주문을 하루 단위로 묶어 더한다', () => {
-    const summary = { skill: 'novice' as const, runs: 1, orders: 6, energyPerOrder: [1, 2, 3, 4, 5, 6], boxesPerOrder: 0, freeBoxesPerOrder: 0, mergesPerOrder: 0, discardsPerOrder: 0, stuckRunRate: 0 };
+    const summary = { skill: 'novice' as const, runs: 1, orders: 6, energyPerOrder: [1, 2, 3, 4, 5, 6], boxesPerOrder: 0, freeBoxesPerOrder: 0, mergesPerOrder: 0, discardsPerOrder: 0, stuckRunRate: 0, discardRunRate: 0, rescuesPerOrder: 0 };
     expect(dailyEnergy(summary, 3)).toEqual([6, 15]);
     expect(dailyEnergy(summary, 5)).toEqual([15]);
   });
@@ -120,10 +120,10 @@ describe('대회 확률', () => {
 });
 
 describe('보고서', () => {
-  it('표 5개를 만들고 같은 옵션이면 같은 내용이다', () => {
+  it('표 6개를 만들고 같은 옵션이면 같은 내용이다', () => {
     const options = { workbenchRuns: 3, workbenchOrders: 6, realtimeRuns: 1, realDays: 2 };
     const report = buildBalanceReport(options);
-    expect(report.match(/^### 표 \d/gm)).toHaveLength(5);
+    expect(report.match(/^### 표 \d/gm)).toHaveLength(6);
     expect(buildBalanceReport(options)).toBe(report);
   }, 60_000);
 });

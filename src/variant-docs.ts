@@ -1,4 +1,6 @@
 import placementDoc from '../docs/variants/merge-placement.md?raw';
+import placementHintDoc from '../docs/variants/merge-placement-hint.md?raw';
+import placementRescueDoc from '../docs/variants/merge-placement-rescue.md?raw';
 import intakeDoc from '../docs/variants/merge-intake.md?raw';
 import doc0 from '../docs/variants/merge-free-board.md?raw';
 import doc1 from '../docs/variants/merge-order.md?raw';
@@ -84,6 +86,8 @@ import doc79 from '../docs/variants/race-cinematic-broadcast.md?raw';
 
 const variantDocs: Record<string, string> = {
   'merge-placement': placementDoc,
+  'merge-placement-hint': placementHintDoc,
+  'merge-placement-rescue': placementRescueDoc,
   'merge-intake': intakeDoc,
   'merge-free-board': doc0,
   'merge-order': doc1,
