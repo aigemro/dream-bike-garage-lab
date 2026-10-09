@@ -11,6 +11,7 @@ import {
   createGrowthProgress, dreamStage, nextCraftPart, type BikeStats, type CollectionProgress, type GrowthProgress,
 } from './meta-progress';
 import { AD_REFILL_AMOUNT } from './energy-refill';
+import { CURRENT_AVG_UNITS, POOL_VARIANT_LABELS, orderableBikeCount, simulatePool, type PoolVariant } from './order-pool';
 import { HINT_EMPTY_THRESHOLD, applyRescue, emptyCells, isStuck, recommendMerge } from './merge-assist';
 import { RIVERSIDE_ENDURANCE_RACE, createSeededRandom, isRaceDay, raceRewardForRank, simulateRace, type RaceMeta } from './race-progress';
 
@@ -494,6 +495,16 @@ export function buildBalanceReport(options: ReportOptions = FULL_REPORT): string
       const r = simulateRealtime({ ...CURRENT_LIMIT, skill, sessionHours: SESSION_PATTERNS['하루 2회'], realDays: options.realDays, runs: options.realtimeRuns, race: candidate.meta });
       lines.push(`| ${candidate.label} | ${skill === 'expert' ? '숙련' : '초보'} | ${fixed(r.racesEntered)} | ${percent(r.racePodiumRate)} | ${coins(r.raceNet)} | ${coins(r.coinsAtEnd)} |`);
     }
+  }
+  // 표 8: 주문 풀 확장(#266). 체력은 작업량에 비례한다고 보고, 초보 모델의 현행 3종 평균으로 비율을 맞춥니다.
+  const perUnit = mean(workbench.novice.energyPerOrder) / CURRENT_AVG_UNITS;
+  lines.push('', '### 표 8. 주문 풀·도감 해금 방안별 진행 속도 (#266)', '');
+  lines.push(`코인을 제작 → 강화 순서로 바로 쓰는 플레이어. 주문 체력 = 작업량 × ${fixed(perUnit, 2)}(초보 모델 현행 평균 기준), 실제 일수는 하루 2회 접속(체력 60)으로 계산합니다. 작업대 플레이는 생략하고 주문 단위로 계산합니다.`, '');
+  lines.push('| 방안 | 주문으로 얻는 자전거 | 도감 등록 10대 | 전부 등록 | 보유 10대 | 목표 소진 (Day / 실제 일) | 소진까지 주문 | Day 30 코인 | 주문당 체력 |', '|---|---|---|---|---|---|---|---|---|');
+  const dayOf = (value: number | null) => (value === null ? '-' : `Day ${value}`);
+  for (const variant of ['cycle', 'tiers', 'board', 'regulars'] as PoolVariant[]) {
+    const r = simulatePool(variant, { perUnit });
+    lines.push(`| ${POOL_VARIANT_LABELS[variant]} | ${orderableBikeCount(variant)}대 | ${dayOf(r.daysTo10Registered)} | ${dayOf(r.daysToAllRegistered)} | ${dayOf(r.daysTo10Owned)} | ${dayOf(r.goalsExhaustedDay)} / ${r.goalsExhaustedRealDay ?? '-'}일 | ${r.ordersToExhaust ?? '-'}건 | ${coins(r.coinsAtDay30)} | ${fixed(r.avgEnergyPerOrder, 2)} |`);
   }
   return lines.join('\n');
 }
