@@ -36,6 +36,8 @@ const COLLECTION_KEY_PREFIX = 'dbg-lab-day-account-collection-v1';
 const GROWTH_KEY_PREFIX = 'dbg-lab-day-account-growth-v1';
 // 머지 코어 E안 작업대(보드·체력·주문 진행)도 계정별로 저장해 다음 Day에 그대로 이어집니다.
 const PLACEMENT_KEY_PREFIX = 'dbg-lab-day-account-placement-v1';
+// 체력 소진 흐름(#263)의 오늘 광고·무료 충전 기록. 검증은 energy-refill의 parseRefillRecord가 맡습니다.
+const REFILL_KEY_PREFIX = 'dbg-lab-day-account-refill-v1';
 
 export type GameProfile = {
   playerId: string;
@@ -219,6 +221,18 @@ export class DayAccountRepository {
     return this.lastSaveError === null;
   }
 
+  loadRefill(playerId: string): string | null {
+    try {
+      return this.storage.getItem(this.scopedKey(REFILL_KEY_PREFIX, playerId));
+    } catch {
+      return null;
+    }
+  }
+
+  saveRefill(playerId: string, raw: string) {
+    this.write(this.scopedKey(REFILL_KEY_PREFIX, playerId), raw);
+  }
+
   // 계정 진행 초기화는 Day·재화 진행과 컬렉션·성장·작업대를 함께 지웁니다. 다른 계정 슬롯은 건드리지 않습니다.
   resetProgress(playerId: string) {
     for (const key of [
@@ -226,6 +240,7 @@ export class DayAccountRepository {
       this.scopedKey(COLLECTION_KEY_PREFIX, playerId),
       this.scopedKey(GROWTH_KEY_PREFIX, playerId),
       this.scopedKey(PLACEMENT_KEY_PREFIX, playerId),
+      this.scopedKey(REFILL_KEY_PREFIX, playerId),
     ]) {
       try {
         this.storage.removeItem(key);

@@ -4,11 +4,16 @@
 import Phaser from 'phaser';
 import { ReleaseAudio, type ReleaseSfxEvent } from './release-audio';
 import {
-  CAP, KINDS, ORDER_LEVELS, COMBO_FREE_BOX, COMBO_GUARANTEE,
+  CAP, RECOVERY, KINDS, ORDER_LEVELS, COMBO_FREE_BOX, COMBO_GUARANTEE,
   fresh, restore, recover, nextSlot, supply, supplyBlock, drop, undo, returnPart, canMerge, mergeTargets,
   type State, type ProgressEvent,
 } from './merge-placement-state';
 import { NONE, resolveTap, resolveDrop, type InputOutcome } from './merge-placement-input';
+import {
+  addEnergy, claimAdRefill, claimFreeRefill, formatDuration, isEnergyEmpty, msUntilFull, refillStatus,
+  type RefillMode, type RefillRecord, type RewardedAdAdapter,
+} from './energy-refill';
+import { EnergyRefillPanel, type RestTarget } from './energy-refill-panel';
 import {
   applyRescue, isStuck, localDate, parseRescueRecord, recommendMerge, rescueRemaining, shouldShowHint, useRescue, RESCUE_PER_DAY,
   type RescueRecord,
@@ -39,6 +44,18 @@ export type PlacementDayLink = {
   isInputLocked(): boolean;
   onOrderDelivered(result: { orderIndex: number; reward: number }): void;
   onSfx(event: ReleaseSfxEvent): void;
+  /** 체력 소진 흐름(#263). 없으면 기존처럼 상자 버튼만 막힙니다. */
+  refill?: PlacementRefillLink;
+};
+
+/** 체력 소진 흐름 연결(#263): 방안, 오늘 충전 기록 저장, 화면 이동. adapter가 없으면 Lab 가짜 광고를 띄웁니다. */
+export type PlacementRefillLink = {
+  mode: RefillMode;
+  loadRecord(): RefillRecord | null;
+  saveRecord(record: RefillRecord): void;
+  onRest(target: RestTarget): void;
+  onHome(): void;
+  adapter?: RewardedAdAdapter;
 };
 /**
  * 막힘 완화 보조(#264). hint: B안 합성 추천, rescue: C안 막힘 구제(하루 1회 정리).
@@ -55,6 +72,7 @@ class MergePlacementScene extends Phaser.Scene {
   private hintShown = false;
   private lastInputAt = 0;
   private rescueRecord: RescueRecord | null = null;
+  private refillPanel!: EnergyRefillPanel;
   private accelerated = false;
   private accelTicks = 0;
   private alive = false;
@@ -108,6 +126,7 @@ class MergePlacementScene extends Phaser.Scene {
     this.hintGfx = this.add.graphics().setDepth(7);
     this.lastInputAt = this.time.now;
     this.rescueRecord = this.loadRescue();
+    this.refillPanel = new EnergyRefillPanel(this);
     this.info = new InfoLine(this, () => this.deselect());
     this.drawShelf();
     this.input.on('pointermove', this.onMove, this);
@@ -144,6 +163,14 @@ class MergePlacementScene extends Phaser.Scene {
     if (!this.alive) return;
     this.s.energy = CAP; this.s.anchor = Date.now();
     this.persist(); this.renderShelf(); this.info.set('테스트용 체력을 충전했어요.');
+    this.changed();
+  }
+  /** Lab 측정용: 체력과 무료 상자를 0으로 만들어 소진 흐름(#263)을 바로 확인합니다. */
+  labDrain() {
+    if (!this.alive) return;
+    this.s.energy = 0; this.s.anchor = Date.now(); this.s.freeBoxes = 0;
+    this.persist(); this.renderShelf();
+    this.info.set('테스트용으로 체력을 0으로 만들었어요. 부품 상자 버튼을 눌러 보세요.', 'error');
     this.changed();
   }
   labSetAccelerated(on: boolean) {
@@ -247,7 +274,7 @@ class MergePlacementScene extends Phaser.Scene {
       status: block === 'full'
         ? '작업대가 가득 찼어요 · 반품으로 자리 확보'
         : block === 'energy'
-          ? `체력 회복 중 · 다음 +1 ${recoveryLabel(this.s.anchor)}`
+          ? (this.hooks.day?.refill ? `체력 소진 · 눌러서 충전 방법 보기 · 다음 +1 ${recoveryLabel(this.s.anchor)}` : `체력 회복 중 · 다음 +1 ${recoveryLabel(this.s.anchor)}`)
           : `${free ? '무료 상자 · 체력 소모 없음' : '점선 칸에 자동 배치'}${sure ? ' · 필수 부품 확정' : ''}`,
       statusColor: block ? ALERT : free || sure ? SUCCESS : MUTED,
       cost: free ? `무료 ×${this.s.freeBoxes}` : '⚡ −1',
@@ -335,6 +362,7 @@ class MergePlacementScene extends Phaser.Scene {
     recover(this.s, Date.now());
     if (this.rescueMode() && isStuck(this.s)) { this.onRescue(); return; }
     const block = supplyBlock(this.s);
+    if (block === 'energy' && this.hooks.day?.refill) { this.openRefill(); return; }
     if (block) {
       this.say(block === 'full'
         ? (this.hooks.assist === 'hint' && !isStuck(this.s)
@@ -429,12 +457,71 @@ class MergePlacementScene extends Phaser.Scene {
     this.renderShelf();
     this.info.set(this.describe(events));
     this.showStuckNotice();
+    if (this.hooks.day?.refill && isEnergyEmpty(this.s)) this.info.set('알바 체력이 바닥났어요. 부품 상자 버튼을 눌러 충전 방법을 확인하세요.', 'error');
     this.enqueue(events);
     this.changed();
     this.maybeHint();
   }
 
   // ── 막힘 완화 보조 (#264) ──
+  // ── 체력 소진 흐름 (#263) ──
+  private openRefill() {
+    const refill = this.hooks.day?.refill;
+    if (!refill || this.refillPanel.open) return;
+    this.cancelDrag();
+    this.sfx('tap');
+    const now = Date.now();
+    recover(this.s, now);
+    this.refillPanel.show({
+      mode: refill.mode,
+      status: refillStatus(refill.mode, refill.loadRecord(), localDate()),
+      nextLabel: recoveryLabel(this.s.anchor),
+      fullLabel: formatDuration(msUntilFull(this.s.energy, this.s.anchor, now, CAP, RECOVERY)),
+    }, {
+      onAd: () => void this.watchAd(),
+      onFree: () => this.takeFreeRefill(),
+      onRest: (target) => { this.refillPanel.hide(); refill.onRest(target); },
+      onHome: () => { this.refillPanel.hide(); refill.onHome(); },
+      onClose: () => { this.refillPanel.hide(); this.renderShelf(); },
+    });
+  }
+
+  private async watchAd() {
+    const refill = this.hooks.day?.refill;
+    if (!refill) return;
+    this.refillPanel.hide();
+    const result = refill.adapter ? await refill.adapter.requestRewardedAd() : await this.refillPanel.showMockAd();
+    if (!this.alive) return;
+    const claim = claimAdRefill(refill.mode, refill.loadRecord(), localDate(), result);
+    refill.saveRecord(claim.record);
+    if (claim.amount > 0) this.giveEnergy(claim.amount, `광고 보상 · 알바 체력 +${claim.amount}! 이어서 상자를 열 수 있어요.`);
+    else this.say(result === 'completed'
+      ? '오늘 광고 충전을 모두 썼어요.'
+      : result === 'failed' ? '광고를 불러오지 못했어요. 체력은 그대로예요. 잠시 후 다시 시도해 주세요.' : '광고를 끝까지 보지 않아 체력을 받지 못했어요.', 'error');
+  }
+
+  private takeFreeRefill() {
+    const refill = this.hooks.day?.refill;
+    if (!refill) return;
+    this.refillPanel.hide();
+    recover(this.s, Date.now());
+    const claim = claimFreeRefill(refill.mode, refill.loadRecord(), localDate(), this.s.energy, CAP);
+    if (!claim) { this.say('오늘 무료 충전은 이미 썼어요.', 'error'); return; }
+    refill.saveRecord(claim.record);
+    this.giveEnergy(claim.amount, '오늘의 무료 충전 · 알바 체력이 가득 찼어요!');
+  }
+
+  private giveEnergy(amount: number, message: string) {
+    this.s.energy = addEnergy(this.s.energy, CAP, amount);
+    if (this.s.energy >= CAP) this.s.anchor = Date.now();
+    this.persist();
+    this.renderShelf();
+    this.motion.banner(`⚡ 체력 +${amount}`, GREEN, CREAM_TEXT);
+    this.sfx('reward');
+    this.info.set(message);
+    this.changed();
+  }
+
   private rescueMode() { return this.hooks.assist === 'rescue'; }
 
   // 보조 방안에서 막힘이면 원인과 탈출 방법을 안내합니다.
