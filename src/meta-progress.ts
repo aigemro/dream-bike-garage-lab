@@ -86,7 +86,12 @@ export type OrderDeliveryResult = {
 // 주문 납품 결과를 이해도에 반영합니다. 알 수 없는 주문·자전거 ID는 변화 없이 무시합니다.
 export function applyOrderDelivery(progress: CollectionProgress, orderIndex: number): OrderDeliveryResult {
   const meta = orderMetaAt(orderIndex);
-  const bike = meta ? catalogBikeById(meta.bikeId) : undefined;
+  return meta ? applyBikeDelivery(progress, meta.bikeId) : { before: 0, after: 0, registeredNow: false, alreadyRegistered: false };
+}
+
+// 자전거 ID로 납품 이해도를 반영합니다(주문 풀 실험 #266처럼 주문 목록이 고정 3종이 아닐 때 사용).
+export function applyBikeDelivery(progress: CollectionProgress, bikeId: string): OrderDeliveryResult {
+  const bike = catalogBikeById(bikeId);
   if (!bike) return { before: 0, after: 0, registeredNow: false, alreadyRegistered: false };
   if (isBikeRegistered(progress, bike.id)) {
     return { bike, before: UNDERSTANDING_MAX, after: UNDERSTANDING_MAX, registeredNow: false, alreadyRegistered: true };

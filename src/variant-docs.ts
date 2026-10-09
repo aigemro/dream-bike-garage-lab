@@ -1,4 +1,5 @@
 import placementDoc from '../docs/variants/merge-placement.md?raw';
+import orderPoolDoc from '../docs/variants/order-pool.md?raw';
 import firstShiftTutorialDoc from '../docs/variants/first-shift-tutorial.md?raw';
 import energyRefillDoc from '../docs/variants/energy-refill.md?raw';
 import placementHintDoc from '../docs/variants/merge-placement-hint.md?raw';
@@ -88,6 +89,7 @@ import doc79 from '../docs/variants/race-cinematic-broadcast.md?raw';
 
 const variantDocs: Record<string, string> = {
   'merge-placement': placementDoc,
+  'order-pool': orderPoolDoc,
   'first-shift-tutorial': firstShiftTutorialDoc,
   'energy-refill': energyRefillDoc,
   'merge-placement-hint': placementHintDoc,
