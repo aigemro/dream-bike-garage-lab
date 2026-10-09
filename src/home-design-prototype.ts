@@ -48,7 +48,7 @@ export type HomeDesignHooks = {
   dayNumber?: number;
   dayRemainingMs?: number;
   dayStatusLabel?: string;
-  // C안처럼 시간 제한이 없는 Day는 남은 시간 대신 이 문구(예: '손님 1/3')를 표시합니다.
+  // C안처럼 시간 제한이 없는 Day는 남은 시간 대신 이 문구(예: '주문 1/3')를 표시합니다.
   dayProgressLabel?: string;
   onPlay?: () => void;
   onCollection?: () => void;

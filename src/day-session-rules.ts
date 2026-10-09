@@ -9,7 +9,7 @@ export const DAY_DURATION_MS = 10 * 1000;
 export const DAY_DURATION_PRESETS_MS = [10 * 1000, 60 * 1000, 3 * 60 * 1000] as const;
 const MIN_DAY_DURATION_MS = 1000;
 const MAX_DAY_DURATION_MS = 30 * 60 * 1000;
-// C안(손님 N명 = 하루 영업) 기본 손님 수와 Lab 측정용 후보
+// C안(주문 N건 = 하루 일정) 기본 주문 수와 Lab 측정용 후보
 export const DAY_ORDER_TARGET = 3;
 export const DAY_ORDER_TARGET_PRESETS = [2, 3, 5] as const;
 const MAX_DAY_ORDER_TARGET = 20;
@@ -21,7 +21,7 @@ export const MAX_DAY_HISTORY = 14;
 // closing: 시간이 0이 되어 새 입력은 막고, 이미 시작된 납품 처리만 마무리하는 짧은 마감 단계
 // completed: 이전 버전에서 다음 Day 준비 직전에 잠깐 쓰던 상태 (저장 데이터 호환용)
 export type DayStatus = 'ready' | 'active' | 'paused' | 'closing' | 'settlement' | 'completed';
-// order-target: C안에서 오늘 받을 손님(주문 납품) 수를 채워 영업을 마침
+// order-target: C안에서 오늘 주문(납품) 수를 채워 하루 일정을 마침
 export type DayEndReason = 'time-limit' | 'order-target' | 'manual-test';
 const END_REASONS: DayEndReason[] = ['time-limit', 'order-target', 'manual-test'];
 export type DayPauseReason = 'background' | 'screen-navigation' | 'logout' | 'destroy' | 'restore';
@@ -31,7 +31,7 @@ export type CurrentDayState = {
   status: DayStatus;
   // Day를 시작할 때 고정한 제한 시간. 진행 중에 설정을 바꿔도 현재 Day에는 영향이 없습니다.
   durationMs: number;
-  // C안: 오늘 받을 손님 수. null이면 B안(활성 시간 제한)입니다. Day를 시작할 때 고정합니다.
+  // C안: 오늘 납품할 주문 수. null이면 B안(활성 시간 제한)입니다. Day를 시작할 때 고정합니다.
   orderTarget: number | null;
   startedAt: string | null;
   elapsedActiveMs: number;
@@ -131,7 +131,7 @@ export function canAcceptPlayInput(day: CurrentDayState): boolean {
   return day.status === 'active';
 }
 
-// targetReached: C안에서 이번 납품으로 오늘 손님 수를 채웠는지. 채우면 마감(closing)으로 넘깁니다.
+// targetReached: C안에서 이번 납품으로 오늘 주문 수를 채웠는지. 채우면 마감(closing)으로 넘깁니다.
 export type DayOrderRecord = { day: CurrentDayState; counted: boolean; targetReached: boolean };
 
 // 머지 코어가 확정한 납품 1건을 Day 통계에 반영합니다. 코인 지급은 호출 측이 따로 처리합니다.

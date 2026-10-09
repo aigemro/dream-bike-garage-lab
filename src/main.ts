@@ -436,7 +436,7 @@ const tracks: Track[] = [
     issueNumber: 207,
     variants: [
       { id: 'active-time-soft-day', label: 'B안 · 1차 권장', title: '활성 플레이 시간 + 계정별 진행', description: '테스트 계정으로 로그인하고 최초 프로필을 만든 뒤, 활성 플레이 중에만 Day 타이머를 차감합니다(Lab 기본 10초, 헤더에서 1분·3분으로 전환). 작업대는 머지 코어 E v3(가운데→바깥 입고·인접 합성·자동 납품)이며, 시간이 끝나면 새 입력을 막고 정산합니다. Day·재화·주문·컬렉션·성장·작업대·정산 기록은 계정별로 분리 저장되어 다음 Day에 이어집니다.', status: '체험 가능', question: '백그라운드와 로그아웃에서는 시간이 멈추면서도 Day 제한이 플레이 리듬을 만들고, 계정 전환 뒤 각 진행이 정확히 복원되는가?', controls: '계정 A 로그인 → 프로필 생성 → (헤더에서 Day 길이 선택) → Day 시작 → 시간 종료·오늘 수입 정산 → 다음 Day → 로그아웃·계정 전환 순서로 확인합니다.', dayAccountDemo: 'active-time-soft-day', issueNumber: 214, documentId: 'day-account-active-time' },
-      { id: 'order-count-day', label: 'C안', title: '손님 N명 = 하루 영업 + 계정별 진행', description: '시간 제한 없이 오늘 받을 손님(주문) 수를 채우면 하루 영업을 마치고 정산합니다(Lab 기본 3명, 헤더에서 2·3·5명 전환). 플레이 제한은 머지 코어 E v3의 알바 체력 하나뿐이며, 체력이 떨어지면 같은 Day를 다음 접속에 이어서 진행합니다. B안과 계정은 같고 진행은 따로 저장됩니다.', status: '체험 가능', question: '타이머 없이 손님 수로 하루를 끝내면 짧은 세션마다 정산의 성취감이 생기고, 체력 하나로 제한해도 플레이 리듬이 유지되는가?', controls: '계정 로그인 → 프로필 생성 → (헤더에서 손님 수 선택) → Day 시작 → 손님 N명 납품 → 정산 → 다음 Day 순서로 확인합니다. B안과 같은 계정이어도 진행은 별도입니다.', dayAccountDemo: 'order-count-day', issueNumber: 258, documentId: 'day-account-order-count' },
+      { id: 'order-count-day', label: 'C안', title: '주문 N건 = 하루 일정 + 계정별 진행', description: '시간 제한 없이 오늘 주문 수를 채우면 하루 일정이 끝나고 정산합니다(Lab 기본 3건, 헤더에서 2·3·5건 전환). 플레이 제한은 머지 코어 E v3의 알바 체력 하나뿐이며, 체력이 떨어지면 같은 Day를 다음 접속에 이어서 진행합니다. B안과 계정은 같고 진행은 따로 저장됩니다.', status: '체험 가능', question: '타이머 없이 주문 수로 하루를 끝내면 짧은 세션마다 정산의 성취감이 생기고, 체력 하나로 제한해도 플레이 리듬이 유지되는가?', controls: '계정 로그인 → 프로필 생성 → (헤더에서 주문 수 선택) → Day 시작 → 주문 N건 납품 → 정산 → 다음 Day 순서로 확인합니다. B안과 같은 계정이어도 진행은 별도입니다.', dayAccountDemo: 'order-count-day', issueNumber: 258, documentId: 'day-account-order-count' },
     ],
   },
   {
@@ -552,7 +552,7 @@ function renderDemo(track: Track, variant: Variant) {
     || variant.systemDemo || variant.storageDemo || variant.boardSizeDemo || variant.coreLoopDemo
     || variant.releaseIntegrationDemo || variant.dayAccountDemo || variant.raceDemo || variant.raceCinematicDemo || variant.imageDemo);
   const demoLabel = variant.placementDemo ? '390×810 · 게임 화면 B안 정렬 · 가운데→바깥 예정 입고 · 인접 합성 · 연쇄 보너스' : variant.intakeDemo ? '390×810 · 게임 화면 B안 정렬 · 가운데→바깥 입고 · 자유 이동 · 직접 장착' : variant.raceDemo || variant.raceCinematicDemo ? '동일 시뮬레이션·시드 재현 · 참가비 500 · 390×810'
-    : variant.dayAccountDemo === 'order-count-day' ? '테스트 계정 A/B · 손님 N명 = 하루 · 체력 단일 제한 · E v3 작업대'
+    : variant.dayAccountDemo === 'order-count-day' ? '테스트 계정 A/B · 주문 N건 = 하루 · 체력 단일 제한 · E v3 작업대'
     : variant.dayAccountDemo ? '테스트 계정 A/B · 활성 플레이 시간 · E v3 작업대 · 계정별 자동 저장'
     : variant.releaseIntegrationDemo ? '선택 디자인·오디오·저장 상태 통합 · 390×810'
     : variant.imageDemo ? '동일 Garage 장면 · 390×810 세로 화면'

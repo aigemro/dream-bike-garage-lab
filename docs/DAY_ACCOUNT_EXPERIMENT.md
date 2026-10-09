@@ -3,7 +3,7 @@
 > 관련 Issue: #207, #209, #210, #211, #212, #213, #214  
 > 1차 선택안: B안 — 활성 플레이 시간 + 소프트 Day 종료  
 > 메인 적용안: [DAY_SESSION_MAIN_APPLICATION.md](DAY_SESSION_MAIN_APPLICATION.md)
-> C안(손님 N명 = 하루 영업, 체력 단일 제한): [variants/day-account-order-count.md](variants/day-account-order-count.md) · Lab [#258](https://github.com/aigemro/dream-bike-garage-lab/issues/258)
+> C안(주문 N건 = 하루 일정, 체력 단일 제한): [variants/day-account-order-count.md](variants/day-account-order-count.md) · Lab [#258](https://github.com/aigemro/dream-bike-garage-lab/issues/258)
 
 > **2026-10-09 작업대 교체 (Lab [#256](https://github.com/aigemro/dream-bike-garage-lab/issues/256))**: Day 진행 화면의 작업대를 C안(택배·여러 칸 부품)에서 **머지 코어 E v3**(가운데→바깥 예정 입고·인접 합성·연쇄 보너스·자동 장착/납품)로 바꿨다.
 > - E안은 납품을 행동 시점에 확정하므로 시간 종료 시 마감 대기(최대 3초) 없이 바로 정산한다. Day 규칙의 `closing` 상태와 대기 상수는 다른 코어를 위해 남겨 둔다.

@@ -217,10 +217,10 @@ describe('표기', () => {
   });
 });
 
-describe('C안 · 손님 N명 = 하루 영업', () => {
+describe('C안 · 주문 N건 = 하루 일정', () => {
   const orderDay = (target = 3) => startDay(createReadyDay(1, DAY_DURATION_MS, target), T0);
 
-  it('Day를 시작할 때 손님 수를 고정하고, 시간 제한 없이 활성 시간만 기록한다', () => {
+  it('Day를 시작할 때 주문 수를 고정하고, 시간 제한 없이 활성 시간만 기록한다', () => {
     const day = orderDay(3);
     expect(day.orderTarget).toBe(3);
     const tracked = trackActiveTime(day, 90_000);
@@ -228,7 +228,7 @@ describe('C안 · 손님 N명 = 하루 영업', () => {
     expect(trackActiveTime(pauseDay(day, 'background'), 5000).elapsedActiveMs).toBe(0);
   });
 
-  it('손님 수를 채운 납품에서 마감으로 넘기고, 마감 뒤 납품은 목표 도달로 다시 세지 않는다', () => {
+  it('주문 수를 채운 납품에서 마감으로 넘기고, 마감 뒤 납품은 목표 도달로 다시 세지 않는다', () => {
     let day = orderDay(2);
     let record = recordOrderDelivery(day, 1000);
     expect(record).toMatchObject({ counted: true, targetReached: false });
@@ -240,7 +240,7 @@ describe('C안 · 손님 N명 = 하루 영업', () => {
     expect(recordOrderDelivery(record.day, 100).targetReached).toBe(false);
   });
 
-  it('손님 수 도달 정산은 한 번만 적용되고 다음 Day도 같은 손님 수로 준비한다', () => {
+  it('주문 수 도달 정산은 한 번만 적용되고 다음 Day도 같은 주문 수로 준비한다', () => {
     const closing = recordOrderDelivery(orderDay(1), 1000).day;
     const settled = settleDay(closing, [], { reason: 'order-target', endedAt: T1, settlementRevision: 3 });
     expect(settled.history).toHaveLength(1);
@@ -249,7 +249,7 @@ describe('C안 · 손님 N명 = 하루 영업', () => {
     expect(prepareNextDay(settled.day)).toMatchObject({ dayNumber: 2, status: 'ready', orderTarget: 1 });
   });
 
-  it('손님 수가 없거나 잘못된 이전 저장은 B안(시간 제한)으로, 범위 밖 값은 1~20으로 보정한다', () => {
+  it('주문 수가 없거나 잘못된 이전 저장은 B안(시간 제한)으로, 범위 밖 값은 1~20으로 보정한다', () => {
     expect(normalizeDayState({ ...activeDay(), orderTarget: undefined }).orderTarget).toBeNull();
     expect(normalizeDayState({ ...activeDay(), orderTarget: 'x' }).orderTarget).toBeNull();
     expect(normalizeDayState({ ...activeDay(), orderTarget: 99 }).orderTarget).toBe(20);
