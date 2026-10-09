@@ -191,7 +191,7 @@ describe('계정별 E안 작업대 저장', () => {
 });
 
 describe('Day 방안별 진행 분리', () => {
-  it('같은 계정이라도 C안(손님 수) 진행은 B안 진행과 따로 저장된다', () => {
+  it('같은 계정이라도 C안(주문 수) 진행은 B안 진행과 따로 저장된다', () => {
     const storage = makeStorage();
     const timeRepo = new DayAccountRepository(storage);
     const orderRepo = new DayAccountRepository(storage, 'order-count');

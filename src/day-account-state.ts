@@ -122,7 +122,7 @@ export class DayAccountRepository {
   // 다음 저장이 성공하면 비워집니다. 셸이 이 값을 읽어 경고를 표시합니다.
   lastSaveError: string | null = null;
 
-  // scope: 같은 계정이라도 Day 방안(B안 시간·C안 손님 수)마다 진행을 따로 저장하기 위한 구분값.
+  // scope: 같은 계정이라도 Day 방안(B안 시간·C안 주문 수)마다 진행을 따로 저장하기 위한 구분값.
   // 빈 값이면 기존 B안 키를 그대로 씁니다. 계정 프로필은 방안과 관계없이 공유합니다.
   constructor(private readonly storage: KeyValueStorage = localStorage, private readonly scope = '') {}
 
