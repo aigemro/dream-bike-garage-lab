@@ -10,6 +10,7 @@ import {
   applyBikeUpgrade, applyCraftPart, applyOrderDelivery, bikeStats, computeNextGoal, createCollectionProgress,
   createGrowthProgress, dreamStage, nextCraftPart, type BikeStats, type CollectionProgress, type GrowthProgress,
 } from './meta-progress';
+import { AD_REFILL_AMOUNT } from './energy-refill';
 import { HINT_EMPTY_THRESHOLD, applyRescue, emptyCells, isStuck, recommendMerge } from './merge-assist';
 import { RIVERSIDE_ENDURANCE_RACE, createSeededRandom, isRaceDay, raceRewardForRank, simulateRace, type RaceMeta } from './race-progress';
 
@@ -452,6 +453,16 @@ export function buildBalanceReport(options: ReportOptions = FULL_REPORT): string
       const within = (cap: number) => days.filter((value) => value <= cap).length / days.length;
       lines.push(`| ${target}건 | ${SKILL_LABELS[skill]} | ${fixed(mean(days))} (${percentile(days, 0.9)}) | ${percent(within(30))} | ${percent(within(40))} |`);
     }
+  }
+
+  lines.push('', '### 표 7. 체력 충전으로 하루(주문 3건)를 마치는 비율 (#263)', '');
+  lines.push(`하루를 가득 찬 체력 ${CAP}으로 시작하고, 광고 1회 +${AD_REFILL_AMOUNT}, 무료 충전 1회는 다시 가득(+${CAP})으로 볼 때의 상한입니다.`, '');
+  lines.push('| 플레이어 | 충전 없음 | 광고 1회 | 광고 2회 | 광고 3회 (A·C안 하루 최대) | 무료 충전 | 무료 + 광고 2회 (B안 하루 최대) |', '|---|---|---|---|---|---|---|');
+  for (const skill of skills) {
+    const days = dailyEnergy(workbench[skill], 3);
+    const within = (budget: number) => percent(days.filter((value) => value <= budget).length / days.length);
+    const ad = AD_REFILL_AMOUNT;
+    lines.push(`| ${SKILL_LABELS[skill]} | ${within(CAP)} | ${within(CAP + ad)} | ${within(CAP + 2 * ad)} | ${within(CAP + 3 * ad)} | ${within(2 * CAP)} | ${within(2 * CAP + 2 * ad)} |`);
   }
 
   lines.push('', `### 표 3. 실제 시간 진행 (초보 모델, ${options.realDays}일 × ${options.realtimeRuns}회, 접속하면 체력이 바닥날 때까지 플레이)`, '');

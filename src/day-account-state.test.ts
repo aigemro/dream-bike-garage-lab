@@ -203,3 +203,18 @@ describe('Day 방안별 진행 분리', () => {
     expect(storage.store.has(`dbg-lab-day-account-placement-v1-order-count:${PLAYER}`)).toBe(true);
   });
 });
+
+describe('계정별 체력 충전 기록 (#263)', () => {
+  it('충전 기록은 계정·방안마다 따로 저장되고, 진행 초기화 때 함께 지워진다', () => {
+    const storage = makeStorage();
+    const card = new DayAccountRepository(storage, 'order-count-refill-card');
+    const daily = new DayAccountRepository(storage, 'order-count-refill-daily');
+    const record = JSON.stringify({ date: '2026-10-09', adsWatched: 2, freeUsed: 0 });
+    card.saveRefill(PLAYER, record);
+    expect(card.loadRefill(PLAYER)).toBe(record);
+    expect(card.loadRefill('player-other')).toBeNull();
+    expect(daily.loadRefill(PLAYER)).toBeNull();
+    card.resetProgress(PLAYER);
+    expect(card.loadRefill(PLAYER)).toBeNull();
+  });
+});

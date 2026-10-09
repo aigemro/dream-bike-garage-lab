@@ -25,6 +25,7 @@ import {
 import { startTitleLoadingPrototype } from './title-loading-design';
 import { startHomeDesignPrototype } from './home-design-prototype';
 import { startPlacementForDay } from './merge-placement-prototype';
+import { REFILL_LABELS, parseRefillRecord, type RefillMode } from './energy-refill';
 import { startBikeCollectionDesignPrototype, type BikeCollectionDesignMode } from './bike-collection-design-prototype';
 import { startSettingsDrawerPrototype } from './settings-design';
 import { ReleaseAudio, type ReleaseAudioRoom, type ReleaseSfxEvent } from './release-audio';
@@ -148,10 +149,11 @@ export class DayAccountIntegrationController {
   private readonly timerId: number;
   private readonly onVisibilityChange = () => this.handleVisibilityChange();
 
-  constructor(private readonly parent: HTMLElement, private readonly mode: DayLimitMode = 'time') {
+  constructor(private readonly parent: HTMLElement, private readonly mode: DayLimitMode = 'time', private readonly refill?: RefillMode) {
     this.orderTarget = mode === 'orders' ? loadOrderTargetSetting() : null;
     // 같은 계정이라도 B안·C안 진행은 따로 저장해 두 방안을 섞지 않고 비교합니다.
-    this.repository = new DayAccountRepository(localStorage, mode === 'orders' ? 'order-count' : '');
+    // 체력 소진 흐름(#263) 방안도 방안마다 진행을 나눕니다.
+    this.repository = new DayAccountRepository(localStorage, mode === 'orders' ? (refill ? `order-count-refill-${refill}` : 'order-count') : '');
     this.session = this.auth.getSession();
     this.restoreAccountContext();
     this.audio.setEnabled(this.state?.settings.bgm ?? true, this.state?.settings.sfx ?? true);
@@ -222,6 +224,7 @@ export class DayAccountIntegrationController {
             <button id="day-account-audio" type="button"></button>
             <button id="day-account-duration" type="button" title="다음에 시작하는 Day의 제한 시간 또는 주문 수 (Lab 측정용)"></button>
             <button id="day-account-end" type="button">Lab · Day 종료</button>
+            ${this.refill ? '<button id="day-account-drain" type="button" title="작업대 체력을 0으로 만들어 소진 흐름을 바로 확인합니다 (Lab 측정용)">Lab · 체력 0</button>' : ''}
             <button id="day-account-logout" type="button">로그아웃</button>
           </div>
         </header>
@@ -229,7 +232,7 @@ export class DayAccountIntegrationController {
           ${NAV.map((item) => `<button type="button" data-day-screen="${item.screen}">${item.label}</button>`).join('')}
         </nav>
         <div id="${this.stageId}" class="release-stage day-account-stage"></div>
-        <footer class="release-flow-footer"><span>로그인 → 프로필 → Day 시작 → 주문·머지·납품 → 정산 → 다음 Day</span><strong>계정별 자동 저장 · ${this.mode === 'orders' ? '주문 N건 = 하루 일정' : '활성 플레이 시간'}</strong></footer>
+        <footer class="release-flow-footer"><span>로그인 → 프로필 → Day 시작 → 주문·머지·납품 → 정산 → 다음 Day</span><strong>계정별 자동 저장 · ${this.mode === 'orders' ? '주문 N건 = 하루 일정' : '활성 플레이 시간'}${this.refill ? ` · 체력 소진 ${REFILL_LABELS[this.refill]}` : ''}</strong></footer>
       </section>`;
 
     this.parent.querySelectorAll<HTMLButtonElement>('[data-day-screen]').forEach((button) => {
@@ -254,6 +257,26 @@ export class DayAccountIntegrationController {
       this.endDay('manual-test');
     });
     this.parent.querySelector<HTMLButtonElement>('#day-account-logout')?.addEventListener('click', () => void this.logout());
+    this.parent.querySelector<HTMLButtonElement>('#day-account-drain')?.addEventListener('click', () => this.drainEnergyForTest());
+  }
+
+  // Lab 측정용: 작업대 체력과 무료 상자를 0으로 만듭니다.
+  // 작업대가 열려 있으면 장면에 직접 요청합니다(Phaser 게임 파기는 다음 프레임에 저장하므로 저장본을 고치면 덮어써짐).
+  private drainEnergyForTest() {
+    if (!this.profile) return;
+    const scene = this.screen === 'game' ? this.game?.scene.getScene('merge-placement-e-v3') as unknown as { labDrain?: () => void } | undefined : undefined;
+    if (scene?.labDrain) { scene.labDrain(); return; }
+    const playerId = this.profile.playerId;
+    try {
+      const saved = JSON.parse(this.repository.loadPlacement(playerId) ?? 'null') as { energy?: number; anchor?: number; freeBoxes?: number } | null;
+      if (!saved) return;
+      saved.energy = 0;
+      saved.anchor = Date.now();
+      saved.freeBoxes = 0;
+      this.repository.savePlacement(playerId, JSON.stringify(saved));
+    } catch {
+      // 저장본이 손상됐으면 작업대가 새로 시작할 때 기본값을 씁니다.
+    }
   }
 
   private show(screen: DayAccountScreen): void {
@@ -327,6 +350,13 @@ export class DayAccountIntegrationController {
         isInputLocked: () => !this.state || !canAcceptPlayInput(this.state.currentDayState),
         onOrderDelivered: ({ orderIndex }) => this.completeOrder(orderIndex),
         onSfx: (event) => this.play(event),
+        refill: this.refill ? {
+          mode: this.refill,
+          loadRecord: () => parseRefillRecord(this.repository.loadRefill(playerId)),
+          saveRecord: (record) => this.repository.saveRefill(playerId, JSON.stringify(record)),
+          onRest: (target) => this.show(target),
+          onHome: () => this.show('home'),
+        } : undefined,
       });
       return;
     }
@@ -870,8 +900,8 @@ export class DayAccountIntegrationController {
   }
 }
 
-export function startDayAccountIntegration(parent: string, mode: DayLimitMode = 'time') {
+export function startDayAccountIntegration(parent: string, mode: DayLimitMode = 'time', refill?: RefillMode) {
   const element = document.getElementById(parent);
   if (!element) throw new Error(`Day account integration parent not found: ${parent}`);
-  return new DayAccountIntegrationController(element, mode);
+  return new DayAccountIntegrationController(element, mode, refill);
 }

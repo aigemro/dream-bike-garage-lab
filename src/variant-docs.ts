@@ -1,4 +1,5 @@
 import placementDoc from '../docs/variants/merge-placement.md?raw';
+import energyRefillDoc from '../docs/variants/energy-refill.md?raw';
 import placementHintDoc from '../docs/variants/merge-placement-hint.md?raw';
 import placementRescueDoc from '../docs/variants/merge-placement-rescue.md?raw';
 import intakeDoc from '../docs/variants/merge-intake.md?raw';
@@ -86,6 +87,7 @@ import doc79 from '../docs/variants/race-cinematic-broadcast.md?raw';
 
 const variantDocs: Record<string, string> = {
   'merge-placement': placementDoc,
+  'energy-refill': energyRefillDoc,
   'merge-placement-hint': placementHintDoc,
   'merge-placement-rescue': placementRescueDoc,
   'merge-intake': intakeDoc,
