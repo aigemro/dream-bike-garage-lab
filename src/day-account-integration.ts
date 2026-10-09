@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import { BrowserMockAuthProvider, type AuthProvider, type AuthSession } from './auth-provider';
 import { DayAccountRepository, type DayAccountProgress, type GameProfile } from './day-account-state';
 import {
-  DAY_CLOSING_GRACE_MS,
   DAY_DURATION_MS,
   DAY_DURATION_PRESETS_MS,
   canAcceptPlayInput,
@@ -22,8 +21,7 @@ import {
 } from './day-session-rules';
 import { startTitleLoadingPrototype } from './title-loading-design';
 import { startHomeDesignPrototype } from './home-design-prototype';
-import { startGuideOverlayPrototype } from './guide-overlay-design';
-import { startGameScreenMobilePrototype } from './game-screen-mobile';
+import { startPlacementForDay } from './merge-placement-prototype';
 import { startBikeCollectionDesignPrototype, type BikeCollectionDesignMode } from './bike-collection-design-prototype';
 import { startSettingsDrawerPrototype } from './settings-design';
 import { ReleaseAudio, type ReleaseAudioRoom, type ReleaseSfxEvent } from './release-audio';
@@ -48,11 +46,12 @@ import {
 } from './meta-progress';
 import { CATALOG_SIZE, catalogBikeById } from './bike-catalog';
 
-type DayAccountScreen = 'account' | 'profile-create' | 'title' | 'home' | 'guide' | 'day-ready' | 'game'
+type DayAccountScreen = 'account' | 'profile-create' | 'title' | 'home' | 'day-ready' | 'game'
   | 'day-settlement' | 'catalog' | 'showcase' | 'dream' | 'profile' | 'settings';
 
-// Day 시간이 '진행 중'으로 취급되는 플레이 화면 (guide는 타이머는 멈추지만 Day 상태는 유지)
-const PLAY_SCREENS: DayAccountScreen[] = ['game', 'guide'];
+// Day 시간이 '진행 중'으로 취급되는 플레이 화면
+// (작업대는 머지 코어 E v3입니다. 이전 C안 택배 안내 오버레이는 E안 조작과 맞지 않아 쓰지 않고, 첫 안내는 작업대 안내 문구가 맡습니다.)
+const PLAY_SCREENS: DayAccountScreen[] = ['game'];
 // Lab 측정용 Day 길이 선택값(브라우저 공통). 계정 진행에는 Day를 시작할 때 고정된 길이만 저장합니다.
 const DAY_DURATION_SETTING_KEY = 'dbg-lab-day-duration-ms-v1';
 
@@ -71,7 +70,6 @@ const SCREEN_LABELS: Record<DayAccountScreen, string> = {
   'profile-create': '02 · 최초 게임 프로필 생성',
   title: '03 · 타이틀·로딩',
   home: '04 · 계정 Garage 홈',
-  guide: '05 · 첫 플레이 안내',
   'day-ready': '06 · Day 시작 준비',
   game: '07 · 활성 플레이 시간',
   'day-settlement': '08 · Day 정산',
@@ -123,9 +121,6 @@ export class DayAccountIntegrationController {
   private screen: DayAccountScreen = 'account';
   private lastTickAt = 0;
   private lastCheckpointBucket = -1;
-  // 게임 화면이 장착 연출 중이라 납품이 아직 확정되지 않았는지 (Day 마감 대기 판단용)
-  private sceneBusy = false;
-  private closingStartedAt = 0;
   private dayDurationMs = loadDayDurationSetting();
   private readonly stageId = `day-account-stage-${Math.random().toString(36).slice(2)}`;
   private readonly timerId: number;
@@ -240,12 +235,10 @@ export class DayAccountIntegrationController {
     if (!this.profile && screen !== 'account' && screen !== 'profile-create') {
       screen = this.session ? 'profile-create' : 'account';
     }
-    // game·guide(첫 플레이 안내)를 벗어나 다른 화면으로 가면 Day를 일시정지합니다.
-    // (guide는 startDay 직후 'active' 상태로 진입하므로 game만 검사하면 홈에 '영업 중'으로 남습니다)
+    // 플레이 화면을 벗어나 다른 화면으로 가면 Day를 일시정지합니다.
     if (PLAY_SCREENS.includes(this.screen) && !PLAY_SCREENS.includes(screen)) this.pauseCurrentDay('screen-navigation');
     this.game?.destroy(true);
     this.game = undefined;
-    this.sceneBusy = false;
     this.screen = screen;
     const stage = this.parent.querySelector<HTMLElement>(`#${this.stageId}`);
     if (!stage) return;
@@ -285,25 +278,16 @@ export class DayAccountIntegrationController {
       return;
     }
     if (screen === 'day-ready') return this.renderDayReady(stage);
-    if (screen === 'guide') {
-      this.game = startGuideOverlayPrototype(this.stageId, {
-        onFinish: () => {
-          if (!this.state) return;
-          this.state.tutorialDone = true;
-          this.persist();
-          this.show('game');
-        },
-        onSfx: (event) => this.play(event),
-      });
-      return;
-    }
     if (screen === 'game') {
       this.resumeCurrentDay();
-      this.game = startGameScreenMobilePrototype(this.stageId, {
-        orderIndex: this.state.orderIndex,
-        autoPlacement: this.state.autoPlacement,
-        continuousOrders: true,
-        getDaySummary: () => {
+      const playerId = this.profile.playerId;
+      // 머지 코어 E v3 작업대. Day는 '입력 허용 여부'와 '확정된 납품'만 주고받습니다(적용안 4.2 계약).
+      // E안은 납품을 행동 시점에 확정하므로, 시간이 끝나면 마감 대기 없이 바로 정산합니다.
+      this.game = startPlacementForDay(this.stageId, {
+        load: () => this.repository.loadPlacement(playerId),
+        save: (raw) => this.repository.savePlacement(playerId, raw),
+        initialOrder: this.state.orderIndex,
+        getDay: () => {
           const day = this.state?.currentDayState;
           return {
             dayNumber: day?.dayNumber ?? 1,
@@ -313,15 +297,8 @@ export class DayAccountIntegrationController {
             closing: day?.status === 'closing',
           };
         },
-        // 머지 코어가 바뀌어도 Day는 '입력 허용 여부'와 '확정된 납품'만 주고받습니다.
         isInputLocked: () => !this.state || !canAcceptPlayInput(this.state.currentDayState),
-        onBusyChange: (busy) => { this.sceneBusy = busy; },
-        onAutoPlacementChange: (enabled) => {
-          if (!this.state) return;
-          this.state.autoPlacement = enabled;
-          this.persist();
-        },
-        onOrderComplete: (completedOrderIndex) => this.completeOrder(completedOrderIndex),
+        onOrderDelivered: ({ orderIndex }) => this.completeOrder(orderIndex),
         onSfx: (event) => this.play(event),
       });
       return;
@@ -552,7 +529,7 @@ export class DayAccountIntegrationController {
       <section class="day-account-panel day-settlement-panel">
         <p class="day-account-eyebrow">DAY ${day.dayNumber} · SETTLEMENT r${day.settlementRevision ?? this.state.revision}</p>
         <h2>${escapeHtml(this.profile.nickname)} 정비사, 오늘도 수고했어요!</h2>
-        <p>${reason} 미완료 주문은 다음 Day에 이어서 진행합니다. 현재 작업대(C안)는 보드를 저장하지 않아 다음 Day에 비워지며, 보드 이월은 머지 코어 저장 방식에 따라 정합니다.</p>
+        <p>${reason} 미완료 주문과 작업대 부품·알바 체력(E안)은 계정에 저장되어 다음 Day에 그대로 이어집니다.</p>
         <div class="settlement-income"><span>오늘 수입</span><strong>+ ${day.earnings.toLocaleString()} COIN</strong></div>
         <div class="settlement-grid"><div><span>완료 주문</span><strong>${day.ordersCompleted}건</strong></div><div><span>종료 Day</span><strong>DAY ${day.dayNumber}</strong></div><div><span>활성 시간</span><strong>${formatDayClock(day.elapsedActiveMs)}</strong></div><div><span>누적 코인</span><strong>${this.state.coins.toLocaleString()}</strong></div></div>
         <button id="prepare-next-day" class="day-account-primary" type="button">DAY ${day.dayNumber + 1} 준비하기</button>
@@ -623,7 +600,7 @@ export class DayAccountIntegrationController {
     if (status === 'closing') return this.endDay('time-limit');
     if (status === 'settlement') return this.show('day-settlement');
     if (status === 'ready' || status === 'completed') return this.show('day-ready');
-    this.show(this.state.tutorialDone ? 'game' : 'guide');
+    this.show('game');
   }
 
   private beginDay() {
@@ -634,7 +611,7 @@ export class DayAccountIntegrationController {
     this.lastTickAt = performance.now();
     this.lastCheckpointBucket = -1;
     this.persist();
-    this.show(this.state.tutorialDone ? 'game' : 'guide');
+    this.show('game');
   }
 
   private tickDay() {
@@ -646,9 +623,7 @@ export class DayAccountIntegrationController {
     const day = this.state.currentDayState;
     if (day.status === 'closing') {
       this.lastTickAt = now;
-      // 진행 중이던 장착이 확정되면(또는 대기 시간이 지나거나 화면을 떠나면) 정산합니다.
-      const graceOver = now - this.closingStartedAt >= DAY_CLOSING_GRACE_MS;
-      if (!this.sceneBusy || graceOver || this.screen !== 'game' || document.hidden) this.endDay('time-limit');
+      this.endDay('time-limit');
       return;
     }
     if (this.screen !== 'game' || document.hidden || day.status !== 'active') {
@@ -660,11 +635,9 @@ export class DayAccountIntegrationController {
     const { day: next, timeUp } = tickDay(day, delta);
     this.state.currentDayState = next;
     if (timeUp) {
-      // 새 입력은 막고, 장착 연출 중인 납품이 있으면 확정될 때까지 짧게 기다립니다.
-      this.closingStartedAt = now;
+      // E안 작업대는 납품을 행동 시점에 확정하므로 미확정 납품이 없습니다. 바로 시간 종료 정산합니다.
       this.persist();
-      this.refreshShell();
-      if (!this.sceneBusy) this.endDay('time-limit');
+      this.endDay('time-limit');
       return;
     }
     const checkpointBucket = Math.floor(next.remainingMs / 5000);
@@ -779,7 +752,7 @@ export class DayAccountIntegrationController {
 
   private roomFor(screen: DayAccountScreen): ReleaseAudioRoom {
     if (screen === 'title' || screen === 'account' || screen === 'profile-create') return 'title';
-    if (screen === 'game' || screen === 'guide' || screen === 'day-ready') return 'work';
+    if (screen === 'game' || screen === 'day-ready') return 'work';
     if (screen === 'day-settlement') return 'reward';
     return 'home';
   }
@@ -804,7 +777,7 @@ export class DayAccountIntegrationController {
     this.parent.querySelectorAll<HTMLButtonElement>('[data-day-screen]').forEach((button) => {
       button.disabled = !this.profile;
       const destination = button.dataset.dayScreen;
-      button.classList.toggle('active', destination === this.screen || (destination === 'game' && ['guide', 'day-ready', 'day-settlement'].includes(this.screen)));
+      button.classList.toggle('active', destination === this.screen || (destination === 'game' && ['day-ready', 'day-settlement'].includes(this.screen)));
     });
   }
 

@@ -4,6 +4,7 @@
 import Phaser from 'phaser';
 import { drawPixelBike, drawPixelPartIcon, makeWarmColorway, bikePartAnchorOffset, WARM_PART_COLORS } from './bike-pixel-sprite';
 import { CAP, COLS, ROWS, SIZE, PART_TYPES, RECOVERY, orderMeta, requirements, type Part } from './merge-core-shared';
+import { formatDayClock, isDayUrgent } from './day-session-rules';
 import './merge-play-screen.css';
 
 // ── 게임 화면 B안과 같은 팔레트·글꼴 ──
@@ -74,6 +75,42 @@ export function drawHeader(scene: Phaser.Scene) {
   scene.add.text(56, 30, 'WORK', textStyle(11, CREAM_TEXT)).setOrigin(0.5).setDepth(10);
   scene.add.text(104, 22, '두리 자전거 공방 · 작업대', textStyle(13, INK)).setDepth(10);
   return scene.add.text(382, 39, '', textStyle(10, MUTED, false)).setOrigin(1, 0.5).setDepth(10);
+}
+
+export type DaySummary = { dayNumber: number; remainingMs: number; durationMs: number; earnings: number; closing: boolean };
+
+/**
+ * Day 세션 헤더: 작업대 헤더와 같은 자리(60px)에 DAY 번호·남은 영업 시간(mm:ss)·오늘 수입·시간 막대를 둡니다.
+ * 게임 화면 B안의 Day HUD와 같은 색·배치이며, 종료 임박(Day 길이 10%, 최소 3초)이면 빨강으로 바뀝니다.
+ */
+export class DayHeader {
+  private readonly badge: Phaser.GameObjects.Text;
+  private readonly timerPanel: Phaser.GameObjects.Rectangle;
+  private readonly timer: Phaser.GameObjects.Text;
+  private readonly income: Phaser.GameObjects.Text;
+  private readonly fill: Phaser.GameObjects.Rectangle;
+  constructor(scene: Phaser.Scene) {
+    scene.add.rectangle(195, 30, 390, 60, CREAM).setStrokeStyle(4, BORDER).setDepth(8);
+    scene.add.rectangle(42, 16, 60, 18, RED).setStrokeStyle(2, BORDER).setDepth(9);
+    scene.add.text(42, 16, 'WORK', textStyle(10, CREAM_TEXT)).setOrigin(0.5).setDepth(10);
+    scene.add.text(80, 9, '두리 자전거 공방 · 작업대', textStyle(12, INK)).setDepth(10);
+    scene.add.rectangle(48, 41, 72, 22, BROWN).setStrokeStyle(2, BORDER).setDepth(9);
+    this.badge = scene.add.text(48, 41, '', textStyle(12, CREAM_TEXT)).setOrigin(0.5).setDepth(10);
+    this.timerPanel = scene.add.rectangle(130, 41, 76, 24, AMBER).setStrokeStyle(2, BORDER).setDepth(9);
+    this.timer = scene.add.text(130, 41, '', textStyle(15, INK)).setOrigin(0.5).setDepth(10);
+    scene.add.rectangle(276, 41, 200, 22, GOLD).setStrokeStyle(2, BROWN).setDepth(9);
+    this.income = scene.add.text(276, 41, '', textStyle(11, MUTED)).setOrigin(0.5).setDepth(10);
+    scene.add.rectangle(6, 56, 378, 3, DARK_WOOD).setOrigin(0, 0.5).setDepth(10);
+    this.fill = scene.add.rectangle(6, 56, 378, 3, GREEN).setOrigin(0, 0.5).setDepth(11);
+  }
+  render(day: DaySummary) {
+    const urgent = day.closing || isDayUrgent(day.remainingMs, day.durationMs);
+    this.badge.setText(`DAY ${day.dayNumber}`);
+    this.timer.setText(day.closing ? '마감' : formatDayClock(day.remainingMs)).setColor(urgent ? CREAM_TEXT : INK);
+    this.timerPanel.setFillStyle(urgent ? RED : AMBER);
+    this.income.setText(`오늘 수입  ${day.earnings.toLocaleString()} C`);
+    this.fill.setScale(Phaser.Math.Clamp(day.remainingMs / Math.max(1, day.durationMs), 0, 1), 1).setFillStyle(urgent ? RED : GREEN);
+  }
 }
 
 /** 게임 화면 B안의 부품 블록: 대표색 블록 + 픽셀 아이콘 + Lv 배지 */
@@ -344,6 +381,19 @@ export type DemoHooks = {
 export type LabControls = { labCharge(): void; labSetAccelerated(on: boolean): void; labReset(): void; flush(): void };
 export type MergeDemoHandle = { destroy(removeCanvas?: boolean): void };
 
+/** 게임 화면 B안과 같은 390×810 세로 캔버스(FIT)로 장면을 띄웁니다. */
+export function createMergeGame(parent: string, scene: Phaser.Scene) {
+  return new Phaser.Game({
+    type: Phaser.AUTO,
+    parent,
+    width: 390,
+    height: 810,
+    backgroundColor: '#c78452',
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+    scene,
+  });
+}
+
 /**
  * 390×810 Phaser 체험 화면을 띄우고, toolsId 요소에 랩 테스트 도구(체력 충전·가속·초기화)를 그립니다.
  * 랩 도구는 게임 화면 디자인과 섞이지 않도록 캔버스 밖 DOM에 접어 둡니다.
@@ -369,15 +419,7 @@ export function launchMergeDemo(options: {
     },
     onMotion: (event) => root?.dispatchEvent(new CustomEvent('dbg:merge-motion', { detail: event, bubbles: true })),
   });
-  const game = new Phaser.Game({
-    type: Phaser.AUTO,
-    parent: options.parent,
-    width: 390,
-    height: 810,
-    backgroundColor: '#c78452',
-    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    scene,
-  });
+  const game = createMergeGame(options.parent, scene);
 
   let accelerated = false;
   const click = (event: Event) => {
