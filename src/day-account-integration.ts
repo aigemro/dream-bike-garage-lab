@@ -4,6 +4,8 @@ import { DayAccountRepository, type DayAccountProgress, type GameProfile } from 
 import {
   DAY_DURATION_MS,
   DAY_DURATION_PRESETS_MS,
+  DAY_ORDER_TARGET,
+  DAY_ORDER_TARGET_PRESETS,
   canAcceptPlayInput,
   createReadyDay,
   formatDayClock,
@@ -16,6 +18,7 @@ import {
   settleDay,
   startDay,
   tickDay,
+  trackActiveTime,
   type DayEndReason,
   type DayPauseReason,
 } from './day-session-rules';
@@ -54,6 +57,13 @@ type DayAccountScreen = 'account' | 'profile-create' | 'title' | 'home' | 'day-r
 const PLAY_SCREENS: DayAccountScreen[] = ['game'];
 // Lab 측정용 Day 길이 선택값(브라우저 공통). 계정 진행에는 Day를 시작할 때 고정된 길이만 저장합니다.
 const DAY_DURATION_SETTING_KEY = 'dbg-lab-day-duration-ms-v1';
+// C안 Lab 측정용 하루 손님 수 선택값(브라우저 공통). Day를 시작할 때 고정된 값만 계정 진행에 저장합니다.
+const DAY_ORDER_TARGET_SETTING_KEY = 'dbg-lab-day-order-target-v1';
+// C안에서 손님 수를 채운 뒤 납품 도장 연출을 보여 주고 정산 화면으로 넘어가기까지의 시간
+const ORDER_TARGET_SETTLE_DELAY_MS = 1800;
+
+// Day가 끝나는 기준: B안 활성 플레이 시간(time) · C안 하루 손님 수(orders)
+export type DayLimitMode = 'time' | 'orders';
 
 const NAV: Array<{ screen: DayAccountScreen; label: string }> = [
   { screen: 'home', label: 'HOME' },
@@ -98,6 +108,15 @@ function durationLabel(durationMs: number) {
   return durationMs < 60_000 ? `${Math.round(durationMs / 1000)}초` : `${Math.round(durationMs / 60_000)}분`;
 }
 
+function loadOrderTargetSetting() {
+  try {
+    const saved = Number(localStorage.getItem(DAY_ORDER_TARGET_SETTING_KEY));
+    return DAY_ORDER_TARGET_PRESETS.includes(saved as typeof DAY_ORDER_TARGET_PRESETS[number]) ? saved : DAY_ORDER_TARGET;
+  } catch {
+    return DAY_ORDER_TARGET;
+  }
+}
+
 function loadDayDurationSetting() {
   try {
     const saved = Number(localStorage.getItem(DAY_DURATION_SETTING_KEY));
@@ -111,7 +130,7 @@ export class DayAccountIntegrationController {
   private game?: Phaser.Game;
   private readonly audio = new ReleaseAudio();
   private readonly auth: AuthProvider = new BrowserMockAuthProvider();
-  private readonly repository = new DayAccountRepository();
+  private readonly repository: DayAccountRepository;
   private session: AuthSession | null = null;
   private profile: GameProfile | null = null;
   private state: DayAccountProgress | null = null;
@@ -122,11 +141,17 @@ export class DayAccountIntegrationController {
   private lastTickAt = 0;
   private lastCheckpointBucket = -1;
   private dayDurationMs = loadDayDurationSetting();
+  // C안: 다음에 시작하는 Day의 손님 수 (B안이면 null)
+  private orderTarget: number | null;
+  private closingAt = 0;
   private readonly stageId = `day-account-stage-${Math.random().toString(36).slice(2)}`;
   private readonly timerId: number;
   private readonly onVisibilityChange = () => this.handleVisibilityChange();
 
-  constructor(private readonly parent: HTMLElement) {
+  constructor(private readonly parent: HTMLElement, private readonly mode: DayLimitMode = 'time') {
+    this.orderTarget = mode === 'orders' ? loadOrderTargetSetting() : null;
+    // 같은 계정이라도 B안·C안 진행은 따로 저장해 두 방안을 섞지 않고 비교합니다.
+    this.repository = new DayAccountRepository(localStorage, mode === 'orders' ? 'order-count' : '');
     this.session = this.auth.getSession();
     this.restoreAccountContext();
     this.audio.setEnabled(this.state?.settings.bgm ?? true, this.state?.settings.sfx ?? true);
@@ -175,12 +200,12 @@ export class DayAccountIntegrationController {
     const saved = this.state.currentDayState;
     let restored = normalizeRestoredDay(saved);
     // 아직 시작하지 않은 Day는 Lab에서 선택한 Day 길이로 표시를 맞춥니다 (진행 중인 Day는 그대로).
-    if (restored.status === 'ready' && restored.durationMs !== this.dayDurationMs) {
-      restored = createReadyDay(restored.dayNumber, this.dayDurationMs);
+    if (restored.status === 'ready' && (restored.durationMs !== this.dayDurationMs || restored.orderTarget !== this.orderTarget)) {
+      restored = createReadyDay(restored.dayNumber, this.dayDurationMs, this.orderTarget);
     }
     if (restored.status === 'closing') {
       this.state.currentDayState = restored;
-      this.settleCurrentDay('time-limit');
+      this.settleCurrentDay(this.closingReason());
       return;
     }
     if (restored === saved) return;
@@ -195,7 +220,7 @@ export class DayAccountIntegrationController {
           <div><span>LAB TEST CONTROLS</span><strong id="day-account-screen-label"></strong></div>
           <div class="release-state day-account-state">
             <button id="day-account-audio" type="button"></button>
-            <button id="day-account-duration" type="button" title="다음에 시작하는 Day의 제한 시간 (Lab 측정용)"></button>
+            <button id="day-account-duration" type="button" title="다음에 시작하는 Day의 제한 시간 또는 손님 수 (Lab 측정용)"></button>
             <button id="day-account-end" type="button">Lab · Day 종료</button>
             <button id="day-account-logout" type="button">로그아웃</button>
           </div>
@@ -204,7 +229,7 @@ export class DayAccountIntegrationController {
           ${NAV.map((item) => `<button type="button" data-day-screen="${item.screen}">${item.label}</button>`).join('')}
         </nav>
         <div id="${this.stageId}" class="release-stage day-account-stage"></div>
-        <footer class="release-flow-footer"><span>로그인 → 프로필 → Day 시작 → 주문·머지·납품 → 정산 → 다음 Day</span><strong>계정별 자동 저장 · 활성 플레이 시간</strong></footer>
+        <footer class="release-flow-footer"><span>로그인 → 프로필 → Day 시작 → 주문·머지·납품 → 정산 → 다음 Day</span><strong>계정별 자동 저장 · ${this.mode === 'orders' ? '손님 N명 = 하루 영업' : '활성 플레이 시간'}</strong></footer>
       </section>`;
 
     this.parent.querySelectorAll<HTMLButtonElement>('[data-day-screen]').forEach((button) => {
@@ -223,7 +248,7 @@ export class DayAccountIntegrationController {
       this.persist();
       this.refreshShell();
     });
-    this.parent.querySelector<HTMLButtonElement>('#day-account-duration')?.addEventListener('click', () => this.cycleDayDuration());
+    this.parent.querySelector<HTMLButtonElement>('#day-account-duration')?.addEventListener('click', () => (this.mode === 'orders' ? this.cycleOrderTarget() : this.cycleDayDuration()));
     this.parent.querySelector<HTMLButtonElement>('#day-account-end')?.addEventListener('click', () => {
       if (!this.state || !['active', 'paused', 'closing'].includes(this.state.currentDayState.status)) return;
       this.endDay('manual-test');
@@ -266,6 +291,7 @@ export class DayAccountIntegrationController {
         dayNumber: this.state.currentDayState.dayNumber,
         dayRemainingMs: this.state.currentDayState.remainingMs,
         dayStatusLabel: this.dayStatusLabel(),
+        dayProgressLabel: this.dayProgressLabel(),
         onPlay: () => this.openPlay(),
         onCraft: (bikeId) => { collection.selectedBikeId = bikeId; this.saveCollection(); this.show('dream'); },
         onHeroBike: (bikeId) => { collection.selectedBikeId = bikeId; this.saveCollection(); this.show('dream'); },
@@ -295,6 +321,7 @@ export class DayAccountIntegrationController {
             durationMs: day?.durationMs ?? DAY_DURATION_MS,
             earnings: day?.earnings ?? 0,
             closing: day?.status === 'closing',
+            orders: day && day.orderTarget !== null ? { done: day.ordersCompleted, target: day.orderTarget } : undefined,
           };
         },
         isInputLocked: () => !this.state || !canAcceptPlayInput(this.state.currentDayState),
@@ -392,7 +419,10 @@ export class DayAccountIntegrationController {
     this.state.coins += reward;
     this.state.completedOrders += 1;
     this.state.orderIndex = (completedOrderIndex + 1) % ORDER_METAS.length;
-    this.state.currentDayState = recordOrderDelivery(this.state.currentDayState, reward).day;
+    const record = recordOrderDelivery(this.state.currentDayState, reward);
+    this.state.currentDayState = record.day;
+    // C안: 오늘 손님 수를 채우면 입력을 막고, 납품 도장을 보여 준 뒤 정산합니다(tickDay).
+    if (record.targetReached) this.closingAt = performance.now();
     applyOrderDelivery(this.collection, completedOrderIndex);
     this.saveCollection();
     this.persist();
@@ -487,9 +517,11 @@ export class DayAccountIntegrationController {
         <p class="day-account-eyebrow">${escapeHtml(this.profile.garageName)} · WORK PLAN</p>
         <div class="day-number-badge">DAY ${day.dayNumber}</div>
         <h2>오늘 공방을 열까요?</h2>
-        <p>${formatDayClock(this.dayDurationMs)} 동안 플레이하면 오늘 수입을 정산합니다. 게임 밖에서는 시간이 멈춥니다.</p>
+        <p>${this.orderTarget !== null
+          ? `손님 ${this.orderTarget}명의 자전거를 납품하면 오늘 영업을 마치고 정산합니다. 시간 제한은 없고, 알바 체력이 떨어지면 다음에 이어서 영업합니다.`
+          : `${formatDayClock(this.dayDurationMs)} 동안 플레이하면 오늘 수입을 정산합니다. 게임 밖에서는 시간이 멈춥니다.`}</p>
         ${this.renderDayCalendar(day.dayNumber)}
-        <div class="day-goal-grid"><div><span>오늘 영업</span><strong>${durationLabel(this.dayDurationMs)}</strong></div><div><span>현재 코인</span><strong>${this.state.coins.toLocaleString()}</strong></div><div><span>지난 기록</span><strong>${this.state.dayHistory.length}일</strong></div></div>
+        <div class="day-goal-grid"><div><span>오늘 영업</span><strong>${this.orderTarget !== null ? `손님 ${this.orderTarget}명` : durationLabel(this.dayDurationMs)}</strong></div><div><span>현재 코인</span><strong>${this.state.coins.toLocaleString()}</strong></div><div><span>지난 기록</span><strong>${this.state.dayHistory.length}일</strong></div></div>
         <button id="start-day" class="day-account-primary" type="button">DAY ${day.dayNumber} START</button>
       </section>`;
     stage.querySelector<HTMLButtonElement>('#start-day')?.addEventListener('click', () => this.beginDay());
@@ -524,7 +556,11 @@ export class DayAccountIntegrationController {
   private renderDaySettlement(stage: HTMLElement) {
     if (!this.state || !this.profile) return;
     const day = this.state.currentDayState;
-    const reason = day.endReason === 'time-limit' ? '영업 시간이 종료되었습니다.' : 'Lab 검증으로 Day를 조기 종료했습니다.';
+    const reason = day.endReason === 'time-limit'
+      ? '영업 시간이 종료되었습니다.'
+      : day.endReason === 'order-target'
+        ? `오늘 손님 ${day.orderTarget}명을 모두 응대했습니다.`
+        : 'Lab 검증으로 Day를 조기 종료했습니다.';
     stage.innerHTML = `
       <section class="day-account-panel day-settlement-panel">
         <p class="day-account-eyebrow">DAY ${day.dayNumber} · SETTLEMENT r${day.settlementRevision ?? this.state.revision}</p>
@@ -605,7 +641,7 @@ export class DayAccountIntegrationController {
 
   private beginDay() {
     if (!this.state) return;
-    const started = startDay(this.state.currentDayState, new Date().toISOString(), this.dayDurationMs);
+    const started = startDay(this.state.currentDayState, new Date().toISOString(), this.dayDurationMs, this.orderTarget);
     if (started === this.state.currentDayState) return;
     this.state.currentDayState = started;
     this.lastTickAt = performance.now();
@@ -623,7 +659,9 @@ export class DayAccountIntegrationController {
     const day = this.state.currentDayState;
     if (day.status === 'closing') {
       this.lastTickAt = now;
-      this.endDay('time-limit');
+      // C안은 마지막 손님의 납품 도장을 잠깐 보여 준 뒤 정산합니다.
+      const showingStamp = day.orderTarget !== null && this.screen === 'game' && !document.hidden && now - this.closingAt < ORDER_TARGET_SETTLE_DELAY_MS;
+      if (!showingStamp) this.endDay(this.closingReason());
       return;
     }
     if (this.screen !== 'game' || document.hidden || day.status !== 'active') {
@@ -632,6 +670,17 @@ export class DayAccountIntegrationController {
     }
     const delta = this.lastTickAt ? Math.min(1000, now - this.lastTickAt) : 0;
     this.lastTickAt = now;
+    if (day.orderTarget !== null) {
+      // C안: 시간 제한 없이 영업 시간만 기록하고, 5초마다 저장합니다.
+      const tracked = trackActiveTime(day, delta);
+      this.state.currentDayState = tracked;
+      const bucket = Math.floor(tracked.elapsedActiveMs / 5000);
+      if (bucket !== this.lastCheckpointBucket) {
+        this.lastCheckpointBucket = bucket;
+        this.persist();
+      }
+      return;
+    }
     const { day: next, timeUp } = tickDay(day, delta);
     this.state.currentDayState = next;
     if (timeUp) {
@@ -689,7 +738,7 @@ export class DayAccountIntegrationController {
 
   private goToNextDay() {
     if (!this.state) return;
-    const next = prepareNextDay(this.state.currentDayState, this.dayDurationMs);
+    const next = prepareNextDay(this.state.currentDayState, this.dayDurationMs, this.orderTarget);
     if (next === this.state.currentDayState) return;
     this.state.currentDayState = next;
     this.persist();
@@ -712,6 +761,27 @@ export class DayAccountIntegrationController {
     }
     this.refreshShell();
     if (this.screen === 'day-ready' || this.screen === 'home') this.show(this.screen);
+  }
+
+  // C안 Lab 측정 도구: 다음에 시작하는 Day의 손님 수를 2 → 3 → 5명 순서로 바꿉니다.
+  private cycleOrderTarget() {
+    const index = DAY_ORDER_TARGET_PRESETS.findIndex((value) => value === this.orderTarget);
+    this.orderTarget = DAY_ORDER_TARGET_PRESETS[(index + 1) % DAY_ORDER_TARGET_PRESETS.length];
+    try {
+      localStorage.setItem(DAY_ORDER_TARGET_SETTING_KEY, String(this.orderTarget));
+    } catch {
+      // 저장이 막혀도 현재 탭에서는 선택값을 그대로 씁니다.
+    }
+    if (this.state?.currentDayState.status === 'ready') {
+      this.state.currentDayState = createReadyDay(this.state.currentDayState.dayNumber, this.dayDurationMs, this.orderTarget);
+      this.persist();
+    }
+    this.refreshShell();
+    if (this.screen === 'day-ready' || this.screen === 'home') this.show(this.screen);
+  }
+
+  private closingReason(): DayEndReason {
+    return (this.state?.currentDayState.orderTarget ?? null) !== null ? 'order-target' : 'time-limit';
   }
 
   private async logout() {
@@ -763,13 +833,14 @@ export class DayAccountIntegrationController {
     const duration = this.parent.querySelector<HTMLButtonElement>('#day-account-duration');
     const end = this.parent.querySelector<HTMLButtonElement>('#day-account-end');
     const logout = this.parent.querySelector<HTMLButtonElement>('#day-account-logout');
-    if (label) label.textContent = SCREEN_LABELS[this.screen] + (this.repository.lastSaveError ? ' · ⚠ 저장 실패 (메모리 진행만 유지)' : '');
+    const screenLabel = this.screen === 'game' && this.mode === 'orders' ? '07 · 오늘 영업 (손님 N명)' : SCREEN_LABELS[this.screen];
+    if (label) label.textContent = screenLabel + (this.repository.lastSaveError ? ' · ⚠ 저장 실패 (메모리 진행만 유지)' : '');
     if (audio) {
       audio.textContent = this.state?.settings.bgm === false ? '♫ OFF' : '♫ ON';
       audio.disabled = !this.state;
     }
     if (duration) {
-      duration.textContent = `Day ${durationLabel(this.dayDurationMs)}`;
+      duration.textContent = this.orderTarget !== null ? `손님 ${this.orderTarget}명` : `Day ${durationLabel(this.dayDurationMs)}`;
       duration.disabled = !this.state;
     }
     if (end) end.hidden = !this.state || !['active', 'paused', 'closing'].includes(this.state.currentDayState.status);
@@ -779,6 +850,13 @@ export class DayAccountIntegrationController {
       const destination = button.dataset.dayScreen;
       button.classList.toggle('active', destination === this.screen || (destination === 'game' && ['day-ready', 'day-settlement'].includes(this.screen)));
     });
+  }
+
+  // 홈 상단에 남은 시간 대신 보여 줄 C안 손님 진행 (B안이면 undefined)
+  private dayProgressLabel() {
+    const day = this.state?.currentDayState;
+    if (!day || day.orderTarget === null) return undefined;
+    return `손님 ${Math.min(day.ordersCompleted, day.orderTarget)}/${day.orderTarget}`;
   }
 
   private dayStatusLabel() {
@@ -792,8 +870,8 @@ export class DayAccountIntegrationController {
   }
 }
 
-export function startDayAccountIntegration(parent: string) {
+export function startDayAccountIntegration(parent: string, mode: DayLimitMode = 'time') {
   const element = document.getElementById(parent);
   if (!element) throw new Error(`Day account integration parent not found: ${parent}`);
-  return new DayAccountIntegrationController(element);
+  return new DayAccountIntegrationController(element, mode);
 }

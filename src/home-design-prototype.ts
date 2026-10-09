@@ -48,6 +48,8 @@ export type HomeDesignHooks = {
   dayNumber?: number;
   dayRemainingMs?: number;
   dayStatusLabel?: string;
+  // C안처럼 시간 제한이 없는 Day는 남은 시간 대신 이 문구(예: '손님 1/3')를 표시합니다.
+  dayProgressLabel?: string;
   onPlay?: () => void;
   onCollection?: () => void;
   onShowcase?: () => void;
@@ -279,7 +281,7 @@ class WarmPixelGarageScene extends Phaser.Scene {
     if (this.hooks.dayNumber) {
       // 분 단위 Day도 표시되도록 mm:ss로 표기합니다.
       this.label(28, 18, `DAY ${this.hooks.dayNumber}`, 9, '#795044', true).setDepth(16);
-      this.label(28, 36, `${this.hooks.dayStatusLabel ?? '준비'} · ${formatDayClock(this.hooks.dayRemainingMs ?? 0)}`, 12, '#3f7851', true).setDepth(16);
+      this.label(28, 36, `${this.hooks.dayStatusLabel ?? '준비'} · ${this.hooks.dayProgressLabel ?? formatDayClock(this.hooks.dayRemainingMs ?? 0)}`, 12, '#3f7851', true).setDepth(16);
     } else if (this.hooks.progress) {
       // 에너지 시스템은 미도입(레퍼런스 결정)이므로 통합 모드에서는 납품 실적을 표시한다
       this.label(28, 20, 'DELIVERY', 8, '#795044', true).setDepth(16);

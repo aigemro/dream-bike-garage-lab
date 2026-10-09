@@ -189,3 +189,17 @@ describe('계정별 E안 작업대 저장', () => {
     expect(repository.savePlacement(PLAYER, '{}')).toBe(false);
   });
 });
+
+describe('Day 방안별 진행 분리', () => {
+  it('같은 계정이라도 C안(손님 수) 진행은 B안 진행과 따로 저장된다', () => {
+    const storage = makeStorage();
+    const timeRepo = new DayAccountRepository(storage);
+    const orderRepo = new DayAccountRepository(storage, 'order-count');
+    timeRepo.saveProgress({ ...timeRepo.loadProgress(PLAYER), coins: 9000 });
+    orderRepo.savePlacement(PLAYER, '{"version":3}');
+    expect(orderRepo.loadProgress(PLAYER).coins).toBe(2480);
+    expect(timeRepo.loadPlacement(PLAYER)).toBeNull();
+    expect(storage.store.has(`dbg-lab-day-account-progress-v1:${PLAYER}`)).toBe(true);
+    expect(storage.store.has(`dbg-lab-day-account-placement-v1-order-count:${PLAYER}`)).toBe(true);
+  });
+});

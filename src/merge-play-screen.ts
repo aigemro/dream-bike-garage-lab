@@ -77,7 +77,11 @@ export function drawHeader(scene: Phaser.Scene) {
   return scene.add.text(382, 39, '', textStyle(10, MUTED, false)).setOrigin(1, 0.5).setDepth(10);
 }
 
-export type DaySummary = { dayNumber: number; remainingMs: number; durationMs: number; earnings: number; closing: boolean };
+// orders가 있으면 C안(손님 N명 = 하루): 남은 시간 대신 '손님 2/3'과 손님 진행 막대를 보여 줍니다.
+export type DaySummary = {
+  dayNumber: number; remainingMs: number; durationMs: number; earnings: number; closing: boolean;
+  orders?: { done: number; target: number };
+};
 
 /**
  * Day 세션 헤더: 작업대 헤더와 같은 자리(60px)에 DAY 번호·남은 영업 시간(mm:ss)·오늘 수입·시간 막대를 둡니다.
@@ -104,11 +108,18 @@ export class DayHeader {
     this.fill = scene.add.rectangle(6, 56, 378, 3, GREEN).setOrigin(0, 0.5).setDepth(11);
   }
   render(day: DaySummary) {
-    const urgent = day.closing || isDayUrgent(day.remainingMs, day.durationMs);
     this.badge.setText(`DAY ${day.dayNumber}`);
+    this.income.setText(`오늘 수입  ${day.earnings.toLocaleString()} C`);
+    if (day.orders) {
+      const { done, target } = day.orders;
+      this.timer.setText(day.closing ? '마감' : `손님 ${Math.min(done, target)}/${target}`).setColor(day.closing ? CREAM_TEXT : INK);
+      this.timerPanel.setFillStyle(day.closing ? GREEN : AMBER);
+      this.fill.setScale(Phaser.Math.Clamp(done / Math.max(1, target), 0, 1), 1).setFillStyle(GREEN);
+      return;
+    }
+    const urgent = day.closing || isDayUrgent(day.remainingMs, day.durationMs);
     this.timer.setText(day.closing ? '마감' : formatDayClock(day.remainingMs)).setColor(urgent ? CREAM_TEXT : INK);
     this.timerPanel.setFillStyle(urgent ? RED : AMBER);
-    this.income.setText(`오늘 수입  ${day.earnings.toLocaleString()} C`);
     this.fill.setScale(Phaser.Math.Clamp(day.remainingMs / Math.max(1, day.durationMs), 0, 1), 1).setFillStyle(urgent ? RED : GREEN);
   }
 }

@@ -9,6 +9,7 @@ import {
   formatDayClock,
   isDayUrgent,
   normalizeDayState,
+  normalizeHistory,
   normalizeDurationMs,
   normalizeRestoredDay,
   pauseDay,
@@ -18,6 +19,7 @@ import {
   settleDay,
   startDay,
   tickDay,
+  trackActiveTime,
   type CurrentDayState,
   type DayHistoryEntry,
 } from './day-session-rules';
@@ -110,7 +112,7 @@ describe('납품 기록', () => {
 
   it('준비·정산 상태의 납품은 Day 통계에 넣지 않는다', () => {
     const ready = createReadyDay();
-    expect(recordOrderDelivery(ready, 1000)).toEqual({ day: ready, counted: false });
+    expect(recordOrderDelivery(ready, 1000)).toEqual({ day: ready, counted: false, targetReached: false });
     const settled = settleDay(activeDay(), [], { reason: 'manual-test', endedAt: T1, settlementRevision: 2 }).day;
     expect(recordOrderDelivery(settled, 1000).counted).toBe(false);
   });
@@ -212,5 +214,46 @@ describe('표기', () => {
     expect(isDayUrgent(3001, 10_000)).toBe(false);
     expect(isDayUrgent(18_000, 180_000)).toBe(true);
     expect(isDayUrgent(18_001, 180_000)).toBe(false);
+  });
+});
+
+describe('C안 · 손님 N명 = 하루 영업', () => {
+  const orderDay = (target = 3) => startDay(createReadyDay(1, DAY_DURATION_MS, target), T0);
+
+  it('Day를 시작할 때 손님 수를 고정하고, 시간 제한 없이 활성 시간만 기록한다', () => {
+    const day = orderDay(3);
+    expect(day.orderTarget).toBe(3);
+    const tracked = trackActiveTime(day, 90_000);
+    expect(tracked).toMatchObject({ status: 'active', elapsedActiveMs: 90_000, remainingMs: day.remainingMs });
+    expect(trackActiveTime(pauseDay(day, 'background'), 5000).elapsedActiveMs).toBe(0);
+  });
+
+  it('손님 수를 채운 납품에서 마감으로 넘기고, 마감 뒤 납품은 목표 도달로 다시 세지 않는다', () => {
+    let day = orderDay(2);
+    let record = recordOrderDelivery(day, 1000);
+    expect(record).toMatchObject({ counted: true, targetReached: false });
+    day = record.day;
+    record = recordOrderDelivery(day, 1400);
+    expect(record.targetReached).toBe(true);
+    expect(record.day).toMatchObject({ status: 'closing', ordersCompleted: 2, earnings: 2400 });
+    expect(canAcceptPlayInput(record.day)).toBe(false);
+    expect(recordOrderDelivery(record.day, 100).targetReached).toBe(false);
+  });
+
+  it('손님 수 도달 정산은 한 번만 적용되고 다음 Day도 같은 손님 수로 준비한다', () => {
+    const closing = recordOrderDelivery(orderDay(1), 1000).day;
+    const settled = settleDay(closing, [], { reason: 'order-target', endedAt: T1, settlementRevision: 3 });
+    expect(settled.history).toHaveLength(1);
+    expect(settled.history[0].endReason).toBe('order-target');
+    expect(settleDay(settled.day, settled.history, { reason: 'order-target', endedAt: T1, settlementRevision: 4 }).settled).toBe(false);
+    expect(prepareNextDay(settled.day)).toMatchObject({ dayNumber: 2, status: 'ready', orderTarget: 1 });
+  });
+
+  it('손님 수가 없거나 잘못된 이전 저장은 B안(시간 제한)으로, 범위 밖 값은 1~20으로 보정한다', () => {
+    expect(normalizeDayState({ ...activeDay(), orderTarget: undefined }).orderTarget).toBeNull();
+    expect(normalizeDayState({ ...activeDay(), orderTarget: 'x' }).orderTarget).toBeNull();
+    expect(normalizeDayState({ ...activeDay(), orderTarget: 99 }).orderTarget).toBe(20);
+    expect(createReadyDay(1, DAY_DURATION_MS, 0).orderTarget).toBe(1);
+    expect(normalizeHistory([{ dayNumber: 1, endReason: 'order-target' }])[0].endReason).toBe('order-target');
   });
 });
