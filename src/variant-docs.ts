@@ -75,6 +75,7 @@ import doc71 from '../docs/variants/title-loading-signboard.md?raw';
 import doc72 from '../docs/variants/mvp-release-vertical-slice.md?raw';
 import doc73 from '../docs/variants/supply-auto-placement.md?raw';
 import doc74 from '../docs/variants/day-account-active-time.md?raw';
+import docDayOrderCount from '../docs/variants/day-account-order-count.md?raw';
 import doc75 from '../docs/variants/race-side-follow.md?raw';
 import doc76 from '../docs/variants/race-lane-board.md?raw';
 import doc77 from '../docs/variants/race-hybrid-finish.md?raw';
@@ -159,6 +160,7 @@ const variantDocs: Record<string, string> = {
   'mvp-release-vertical-slice': doc72,
   'supply-auto-placement': doc73,
   'day-account-active-time': doc74,
+  'day-account-order-count': docDayOrderCount,
   'race-side-follow': doc75,
   'race-lane-board': doc76,
   'race-hybrid-finish': doc77,

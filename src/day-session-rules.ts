@@ -9,6 +9,10 @@ export const DAY_DURATION_MS = 10 * 1000;
 export const DAY_DURATION_PRESETS_MS = [10 * 1000, 60 * 1000, 3 * 60 * 1000] as const;
 const MIN_DAY_DURATION_MS = 1000;
 const MAX_DAY_DURATION_MS = 30 * 60 * 1000;
+// C안(손님 N명 = 하루 영업) 기본 손님 수와 Lab 측정용 후보
+export const DAY_ORDER_TARGET = 3;
+export const DAY_ORDER_TARGET_PRESETS = [2, 3, 5] as const;
+const MAX_DAY_ORDER_TARGET = 20;
 // 시간 종료 시점에 진행 중이던 장착·납품 처리를 마무리할 수 있도록 기다리는 최대 시간
 export const DAY_CLOSING_GRACE_MS = 3000;
 // 계정 화면·정산 이력에 보관하는 최대 Day 수
@@ -17,7 +21,9 @@ export const MAX_DAY_HISTORY = 14;
 // closing: 시간이 0이 되어 새 입력은 막고, 이미 시작된 납품 처리만 마무리하는 짧은 마감 단계
 // completed: 이전 버전에서 다음 Day 준비 직전에 잠깐 쓰던 상태 (저장 데이터 호환용)
 export type DayStatus = 'ready' | 'active' | 'paused' | 'closing' | 'settlement' | 'completed';
-export type DayEndReason = 'time-limit' | 'manual-test';
+// order-target: C안에서 오늘 받을 손님(주문 납품) 수를 채워 영업을 마침
+export type DayEndReason = 'time-limit' | 'order-target' | 'manual-test';
+const END_REASONS: DayEndReason[] = ['time-limit', 'order-target', 'manual-test'];
 export type DayPauseReason = 'background' | 'screen-navigation' | 'logout' | 'destroy' | 'restore';
 
 export type CurrentDayState = {
@@ -25,6 +31,8 @@ export type CurrentDayState = {
   status: DayStatus;
   // Day를 시작할 때 고정한 제한 시간. 진행 중에 설정을 바꿔도 현재 Day에는 영향이 없습니다.
   durationMs: number;
+  // C안: 오늘 받을 손님 수. null이면 B안(활성 시간 제한)입니다. Day를 시작할 때 고정합니다.
+  orderTarget: number | null;
   startedAt: string | null;
   elapsedActiveMs: number;
   remainingMs: number;
@@ -61,12 +69,18 @@ export function normalizeDurationMs(value: unknown, fallback = DAY_DURATION_MS):
   return Math.min(MAX_DAY_DURATION_MS, Math.max(MIN_DAY_DURATION_MS, duration));
 }
 
-export function createReadyDay(dayNumber = 1, durationMs = DAY_DURATION_MS): CurrentDayState {
+export function normalizeOrderTarget(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  return Math.min(MAX_DAY_ORDER_TARGET, Math.max(1, Math.floor(value)));
+}
+
+export function createReadyDay(dayNumber = 1, durationMs = DAY_DURATION_MS, orderTarget: number | null = null): CurrentDayState {
   const duration = normalizeDurationMs(durationMs);
   return {
     dayNumber: Math.max(1, Math.floor(dayNumber)),
     status: 'ready',
     durationMs: duration,
+    orderTarget: normalizeOrderTarget(orderTarget),
     startedAt: null,
     elapsedActiveMs: 0,
     remainingMs: duration,
@@ -79,9 +93,9 @@ export function createReadyDay(dayNumber = 1, durationMs = DAY_DURATION_MS): Cur
 }
 
 // 준비 상태의 Day만 시작합니다. 제한 시간은 시작 시점에 확정합니다.
-export function startDay(day: CurrentDayState, startedAt: string, durationMs = day.durationMs): CurrentDayState {
+export function startDay(day: CurrentDayState, startedAt: string, durationMs = day.durationMs, orderTarget = day.orderTarget): CurrentDayState {
   if (day.status !== 'ready') return day;
-  return { ...createReadyDay(day.dayNumber, durationMs), status: 'active', startedAt };
+  return { ...createReadyDay(day.dayNumber, durationMs, orderTarget), status: 'active', startedAt };
 }
 
 export type DayTickResult = { day: CurrentDayState; timeUp: boolean };
@@ -94,6 +108,12 @@ export function tickDay(day: CurrentDayState, deltaMs: number): DayTickResult {
   const next: CurrentDayState = { ...day, elapsedActiveMs: day.elapsedActiveMs + used, remainingMs };
   if (remainingMs > 0) return { day: next, timeUp: false };
   return { day: { ...next, status: 'closing', remainingMs: 0 }, timeUp: true };
+}
+
+// C안: 시간 제한 없이 활성 플레이 시간만 기록합니다 (정산 화면의 '영업 시간' 표시용).
+export function trackActiveTime(day: CurrentDayState, deltaMs: number): CurrentDayState {
+  if (day.status !== 'active' || !(deltaMs > 0)) return day;
+  return { ...day, elapsedActiveMs: day.elapsedActiveMs + deltaMs };
 }
 
 export function pauseDay(day: CurrentDayState, reason: DayPauseReason): CurrentDayState {
@@ -111,15 +131,15 @@ export function canAcceptPlayInput(day: CurrentDayState): boolean {
   return day.status === 'active';
 }
 
-export type DayOrderRecord = { day: CurrentDayState; counted: boolean };
+// targetReached: C안에서 이번 납품으로 오늘 손님 수를 채웠는지. 채우면 마감(closing)으로 넘깁니다.
+export type DayOrderRecord = { day: CurrentDayState; counted: boolean; targetReached: boolean };
 
 // 머지 코어가 확정한 납품 1건을 Day 통계에 반영합니다. 코인 지급은 호출 측이 따로 처리합니다.
 export function recordOrderDelivery(day: CurrentDayState, reward: number): DayOrderRecord {
-  if (!ORDER_RECORDING_STATUSES.includes(day.status)) return { day, counted: false };
-  return {
-    day: { ...day, ordersCompleted: day.ordersCompleted + 1, earnings: day.earnings + Math.max(0, Math.floor(numberOr(reward, 0))) },
-    counted: true,
-  };
+  if (!ORDER_RECORDING_STATUSES.includes(day.status)) return { day, counted: false, targetReached: false };
+  const next: CurrentDayState = { ...day, ordersCompleted: day.ordersCompleted + 1, earnings: day.earnings + Math.max(0, Math.floor(numberOr(reward, 0))) };
+  const targetReached = day.orderTarget !== null && day.status !== 'closing' && next.ordersCompleted >= day.orderTarget;
+  return { day: targetReached ? { ...next, status: 'closing', pauseReason: null } : next, counted: true, targetReached };
 }
 
 export type DaySettlementInput = { reason: DayEndReason; endedAt: string; settlementRevision: number };
@@ -151,9 +171,9 @@ export function settleDay(day: CurrentDayState, history: DayHistoryEntry[], inpu
 }
 
 // 정산을 확인한 뒤에만 다음 Day 번호로 넘어갑니다.
-export function prepareNextDay(day: CurrentDayState, durationMs = day.durationMs): CurrentDayState {
+export function prepareNextDay(day: CurrentDayState, durationMs = day.durationMs, orderTarget = day.orderTarget): CurrentDayState {
   if (day.status !== 'settlement' && day.status !== 'completed') return day;
-  return createReadyDay(day.dayNumber + 1, durationMs);
+  return createReadyDay(day.dayNumber + 1, durationMs, orderTarget);
 }
 
 // 저장된 Day를 다시 열 때의 안전 규칙.
@@ -162,7 +182,7 @@ export function prepareNextDay(day: CurrentDayState, durationMs = day.durationMs
 // - closing: 마감 중 종료된 경우이며, 호출 측이 바로 시간 종료 정산을 적용합니다.
 export function normalizeRestoredDay(day: CurrentDayState): CurrentDayState {
   if (day.status === 'active') return { ...day, status: 'paused', pauseReason: 'restore' };
-  if (day.status === 'completed') return createReadyDay(day.dayNumber + 1, day.durationMs);
+  if (day.status === 'completed') return createReadyDay(day.dayNumber + 1, day.durationMs, day.orderTarget);
   return day;
 }
 
@@ -175,13 +195,14 @@ export function normalizeDayState(value: unknown, fallback: CurrentDayState = cr
     dayNumber: Math.max(1, Math.floor(numberOr(day.dayNumber, fallback.dayNumber))),
     status,
     durationMs,
+    orderTarget: normalizeOrderTarget(day.orderTarget),
     startedAt: typeof day.startedAt === 'string' ? day.startedAt : null,
     elapsedActiveMs: Math.max(0, numberOr(day.elapsedActiveMs, fallback.elapsedActiveMs)),
     remainingMs: Math.min(durationMs, Math.max(0, numberOr(day.remainingMs, durationMs))),
     pauseReason: PAUSE_REASONS.includes(day.pauseReason as DayPauseReason) ? day.pauseReason as DayPauseReason : null,
     ordersCompleted: Math.max(0, Math.floor(numberOr(day.ordersCompleted, 0))),
     earnings: Math.max(0, Math.floor(numberOr(day.earnings, 0))),
-    endReason: day.endReason === 'time-limit' || day.endReason === 'manual-test' ? day.endReason : null,
+    endReason: END_REASONS.includes(day.endReason as DayEndReason) ? day.endReason as DayEndReason : null,
     settlementRevision: typeof day.settlementRevision === 'number' && Number.isFinite(day.settlementRevision) ? day.settlementRevision : null,
   };
 }
@@ -199,7 +220,7 @@ export function normalizeHistoryEntry(value: unknown): DayHistoryEntry | null {
     elapsedActiveMs: Math.max(0, numberOr(entry.elapsedActiveMs, 0)),
     ordersCompleted: Math.max(0, Math.floor(numberOr(entry.ordersCompleted, 0))),
     earnings: Math.max(0, Math.floor(numberOr(entry.earnings, 0))),
-    endReason: entry.endReason === 'time-limit' || entry.endReason === 'manual-test' ? entry.endReason : 'manual-test',
+    endReason: END_REASONS.includes(entry.endReason as DayEndReason) ? entry.endReason as DayEndReason : 'manual-test',
     settlementRevision: Math.max(0, Math.floor(numberOr(entry.settlementRevision, 0))),
   };
 }
