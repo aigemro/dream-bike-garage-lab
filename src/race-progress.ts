@@ -42,6 +42,9 @@ export type RaceMeta = {
   // 1·2·3위 상금. 그 외 순위는 완주 수당만 받습니다.
   rankRewards: number[];
   finishReward: number;
+  // 대회 등급별 상대 속도(#267). 없으면 기본 밴드(20.5~29.5)를 씁니다.
+  npcSpeedMin?: number;
+  npcSpeedSpan?: number;
 };
 
 // 참가비 500 = 첫 주문 급여(1000)의 절반. 하위권이면 참가비 손해 → 자전거 성장 동기.
@@ -148,6 +151,8 @@ export type RaceSimulationInput = {
   playerCategory?: BikeCategory;
   playerFrameColor?: number;
   meta?: RaceMeta;
+  // 코스 상성 등 대회 밖 규칙이 주는 속도 보정(#267). 없으면 0
+  playerSpeedBonus?: number;
 };
 
 export type RacerResult = {
@@ -188,7 +193,7 @@ export function simulateRace(input: RaceSimulationInput): RaceResult {
       isPlayer: true,
       category: input.playerCategory ?? 'road',
       frameColor: input.playerFrameColor ?? 0xc95746,
-      speedScore: racerSpeedScore(input.playerStats),
+      speedScore: racerSpeedScore(input.playerStats) + (input.playerSpeedBonus ?? 0),
       distance: 0, finishTimeMs: null, timeline: [0],
     },
     ...NPC_PROFILES.slice(0, meta.racerCount - 1).map((profile, index) => ({
@@ -197,7 +202,7 @@ export function simulateRace(input: RaceSimulationInput): RaceResult {
       isPlayer: false,
       category: profile.category,
       frameColor: profile.frameColor,
-      speedScore: NPC_SPEED_MIN + random() * NPC_SPEED_SPAN,
+      speedScore: (meta.npcSpeedMin ?? NPC_SPEED_MIN) + random() * (meta.npcSpeedSpan ?? NPC_SPEED_SPAN),
       distance: 0, finishTimeMs: null as number | null, timeline: [0],
     })),
   ];

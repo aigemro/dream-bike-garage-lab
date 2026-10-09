@@ -1,0 +1,10 @@
+/* 대회 시즌 체험 화면 (#267) · 주문 풀 화면(order-pool.css)의 틀을 함께 씁니다. */
+#game-root.demo-race-season { width: 100%; height: auto; min-height: 0; overflow: auto; }
+.rs-help { margin: 0 0 6px; color: #7b5140; font-size: 11px; }
+.rs-table-wrap { overflow-x: auto; }
+.rs-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.rs-table th, .rs-table td { padding: 4px 6px; border-bottom: 1px solid #c9a46a; text-align: left; vertical-align: top; }
+.rs-table th { background: #8e5136; color: #fff1c6; white-space: nowrap; }
+.rs-table em { font-style: normal; color: #3f7851; }
+.rs-table tr.rs-uncertain { background: #ffe6a8; }
+.rs-table td.rs-win { color: #3f7851; font-weight: 700; }

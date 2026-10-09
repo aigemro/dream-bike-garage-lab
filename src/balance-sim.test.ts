@@ -120,10 +120,10 @@ describe('대회 확률', () => {
 });
 
 describe('보고서', () => {
-  it('표 8개를 만들고 같은 옵션이면 같은 내용이다', () => {
+  it('표 9개를 만들고 같은 옵션이면 같은 내용이다', () => {
     const options = { workbenchRuns: 3, workbenchOrders: 6, realtimeRuns: 1, realDays: 2 };
     const report = buildBalanceReport(options);
-    expect(report.match(/^### 표 \d/gm)).toHaveLength(8);
+    expect(report.match(/^### 표 \d/gm)).toHaveLength(9);
     expect(buildBalanceReport(options)).toBe(report);
   }, 60_000);
 });
