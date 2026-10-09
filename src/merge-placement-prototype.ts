@@ -15,6 +15,11 @@ import {
 } from './energy-refill';
 import { EnergyRefillPanel, type RestTarget } from './energy-refill-panel';
 import {
+  TUTORIAL_LABELS, advanceTutorial, allowsAction, classifyMiss, contextualHint, createTutorial, currentStep, tutorialSteps,
+  type MissKind, type TutorialAction, type TutorialEvent, type TutorialMode, type TutorialProgress,
+} from './first-shift-tutorial';
+import { TutorialOverlay } from './first-shift-tutorial-overlay';
+import {
   applyRescue, isStuck, localDate, parseRescueRecord, recommendMerge, rescueRemaining, shouldShowHint, useRescue, RESCUE_PER_DAY,
   type RescueRecord,
 } from './merge-assist';
@@ -62,7 +67,7 @@ export type PlacementRefillLink = {
  * 정리 횟수는 작업대 저장과 따로 `${KEY}-rescue`에 기기 날짜 기준으로 저장합니다.
  */
 export type PlacementAssist = 'hint' | 'rescue';
-type SceneHooks = DemoHooks & { day?: PlacementDayLink; assist?: PlacementAssist; rescueKey?: string };
+type SceneHooks = DemoHooks & { day?: PlacementDayLink; assist?: PlacementAssist; rescueKey?: string; tutorial?: TutorialMode };
 
 class MergePlacementScene extends Phaser.Scene {
   private s!: State;
@@ -73,6 +78,16 @@ class MergePlacementScene extends Phaser.Scene {
   private lastInputAt = 0;
   private rescueRecord: RescueRecord | null = null;
   private refillPanel!: EnergyRefillPanel;
+  // 첫 영업 튜토리얼(#265) 상태와 측정값
+  private tutorial?: TutorialProgress;
+  private tutorialOverlay?: TutorialOverlay;
+  private tutorialStartedAt = 0;
+  private firstDeliveryMs: number | null = null;
+  private wrongTaps = 0;
+  private hintsShown = 0;
+  private tutorialSkipped = false;
+  private misses: Record<MissKind, number> = { 'empty-move': 0, 'not-adjacent': 0, mismatch: 0 };
+  private shownHints = new Set<string>();
   private accelerated = false;
   private accelTicks = 0;
   private alive = false;
@@ -109,7 +124,8 @@ class MergePlacementScene extends Phaser.Scene {
     this.motion = new Motion(this, window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true);
     this.audio.setEnabled(false, true); // 랩 체험은 효과음만 사용합니다.
     const raw = this.hooks.load();
-    this.s = raw === null && this.hooks.day ? fresh(Date.now(), this.hooks.day.initialOrder) : restore(raw, Date.now());
+    // 튜토리얼 방안은 열 때마다 첫 영업(시작 보드·첫 주문)부터 다시 시작합니다.
+    this.s = this.hooks.tutorial ? fresh(Date.now()) : raw === null && this.hooks.day ? fresh(Date.now(), this.hooks.day.initialOrder) : restore(raw, Date.now());
     this.syncView();
     drawBackdrop(this);
     if (this.hooks.day) {
@@ -127,6 +143,7 @@ class MergePlacementScene extends Phaser.Scene {
     this.lastInputAt = this.time.now;
     this.rescueRecord = this.loadRescue();
     this.refillPanel = new EnergyRefillPanel(this);
+    if (this.hooks.tutorial) this.tutorialOverlay = new TutorialOverlay(this, this.motion.reduced);
     this.info = new InfoLine(this, () => this.deselect());
     this.drawShelf();
     this.input.on('pointermove', this.onMove, this);
@@ -143,6 +160,7 @@ class MergePlacementScene extends Phaser.Scene {
         ? '영업 시작! 점선 칸이 다음 입고 자리예요. 맞닿은 같은 부품을 눌러 합성하세요.'
         : '점선 칸이 다음 입고 자리예요. 상하좌우로 맞닿은 같은 부품을 눌러 합성하세요.');
     this.showStuckNotice();
+    this.startTutorial();
     this.changed();
   }
 
@@ -184,6 +202,7 @@ class MergePlacementScene extends Phaser.Scene {
     this.selected = NONE; this.syncView(); this.persist(); this.renderAll();
     this.rescueRecord = null;
     this.saveRescue();
+    this.startTutorial();
     this.info.set('E안 첫 주문을 시작합니다. 점선 칸이 다음 입고 자리예요.');
     this.changed();
   }
@@ -296,7 +315,7 @@ class MergePlacementScene extends Phaser.Scene {
   // ── 입력: 탭 선택 → 대상 탭 (게임 화면 B안과 동일), 드래그 놓기도 같은 규칙 ──
   private onDown(index: number, pointer: Phaser.Input.Pointer) {
     this.markInput();
-    if (this.drag || this.inputLocked()) return;
+    if (this.drag || this.inputLocked() || !this.tutorialAllows({ type: 'cell', index })) return;
     this.drag = { from: index, x: pointer.x, y: pointer.y, dragging: false, hover: NONE };
   }
 
@@ -323,9 +342,18 @@ class MergePlacementScene extends Phaser.Scene {
     const drag = this.drag;
     if (!drag) return;
     this.clearDrag(drag);
-    this.apply(drag.dragging
-      ? resolveDrop(this.s, drag.from, cellAt(pointer.x, pointer.y))
-      : resolveTap(this.s, this.selected, drag.from));
+    const to = cellAt(pointer.x, pointer.y);
+    const before = this.selected;
+    const outcome = drag.dragging ? resolveDrop(this.s, drag.from, to) : resolveTap(this.s, before, drag.from);
+    if (this.hooks.tutorial && !outcome.merge) {
+      // 합성이 안 된 탭·드롭을 기록해 C안 힌트와 측정에 씁니다.
+      const miss = drag.dragging ? (to === NONE ? null : classifyMiss(this.s, drag.from, to)) : before === NONE ? null : classifyMiss(this.s, before, drag.from);
+      if (miss) { this.misses[miss] += 1; this.wrongTaps += 1; }
+      else if (outcome.tone === 'error') this.wrongTaps += 1;
+    }
+    this.apply(outcome);
+    if (this.hooks.tutorial) this.changed(); // LAB 도구의 잘못된 탭 수를 바로 갱신합니다.
+    if (this.hooks.tutorial === 'contextual') this.maybeContextHint();
   }
 
   private cancelDrag() { if (this.drag) this.clearDrag(this.drag); }
@@ -357,7 +385,7 @@ class MergePlacementScene extends Phaser.Scene {
   // ── 행동 ──
   private onSupply() {
     this.markInput();
-    if (this.inputLocked()) return;
+    if (this.inputLocked() || !this.tutorialAllows({ type: 'box' })) return;
     this.cancelDrag();
     recover(this.s, Date.now());
     if (this.rescueMode() && isStuck(this.s)) { this.onRescue(); return; }
@@ -379,6 +407,7 @@ class MergePlacementScene extends Phaser.Scene {
   }
 
   private performMerge(from: number, to: number) {
+    if (!this.tutorialAllows({ type: 'merge', from, to })) { this.selected = NONE; this.renderHighlights(); return; }
     const result = drop(this.s, from, to);
     if (!result) return;
     this.selected = NONE;
@@ -408,7 +437,7 @@ class MergePlacementScene extends Phaser.Scene {
 
   private onUndo() {
     this.markInput();
-    if (this.inputLocked()) return;
+    if (this.inputLocked() || !this.tutorialAllows({ type: 'tool' })) return;
     this.cancelDrag();
     if (!undo(this.s)) {
       this.say('되돌릴 행동이 없어요. 새 상자를 열면 되돌리기 기록이 지워져요.', 'error');
@@ -423,7 +452,7 @@ class MergePlacementScene extends Phaser.Scene {
 
   private onReturn() {
     this.markInput();
-    if (this.inputLocked()) return;
+    if (this.inputLocked() || !this.tutorialAllows({ type: 'tool' })) return;
     this.cancelDrag();
     const part = this.selected === NONE ? null : this.s.board[this.selected];
     if (!part) {
@@ -457,6 +486,7 @@ class MergePlacementScene extends Phaser.Scene {
     this.renderShelf();
     this.info.set(this.describe(events));
     this.showStuckNotice();
+    this.tutorialOnEvents(events);
     if (this.hooks.day?.refill && isEnergyEmpty(this.s)) this.info.set('알바 체력이 바닥났어요. 부품 상자 버튼을 눌러 충전 방법을 확인하세요.', 'error');
     this.enqueue(events);
     this.changed();
@@ -603,6 +633,7 @@ class MergePlacementScene extends Phaser.Scene {
     if (before !== this.s.energy) { this.persist(); this.changed(); }
     this.renderShelf();
     this.maybeHint();
+    if (this.hooks.tutorial === 'contextual') this.maybeContextHint();
   }
 
   private say(message: string, tone: Tone = 'info') {
@@ -612,7 +643,103 @@ class MergePlacementScene extends Phaser.Scene {
   private persist() { return this.hooks.save(JSON.stringify(this.s)); }
   private syncView() { this.view = { order: this.s.order, installed: [...this.s.installed], coins: this.s.coins }; }
   private changed() {
-    this.hooks.onChange?.(`공급 ${this.s.supplied} · 합성 ${this.s.merges} · 반품 ${this.s.returned} · 납품 ${this.s.order} · 무료 상자 사용 ${this.s.freeUsed}`);
+    const base = `공급 ${this.s.supplied} · 합성 ${this.s.merges} · 반품 ${this.s.returned} · 납품 ${this.s.order} · 무료 상자 사용 ${this.s.freeUsed}`;
+    this.hooks.onChange?.(this.hooks.tutorial ? `${base} · ${this.tutorialMetrics()}` : base);
+  }
+
+  // ── 첫 영업 튜토리얼 (#265) ──
+  private startTutorial() {
+    if (!this.hooks.tutorial) return;
+    this.tutorial = createTutorial(this.hooks.tutorial);
+    this.tutorialStartedAt = this.time.now;
+    this.firstDeliveryMs = null;
+    this.wrongTaps = 0;
+    this.hintsShown = 0;
+    this.tutorialSkipped = false;
+    this.misses = { 'empty-move': 0, 'not-adjacent': 0, mismatch: 0 };
+    this.shownHints.clear();
+    this.renderTutorial();
+  }
+
+  private tutorialMetrics() {
+    const delivery = this.firstDeliveryMs === null ? '첫 납품 전' : `첫 납품 ${(this.firstDeliveryMs / 1000).toFixed(1)}초`;
+    const misses = `빈칸 이동 ${this.misses['empty-move']} · 떨어진 쌍 ${this.misses['not-adjacent']} · 다른 부품 ${this.misses.mismatch}`;
+    return `튜토리얼 ${TUTORIAL_LABELS[this.hooks.tutorial!]} · ${delivery} · 잘못된 탭 ${this.wrongTaps}(${misses}) · 힌트 ${this.hintsShown}${this.tutorialSkipped ? ' · 건너뜀' : ''}`;
+  }
+
+  private tutorialAllows(action: TutorialAction) {
+    if (!this.tutorial || allowsAction(this.tutorial, action)) return true;
+    this.wrongTaps += 1;
+    this.cancelDrag();
+    this.say(this.tutorial.mode === 'guided' ? '지금은 반짝이는 곳만 누를 수 있어요. 안내를 따라 해 보세요.' : '안내를 끝까지 보거나 건너뛰면 작업대를 쓸 수 있어요.', 'error');
+    this.changed();
+    return false;
+  }
+
+  private tutorialAdvance(event: TutorialEvent) {
+    if (!this.tutorial || this.tutorial.done) return;
+    const before = this.tutorial.step;
+    this.tutorial = advanceTutorial(this.tutorial, event);
+    if (event.type === 'skip') this.tutorialSkipped = true;
+    if (this.tutorial.step !== before || this.tutorial.done) this.renderTutorial();
+  }
+
+  private tutorialOnEvents(events: ProgressEvent[]) {
+    if (!this.hooks.tutorial) return;
+    for (const event of events) {
+      if (event.type === 'merged') this.tutorialAdvance({ type: 'merge', from: event.from, to: event.to });
+      if (event.type === 'placed') this.tutorialAdvance({ type: 'box' });
+      if (event.type === 'delivered') {
+        if (this.firstDeliveryMs === null) this.firstDeliveryMs = this.time.now - this.tutorialStartedAt;
+        this.tutorialAdvance({ type: 'deliver' });
+      }
+    }
+  }
+
+  private renderTutorial() {
+    if (!this.tutorial || !this.tutorialOverlay) return;
+    const step = currentStep(this.tutorial);
+    if (!step) {
+      this.tutorialOverlay.hide();
+      if (this.hooks.tutorial !== 'contextual') {
+        this.info.set(this.tutorialSkipped ? '안내를 건너뛰었어요. 맞닿은 같은 부품을 차례로 눌러 합치세요.' : '안내 끝! 이제 직접 영업을 이어 가 보세요.');
+      }
+      this.changed();
+      return;
+    }
+    this.tutorialOverlay.show(step, {
+      index: this.tutorial.step,
+      total: tutorialSteps(this.tutorial.mode).length,
+      readOnly: this.tutorial.mode === 'static' || step.advance.on === 'next',
+      onNext: () => { this.sfx('tap'); this.tutorialAdvance({ type: 'next' }); },
+      onSkip: () => { this.sfx('tap'); this.tutorialAdvance({ type: 'skip' }); },
+    });
+    this.changed();
+  }
+
+  // C안: 무입력·반복 실수 때만 한 줄 힌트. 같은 힌트는 한 번만 보여 줍니다.
+  private maybeContextHint() {
+    if (!this.alive || this.drag || this.hintShown) return;
+    const hint = contextualHint(this.s, {
+      idleMs: this.time.now - this.lastInputAt,
+      untouched: this.s.merges === 0 && this.s.supplied === 0,
+      misses: this.misses,
+      boxesOpened: this.s.supplied,
+    }, this.shownHints);
+    if (!hint) return;
+    this.shownHints.add(hint.id);
+    this.hintsShown += 1;
+    if (hint.cells) {
+      this.hintShown = true;
+      this.hintGfx.clear().setAlpha(1);
+      for (const index of hint.cells) {
+        const at = cellCenter(index);
+        this.hintGfx.lineStyle(4, AMBER, 1).strokeRect(at.x - 25, at.y - 25, 50, 50);
+      }
+      if (!this.motion.reduced) this.tweens.add({ targets: this.hintGfx, alpha: { from: 1, to: 0.3 }, duration: 520, yoyo: true, repeat: -1 });
+    }
+    this.info.set(`💡 ${hint.text}`);
+    this.changed();
   }
   private sfx(event: ReleaseSfxEvent) {
     if (this.hooks.day) this.hooks.day.onSfx(event);
@@ -670,14 +797,17 @@ class MergePlacementScene extends Phaser.Scene {
 /**
  * E v3 체험 화면을 시작합니다. toolsId가 있으면 그 요소에 랩 테스트 도구(체력 충전·가속·초기화)를 그립니다.
  */
-export function startMergePlacement(parent: string, toolsId?: string, assist?: PlacementAssist): MergeDemoHandle {
-  // 보조 방안은 기준선(E v3)과 진행이 섞이지 않도록 저장 키를 나눕니다.
-  const key = assist ? `${KEY}-${assist}` : KEY;
-  const label = assist === 'hint' ? 'E안 합성 추천' : assist === 'rescue' ? 'E안 막힘 구제' : 'E안';
+export type PlacementDemoOptions = { assist?: PlacementAssist; tutorial?: TutorialMode };
+
+export function startMergePlacement(parent: string, toolsId?: string, options: PlacementDemoOptions = {}): MergeDemoHandle {
+  const { assist, tutorial } = options;
+  // 보조·튜토리얼 방안은 기준선(E v3)과 진행이 섞이지 않도록 저장 키를 나눕니다.
+  const key = tutorial ? `${KEY}-tutorial-${tutorial}` : assist ? `${KEY}-${assist}` : KEY;
+  const label = tutorial ? `첫 영업 ${TUTORIAL_LABELS[tutorial]}` : assist === 'hint' ? 'E안 합성 추천' : assist === 'rescue' ? 'E안 막힘 구제' : 'E안';
   return launchMergeDemo({
     parent, toolsId, key, resetLabel: label,
-    saveLabel: assist ? `${label} 자동 저장 · 기준선 E v3와 별도 진행` : 'E안 자동 저장 · 기존 v1·v2 진행 이전 지원',
-    createScene: (hooks) => new MergePlacementScene({ ...hooks, assist, rescueKey: `${key}-rescue` }),
+    saveLabel: tutorial ? `${label} · 열 때마다 첫 영업부터 다시 시작` : assist ? `${label} 자동 저장 · 기준선 E v3와 별도 진행` : 'E안 자동 저장 · 기존 v1·v2 진행 이전 지원',
+    createScene: (hooks) => new MergePlacementScene({ ...hooks, assist, tutorial, rescueKey: `${key}-rescue` }),
   });
 }
 
