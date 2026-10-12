@@ -11,6 +11,7 @@
     "sim": "node scripts/balance-sim.mjs"
   },
   "dependencies": {
+    "@apps-in-toss/web-framework": "^3.8.0",
     "phaser": "^3.90.0"
   },
   "devDependencies": {
