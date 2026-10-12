@@ -406,3 +406,7 @@ flowchart LR
 ---
 
 관련 문서: [실험 운영 가이드](EXPERIMENT_GUIDE.md) · [기술 구성](TECH_STACK.md) · [프로젝트 역할 경계](PROJECT_BOUNDARY.md)
+
+## 2026-10-12 광고 SDK 검증 추가
+
+체력 소진 A/B/C(#263)에 가짜 광고/토스 테스트 광고 전환을 추가했다. 기술 이슈 #275, 메인 aigemro/dream-bike-garage#92 연결. 자동 검증 완료, 토스 실기기 검증 대기. [실행·한계](variants/rewarded-ad-sdk.md).

@@ -611,7 +611,7 @@ function renderDemo(track: Track, variant: Variant) {
     || variant.systemDemo || variant.storageDemo || variant.boardSizeDemo || variant.coreLoopDemo
     || variant.releaseIntegrationDemo || variant.dayAccountDemo || variant.raceDemo || variant.raceCinematicDemo || variant.imageDemo);
   const demoLabel = variant.raceSeasonDemo ? '주문 풀 A안 성장 + 5 Day마다 대회 · 60 Day 시즌 · 출전 전 확률·결과 기록' : variant.orderPoolDemo ? '작업대 생략 · 납품 버튼으로 진행 · 도감 24대 해금 현황 · 급여 자동 제작·강화' : variant.placementTutorial ? `390×810 · E v3 작업대 · 첫 영업 튜토리얼 ${variant.label} · 열 때마다 처음부터 · LAB 도구에 측정값` : variant.placementAssist ? `390×810 · E v3 작업대 · ${variant.placementAssist === 'hint' ? '합성 추천(빈칸 6칸 이하·8초 무입력)' : '막힘 구제(하루 1회 정리)'}` : variant.placementDemo ? '390×810 · 게임 화면 B안 정렬 · 가운데→바깥 예정 입고 · 인접 합성 · 연쇄 보너스' : variant.intakeDemo ? '390×810 · 게임 화면 B안 정렬 · 가운데→바깥 입고 · 자유 이동 · 직접 장착' : variant.raceDemo || variant.raceCinematicDemo ? '동일 시뮬레이션·시드 재현 · 참가비 500 · 390×810'
-    : variant.refillDemo ? `Day C안 · 체력 소진 흐름 ${variant.label} · Lab 가짜 광고 · [Lab · 체력 0]으로 바로 확인`
+    : variant.refillDemo ? `Day C안 · 체력 소진 흐름 ${variant.label} · 광고 어댑터 비교 · [Lab · 체력 0]으로 바로 확인`
     : variant.dayAccountDemo === 'order-count-day' ? '테스트 계정 A/B · 주문 N건 = 하루 · 체력 단일 제한 · E v3 작업대'
     : variant.dayAccountDemo ? '테스트 계정 A/B · 활성 플레이 시간 · E v3 작업대 · 계정별 자동 저장'
     : variant.releaseIntegrationDemo ? '선택 디자인·오디오·저장 상태 통합 · 390×810'

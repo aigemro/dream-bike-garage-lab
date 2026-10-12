@@ -1,3 +1,4 @@
+import { createTossTestAdapter } from './rewarded-ad-adapter';
 import Phaser from 'phaser';
 import { BrowserMockAuthProvider, type AuthProvider, type AuthSession } from './auth-provider';
 import { DayAccountRepository, type DayAccountProgress, type GameProfile } from './day-account-state';
@@ -139,6 +140,9 @@ export class DayAccountIntegrationController {
   private collection: CollectionProgress | null = null;
   private growth: GrowthProgress | null = null;
   private screen: DayAccountScreen = 'account';
+  private adBusy = false;
+  private adResumePending = false;
+  private readonly adAdapter = new URLSearchParams(location.search).get('rewardedAd') === 'toss-test' ? createTossTestAdapter() : undefined;
   private lastTickAt = 0;
   private lastCheckpointBucket = -1;
   private dayDurationMs = loadDayDurationSetting();
@@ -219,12 +223,12 @@ export class DayAccountIntegrationController {
     this.parent.innerHTML = `
       <section class="release-integration-shell day-account-shell">
         <header class="release-flow-header day-account-header">
-          <div><span>LAB TEST CONTROLS</span><strong id="day-account-screen-label"></strong></div>
+          <div><span>LAB TEST CONTROLS · ${this.adAdapter ? "토스 테스트 광고" : "가짜 광고"}</span><strong id="day-account-screen-label"></strong></div>
           <div class="release-state day-account-state">
             <button id="day-account-audio" type="button"></button>
             <button id="day-account-duration" type="button" title="다음에 시작하는 Day의 제한 시간 또는 주문 수 (Lab 측정용)"></button>
             <button id="day-account-end" type="button">Lab · Day 종료</button>
-            ${this.refill ? '<button id="day-account-drain" type="button" title="작업대 체력을 0으로 만들어 소진 흐름을 바로 확인합니다 (Lab 측정용)">Lab · 체력 0</button>' : ''}
+            ${this.refill ? '<button id="day-account-ad-mode" type="button">광고 방식 전환</button><button id="day-account-drain" type="button" title="작업대 체력을 0으로 만들어 소진 흐름을 바로 확인합니다 (Lab 측정용)">Lab · 체력 0</button>' : ''}
             <button id="day-account-logout" type="button">로그아웃</button>
           </div>
         </header>
@@ -257,6 +261,12 @@ export class DayAccountIntegrationController {
       this.endDay('manual-test');
     });
     this.parent.querySelector<HTMLButtonElement>('#day-account-logout')?.addEventListener('click', () => void this.logout());
+    this.parent.querySelector<HTMLButtonElement>('#day-account-ad-mode')?.addEventListener('click', () => {
+      const url = new URL(location.href);
+      if (this.adAdapter) url.searchParams.delete('rewardedAd');
+      else url.searchParams.set('rewardedAd', 'toss-test');
+      location.assign(url.href);
+    });
     this.parent.querySelector<HTMLButtonElement>('#day-account-drain')?.addEventListener('click', () => this.drainEnergyForTest());
   }
 
@@ -352,6 +362,17 @@ export class DayAccountIntegrationController {
         onSfx: (event) => this.play(event),
         refill: this.refill ? {
           mode: this.refill,
+          adapter: this.adAdapter,
+          onAdBusy: (busy) => {
+            this.adBusy = busy;
+            if (busy) { this.pauseCurrentDay('screen-navigation'); this.audio.setEnabled(false, false); }
+            else {
+              if (!document.hidden && this.screen === 'game') this.resumeCurrentDay();
+              else this.adResumePending = true;
+              this.audio.setEnabled(this.state?.settings.bgm ?? true, this.state?.settings.sfx ?? true);
+            }
+            this.parent.querySelectorAll<HTMLButtonElement>('button').forEach((button) => { button.disabled = busy; });
+          },
           loadRecord: () => parseRefillRecord(this.repository.loadRefill(playerId)),
           saveRecord: (record) => this.repository.saveRefill(playerId, JSON.stringify(record)),
           onRest: (target) => this.show(target),
@@ -681,6 +702,7 @@ export class DayAccountIntegrationController {
   }
 
   private tickDay() {
+    if (this.adBusy) return;
     const now = performance.now();
     if (!this.state) {
       this.lastTickAt = now;
@@ -828,6 +850,11 @@ export class DayAccountIntegrationController {
   }
 
   private handleVisibilityChange() {
+    if (this.adBusy) return;
+    if (!document.hidden && this.adResumePending) {
+      this.adResumePending = false;
+      if (this.screen === 'game') this.resumeCurrentDay();
+    }
     if (document.hidden) this.pauseCurrentDay('background');
     else if (this.screen === 'game' && this.state?.currentDayState.status === 'paused' && this.state.currentDayState.pauseReason === 'background') this.resumeCurrentDay();
   }

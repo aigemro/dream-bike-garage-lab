@@ -61,6 +61,7 @@ export type PlacementRefillLink = {
   onRest(target: RestTarget): void;
   onHome(): void;
   adapter?: RewardedAdAdapter;
+  onAdBusy?(busy: boolean): void;
 };
 /**
  * 막힘 완화 보조(#264). hint: B안 합성 추천, rescue: C안 막힘 구제(하루 1회 정리).
@@ -91,6 +92,7 @@ class MergePlacementScene extends Phaser.Scene {
   private accelerated = false;
   private accelTicks = 0;
   private alive = false;
+  private adBusy = false;
   private generation = 0;
   private queue: Promise<void> = Promise.resolve();
   private view = { order: 0, installed: [false, false, false, false], coins: 0 };
@@ -170,6 +172,7 @@ class MergePlacementScene extends Phaser.Scene {
 
   // Day 마감·일시정지 중에는 새 입력을 받지 않습니다.
   private inputLocked() {
+    if (this.adBusy) return true;
     if (!this.hooks.day?.isInputLocked()) return false;
     this.cancelDrag();
     this.say('영업 시간이 끝났어요. 오늘 정산을 준비하고 있어요.', 'error');
@@ -497,7 +500,7 @@ class MergePlacementScene extends Phaser.Scene {
   // ── 체력 소진 흐름 (#263) ──
   private openRefill() {
     const refill = this.hooks.day?.refill;
-    if (!refill || this.refillPanel.open) return;
+    if (!refill || this.refillPanel.open || this.adBusy) return;
     this.cancelDrag();
     this.sfx('tap');
     const now = Date.now();
@@ -518,9 +521,18 @@ class MergePlacementScene extends Phaser.Scene {
 
   private async watchAd() {
     const refill = this.hooks.day?.refill;
-    if (!refill) return;
+    if (!refill || this.adBusy || refillStatus(refill.mode, refill.loadRecord(), localDate()).adsLeft < 1) return;
+    this.adBusy = true;
+    this.persist();
+    refill.onAdBusy?.(true);
     this.refillPanel.hide();
-    const result = refill.adapter ? await refill.adapter.requestRewardedAd() : await this.refillPanel.showMockAd();
+    let result: import('./energy-refill').RewardedAdResult = 'failed';
+    try { result = refill.adapter ? await refill.adapter.requestRewardedAd() : await this.refillPanel.showMockAd(); }
+    catch { result = 'failed'; }
+    finally {
+      this.adBusy = false;
+      if (this.alive) refill.onAdBusy?.(false);
+    }
     if (!this.alive) return;
     const claim = claimAdRefill(refill.mode, refill.loadRecord(), localDate(), result);
     refill.saveRecord(claim.record);
